@@ -54,17 +54,17 @@ export default function Dashboard() {
             </div>
             
             <div className="flex gap-3">
-              <div className="group text-center px-6 py-3 bg-emerald-500/10 rounded-xl border border-emerald-500/30 hover:border-emerald-400/50 transition-all duration-300 hover:scale-105">
+              <div className="group text-center px-6 py-3 bg-gradient-to-br from-emerald-500/15 to-emerald-600/5 rounded-xl border border-emerald-500/40 hover:border-emerald-400/60 transition-all duration-300 hover:scale-105 shadow-lg shadow-emerald-500/5">
                 <div className="text-3xl font-bold text-emerald-400">{stats.bullish}</div>
-                <div className="text-xs text-emerald-400/70 font-medium">Bullish</div>
+                <div className="text-xs text-emerald-300 font-medium uppercase tracking-wide">Bullish</div>
               </div>
-              <div className="group text-center px-6 py-3 bg-rose-500/10 rounded-xl border border-rose-500/30 hover:border-rose-400/50 transition-all duration-300 hover:scale-105">
+              <div className="group text-center px-6 py-3 bg-gradient-to-br from-rose-500/15 to-rose-600/5 rounded-xl border border-rose-500/40 hover:border-rose-400/60 transition-all duration-300 hover:scale-105 shadow-lg shadow-rose-500/5">
                 <div className="text-3xl font-bold text-rose-400">{stats.bearish}</div>
-                <div className="text-xs text-rose-400/70 font-medium">Bearish</div>
+                <div className="text-xs text-rose-300 font-medium uppercase tracking-wide">Bearish</div>
               </div>
-              <div className="group text-center px-6 py-3 bg-slate-500/10 rounded-xl border border-slate-500/30 hover:border-slate-400/50 transition-all duration-300 hover:scale-105">
+              <div className="group text-center px-6 py-3 bg-gradient-to-br from-slate-500/15 to-slate-600/5 rounded-xl border border-slate-500/40 hover:border-slate-400/60 transition-all duration-300 hover:scale-105 shadow-lg shadow-slate-500/5">
                 <div className="text-3xl font-bold text-slate-300">{stats.neutral}</div>
-                <div className="text-xs text-slate-400 font-medium">Neutral</div>
+                <div className="text-xs text-slate-300 font-medium uppercase tracking-wide">Neutral</div>
               </div>
             </div>
           </div>
