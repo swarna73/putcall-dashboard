@@ -1,0 +1,146 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Soft dark backgrounds - inspired by swarna.nl */
+  --bg-primary: #0f1419;
+  --bg-secondary: #1a1d29;
+  --bg-tertiary: #242938;
+  
+  /* Soft text colors */
+  --text-primary: #e1e8ed;
+  --text-secondary: #8b95a5;
+  --text-muted: #6b7280;
+  
+  /* Accent colors - softer versions */
+  --accent-blue: #4a9eff;
+  --accent-blue-dim: #3b82f6;
+  --accent-purple: #8b5cf6;
+  --accent-teal: #14b8a6;
+  
+  /* Border colors */
+  --border-primary: #2d3748;
+  --border-secondary: #374151;
+  
+  /* Status colors - softer versions */
+  --status-success: #10b981;
+  --status-success-bg: rgba(16, 185, 129, 0.1);
+  --status-warning: #f59e0b;
+  --status-warning-bg: rgba(245, 158, 11, 0.1);
+  --status-danger: #ef4444;
+  --status-danger-bg: rgba(239, 68, 68, 0.1);
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-smoothing: antialiased;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@keyframes gradient {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient 3s ease infinite;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.6s ease-out forwards;
+  opacity: 0;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar - softer colors */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent-blue-dim);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-blue);
+}
+
+/* Override harsh Tailwind colors */
+.bg-black {
+  background-color: var(--bg-primary) !important;
+}
+
+.bg-gray-900 {
+  background-color: var(--bg-secondary) !important;
+}
+
+.bg-gray-800 {
+  background-color: var(--bg-tertiary) !important;
+}
+
+.text-white {
+  color: var(--text-primary) !important;
+}
+
+.text-gray-300 {
+  color: var(--text-secondary) !important;
+}
+
+.text-gray-400,
+.text-gray-500 {
+  color: var(--text-muted) !important;
+}
+
+.border-gray-700,
+.border-gray-800 {
+  border-color: var(--border-primary) !important;
+}
+
+/* Softer gradients */
+.bg-gradient-to-b {
+  background-image: linear-gradient(to bottom, var(--bg-primary), var(--bg-secondary), var(--bg-primary)) !important;
+}
+
+.bg-gradient-to-br {
+  background-image: linear-gradient(to bottom right, var(--bg-secondary), var(--bg-tertiary)) !important;
+}
+
+/* Card hover effects - more subtle */
+.hover\:shadow-xl:hover {
+  box-shadow: 0 20px 25px -5px rgba(74, 158, 255, 0.05), 0 10px 10px -5px rgba(74, 158, 255, 0.04) !important;
+}
+
+/* Reduce opacity on overlays for less harsh contrast */
+.backdrop-blur-sm,
+.backdrop-blur-md {
+  backdrop-filter: blur(12px);
+  background-color: rgba(15, 20, 25, 0.8) !important;
+}
