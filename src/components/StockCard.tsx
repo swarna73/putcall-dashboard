@@ -79,7 +79,10 @@ export default function StockCard({ stock }: { stock: Stock }) {
             <h3 className="text-3xl font-bold text-[#e1e8ed] group-hover:text-[#4a9eff] transition-colors">
               {stock.ticker}
             </h3>
-            <span className={`px-3 py-1.5 rounded-full text-xs font-bold border ${getSignalColor(stock.signal)} transition-all duration-300 group-hover:scale-105`}>
+            <span 
+              className="px-3 py-1.5 rounded-full text-xs font-bold border transition-all duration-300 group-hover:scale-105"
+              style={getSignalStyle(stock.signal)}
+            >
               {getSignalIcon(stock.signal)} {stock.signal}
             </span>
           </div>
