@@ -18,9 +18,11 @@ interface Stock {
 
 export default function StockCard({ stock }: { stock: Stock }) {
   const getSignalColor = (signal: string) => {
-    if (signal.includes('BUY')) return 'text-emerald-300 bg-emerald-500/15 border-emerald-500/50';
-    if (signal.includes('AVOID') || signal.includes('SELL')) return 'text-rose-300 bg-rose-500/15 border-rose-500/50';
-    return 'text-amber-300 bg-amber-500/15 border-amber-500/50';
+    if (signal.includes('STRONG BUY')) return 'text-emerald-200 bg-gradient-to-r from-emerald-500/25 to-emerald-600/20 border-emerald-400/60 shadow-lg shadow-emerald-500/10';
+    if (signal.includes('BUY')) return 'text-emerald-300 bg-gradient-to-r from-emerald-500/20 to-emerald-600/15 border-emerald-400/50 shadow-md shadow-emerald-500/5';
+    if (signal.includes('AVOID') || signal.includes('SELL')) return 'text-rose-300 bg-gradient-to-r from-rose-500/20 to-rose-600/15 border-rose-400/50 shadow-md shadow-rose-500/5';
+    if (signal.includes('CAUTION')) return 'text-amber-300 bg-gradient-to-r from-amber-500/20 to-amber-600/15 border-amber-400/50 shadow-md shadow-amber-500/5';
+    return 'text-slate-300 bg-gradient-to-r from-slate-500/20 to-slate-600/15 border-slate-400/50';
   };
 
   const getSignalIcon = (signal: string) => {
