@@ -17,12 +17,45 @@ interface Stock {
 }
 
 export default function StockCard({ stock }: { stock: Stock }) {
-  const getSignalColor = (signal: string) => {
-    if (signal.includes('STRONG BUY')) return 'text-emerald-200 bg-gradient-to-r from-emerald-500/25 to-emerald-600/20 border-emerald-400/60 shadow-lg shadow-emerald-500/10';
-    if (signal.includes('BUY')) return 'text-emerald-300 bg-gradient-to-r from-emerald-500/20 to-emerald-600/15 border-emerald-400/50 shadow-md shadow-emerald-500/5';
-    if (signal.includes('AVOID') || signal.includes('SELL')) return 'text-rose-300 bg-gradient-to-r from-rose-500/20 to-rose-600/15 border-rose-400/50 shadow-md shadow-rose-500/5';
-    if (signal.includes('CAUTION')) return 'text-amber-300 bg-gradient-to-r from-amber-500/20 to-amber-600/15 border-amber-400/50 shadow-md shadow-amber-500/5';
-    return 'text-slate-300 bg-gradient-to-r from-slate-500/20 to-slate-600/15 border-slate-400/50';
+  const getSignalStyle = (signal: string) => {
+    if (signal.includes('STRONG BUY')) {
+      return {
+        color: '#10b981',
+        backgroundColor: 'rgba(16, 185, 129, 0.15)',
+        borderColor: 'rgba(16, 185, 129, 0.5)',
+        boxShadow: '0 0 15px rgba(16, 185, 129, 0.2)'
+      };
+    }
+    if (signal.includes('BUY')) {
+      return {
+        color: '#34d399',
+        backgroundColor: 'rgba(52, 211, 153, 0.12)',
+        borderColor: 'rgba(52, 211, 153, 0.4)',
+        boxShadow: '0 0 10px rgba(52, 211, 153, 0.15)'
+      };
+    }
+    if (signal.includes('AVOID') || signal.includes('SELL')) {
+      return {
+        color: '#f87171',
+        backgroundColor: 'rgba(248, 113, 113, 0.12)',
+        borderColor: 'rgba(248, 113, 113, 0.4)',
+        boxShadow: '0 0 10px rgba(248, 113, 113, 0.15)'
+      };
+    }
+    if (signal.includes('CAUTION')) {
+      return {
+        color: '#fbbf24',
+        backgroundColor: 'rgba(251, 191, 36, 0.12)',
+        borderColor: 'rgba(251, 191, 36, 0.4)',
+        boxShadow: '0 0 10px rgba(251, 191, 36, 0.15)'
+      };
+    }
+    return {
+      color: '#94a3b8',
+      backgroundColor: 'rgba(148, 163, 184, 0.12)',
+      borderColor: 'rgba(148, 163, 184, 0.3)',
+      boxShadow: 'none'
+    };
   };
 
   const getSignalIcon = (signal: string) => {
