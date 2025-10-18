@@ -40,8 +40,7 @@ export default function Dashboard() {
       {/* Header */}
       <header className="border-b border-[#2d3748] bg-[#0f1419]/95 backdrop-blur-md sticky top-0 z-50 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
-            <div className="text-center lg:text-left">
+            <div className="text-center">
               <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-[#4a9eff] via-[#8b5cf6] to-[#ec4899] bg-clip-text text-transparent mb-2 animate-gradient">
                 PUTCALL.NL
               </h1>
@@ -52,22 +51,6 @@ export default function Dashboard() {
                 Combining news analysis with financial fundamentals
               </p>
             </div>
-            
-            <div className="flex gap-3">
-              <div className="group text-center px-6 py-3 bg-gradient-to-br from-emerald-500/15 to-emerald-600/5 rounded-xl border border-emerald-500/40 hover:border-emerald-400/60 transition-all duration-300 hover:scale-105 shadow-lg shadow-emerald-500/5">
-                <div className="text-3xl font-bold text-emerald-400">{stats.bullish}</div>
-                <div className="text-xs text-emerald-300 font-medium uppercase tracking-wide">Bullish</div>
-              </div>
-              <div className="group text-center px-6 py-3 bg-gradient-to-br from-rose-500/15 to-rose-600/5 rounded-xl border border-rose-500/40 hover:border-rose-400/60 transition-all duration-300 hover:scale-105 shadow-lg shadow-rose-500/5">
-                <div className="text-3xl font-bold text-rose-400">{stats.bearish}</div>
-                <div className="text-xs text-rose-300 font-medium uppercase tracking-wide">Bearish</div>
-              </div>
-              <div className="group text-center px-6 py-3 bg-gradient-to-br from-slate-500/15 to-slate-600/5 rounded-xl border border-slate-500/40 hover:border-slate-400/60 transition-all duration-300 hover:scale-105 shadow-lg shadow-slate-500/5">
-                <div className="text-3xl font-bold text-slate-300">{stats.neutral}</div>
-                <div className="text-xs text-slate-300 font-medium uppercase tracking-wide">Neutral</div>
-              </div>
-            </div>
-          </div>
         </div>
       </header>
 
