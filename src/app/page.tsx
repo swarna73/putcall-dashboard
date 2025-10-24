@@ -13,60 +13,49 @@ export default function Dashboard() {
     fetchStockData();
   }, []);
 
-const fetchStockData = async () => {
-  try {
-    console.log('🔍 Fetching S3 data...');
-    const response = await fetch('https://putcall-dashboard-data.s3.eu-north-1.amazonaws.com/dashboard-data.json');
-    const data = await response.json();
-    
-    console.log('✅ Raw S3 data:', data);
-    
-    // Transform the data to match StockCard format
-    const transformedStocks = data.stocks.map((stock: any) => {
-      // Extract numeric PE ratio (remove quotes)
-      const peRatio = stock.financial_metrics?.pe_ratio 
-        ? parseFloat(stock.financial_metrics.pe_ratio.replace(/[^\d.-]/g, '')) 
-        : 0;
+  const fetchStockData = async () => {
+    try {
+      // Fetch from S3 bucket in EU North (Stockholm)
+      const response = await fetch('https://putcall-dashboard-data.s3.eu-north-1.amazonaws.com/dashboard-data.json');
+      const data = await response.json();
       
-      // Parse signal text (remove emoji)
-      const signalText = stock.combined_signal?.signal?.replace(/[^\w\s]/g, '').trim() || 'NEUTRAL';
-      
-      console.log(`📊 Processing ${stock.ticker}:`, {
-        signalText,
-        peRatio,
-        originalSignal: stock.combined_signal?.signal
+      // Transform the data to match StockCard format
+      const transformedStocks = data.stocks.map((stock: any) => {
+        // Extract numeric PE ratio (remove quotes)
+        const peRatio = stock.financial_metrics?.pe_ratio 
+          ? parseFloat(stock.financial_metrics.pe_ratio.replace(/[^\d.-]/g, '')) 
+          : 0;
+        
+        // Parse signal text (remove emoji)
+        const signalText = stock.combined_signal?.signal?.replace(/[^\w\s]/g, '').trim() || 'NEUTRAL';
+        
+        return {
+          ticker: stock.ticker,
+          company: stock.company,
+          signal: signalText,
+          sentiment: stock.combined_signal?.sentiment || 'Neutral',
+          sentimentScore: stock.sentiment_score || 0,
+          valuation: stock.valuation_analysis?.overall || 'Mixed',
+          price: stock.financial_metrics?.current_price || 0,
+          priceChange: stock.financial_metrics?.price_change_pct || 0,
+          pe: peRatio,
+          marketCap: stock.financial_metrics?.market_cap || 'N/A',
+          articles: stock.article_count || 0,
+          history: [] // We don't have historical data yet
+        };
       });
       
-      return {
-        ticker: stock.ticker,
-        company: stock.company,
-        signal: signalText,
-        sentiment: stock.combined_signal?.sentiment || 'Neutral',
-        sentimentScore: stock.sentiment_score || 0,
-        valuation: stock.valuation_analysis?.overall || 'Mixed',
-        price: stock.financial_metrics?.current_price || 0,
-        priceChange: stock.financial_metrics?.price_change_pct || 0,
-        pe: peRatio,
-        marketCap: stock.financial_metrics?.market_cap || 'N/A',
-        articles: stock.article_count || 0,
-        history: []
-      };
-    });
-    
-    console.log('🎯 Transformed stocks:', transformedStocks);
-    console.log('📈 Setting stock data with', transformedStocks.length, 'stocks');
-    
-    setStockData(transformedStocks);
-    setLastUpdated(data.timestamp);
-    setLoading(false);
-    
-    console.log('✅ State updated!');
-  } catch (error) {
-    console.error('❌ Error fetching stock data:', error);
-    setStockData(mockData);
-    setLoading(false);
-  }
-};
+      setStockData(transformedStocks);
+      setLastUpdated(data.timestamp);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching stock data:', error);
+      // Fallback to mock data
+      setStockData(mockData);
+      setLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0f1419] flex items-center justify-center">
@@ -141,9 +130,8 @@ const fetchStockData = async () => {
         </div>
 
         {/* Stock Grid */}
-        <div className="space-y-12">
-          {/* Note: Currently showing all stocks - we'll split into gainers/losers later */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {stockData.map((stock, index) => (
               <div 
                 key={stock.ticker}

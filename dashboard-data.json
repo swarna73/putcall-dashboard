@@ -1,174 +1,23 @@
 {
-  "timestamp": "2025-10-24T12:46:40.473806",
+  "timestamp": "2025-10-24T20:01:48.327279",
   "date": "2025-10-24",
   "stocks": [
     {
-      "ticker": "NVDA",
-      "company": "NVIDIA",
-      "sentiment_score": 0.077,
-      "article_count": 13,
-      "positive_articles": 4,
-      "neutral_articles": 6,
-      "negative_articles": 3,
-      "articles": [
-        {
-          "title": "Breakout Watch: Why Nvidia, Apple, Meta And Others Use This AI Brain",
-          "source": "Biztoc.com",
-          "url": "https://biztoc.com/x/ba0bf8de3cb56b44",
-          "sentiment": 1.0,
-          "published_at": "2025-10-23T12:26:57Z"
-        },
-        {
-          "title": "Brasada Capital Third Quarter Of 2025 Quarterly Update",
-          "source": "Seeking Alpha",
-          "url": "https://seekingalpha.com/article/4832202-brasada-capital-third-quarter-of-2025-quarterly-update",
-          "sentiment": -1.0,
-          "published_at": "2025-10-23T03:45:00Z"
-        },
-        {
-          "title": "Stock market today: Dow, S&P 500, Nasdaq rise as oil jumps, fresh earnings roll in after Tesla's flop",
-          "source": "Yahoo Entertainment",
-          "url": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-rise-as-oil-jumps-fresh-earnings-roll-in-after-teslas-flop-002648084.html",
-          "sentiment": 1.0,
-          "published_at": "2025-10-23T00:26:48Z"
-        },
-        {
-          "title": "Tesla's earnings miss, Meta job cuts, U.S. sanctions Russian oil and more in Morning Squawk",
-          "source": "CNBC",
-          "url": "https://www.cnbc.com/2025/10/23/5-things-to-know-before-the-stock-market-opens.html",
-          "sentiment": -1.0,
-          "published_at": "2025-10-23T12:22:05Z"
-        },
-        {
-          "title": "Expert Parallelism: Scaling Mixture-of-Experts Models",
-          "source": "Digitalocean.com",
-          "url": "https://www.digitalocean.com/community/tutorials/expert-parallelism-in-deep-learning",
-          "sentiment": 1.0,
-          "published_at": "2025-10-23T12:20:19Z"
-        }
-      ],
-      "financial_metrics": {
-        "current_price": null,
-        "price_change_pct": null,
-        "market_cap": "$4.44T",
-        "pe_ratio": "51.75",
-        "forward_pe": "29.94",
-        "eps": "3.52",
-        "dividend_yield": "0.02%",
-        "debt_to_equity": "N/A",
-        "profit_margin": "52.40%",
-        "revenue_growth": "55.60%",
-        "beta": "2.12"
-      },
-      "valuation_analysis": {
-        "overall": "Mixed",
-        "signals": [],
-        "concerns": [
-          "High P/E (51.75) - potentially overvalued",
-          "P/B ratio 45.93 - trading at premium"
-        ],
-        "strengths": [
-          "Strong profit margin (52.4%)",
-          "Strong revenue growth (55.6%)"
-        ]
-      },
-      "combined_signal": {
-        "signal": "\u26aa NEUTRAL",
-        "sentiment": "Neutral",
-        "valuation": "Mixed",
-        "reasoning": [
-          "Mixed signals - further research needed"
-        ]
-      }
-    },
-    {
-      "ticker": "GOOGL",
-      "company": "Google",
-      "sentiment_score": 0.067,
-      "article_count": 15,
-      "positive_articles": 5,
-      "neutral_articles": 6,
-      "negative_articles": 4,
-      "articles": [
-        {
-          "title": "Breakout Watch: Why Nvidia, Apple, Meta And Others Use This AI Brain",
-          "source": "Biztoc.com",
-          "url": "https://biztoc.com/x/ba0bf8de3cb56b44",
-          "sentiment": 1.0,
-          "published_at": "2025-10-23T12:26:57Z"
-        },
-        {
-          "title": "US stock market futures today: Dow Jones, S&P 500, Nasdaq futures drop as US-China trade tensions escalate \u2014 Tesla, IBM, American Airlines earnings jolt Wall Street sentiment",
-          "source": "The Times of India",
-          "url": "https://economictimes.indiatimes.com/news/international/us/us-stock-market-futures-today-dow-jones-sp-500-nasdaq-futures-drop-as-us-china-trade-tensions-escalate-tesla-ibm-american-airlines-earnings-jolt-wall-street-sentiment/articleshow/124759852.cms",
-          "sentiment": -1.0,
-          "published_at": "2025-10-23T10:38:04Z"
-        },
-        {
-          "title": "Brasada Capital Third Quarter Of 2025 Quarterly Update",
-          "source": "Seeking Alpha",
-          "url": "https://seekingalpha.com/article/4832202-brasada-capital-third-quarter-of-2025-quarterly-update",
-          "sentiment": -1.0,
-          "published_at": "2025-10-23T03:45:00Z"
-        },
-        {
-          "title": "Bretton Fund Q3 2025 Shareholder Letter",
-          "source": "Seeking Alpha",
-          "url": "https://seekingalpha.com/article/4832176-bretton-fund-q3-2025-shareholder-letter",
-          "sentiment": 1.0,
-          "published_at": "2025-10-23T02:00:00Z"
-        },
-        {
-          "title": "Teradyne, Inc. (TER): A\u00a0Bull\u00a0Case Theory",
-          "source": "Yahoo Entertainment",
-          "url": "https://finance.yahoo.com/news/teradyne-inc-ter-bull-case-001342924.html",
-          "sentiment": 1.0,
-          "published_at": "2025-10-23T00:13:42Z"
-        }
-      ],
-      "financial_metrics": {
-        "current_price": null,
-        "price_change_pct": null,
-        "market_cap": "$3.05T",
-        "pe_ratio": "26.95",
-        "forward_pe": "23.31",
-        "eps": "9.39",
-        "dividend_yield": "0.40%",
-        "debt_to_equity": "N/A",
-        "profit_margin": "31.10%",
-        "revenue_growth": "13.80%",
-        "beta": "1.00"
-      },
-      "valuation_analysis": {
-        "overall": "Mixed",
-        "signals": [
-          "Moderate P/E (26.95) - fairly valued"
-        ],
-        "concerns": [
-          "P/B ratio 8.19 - trading at premium"
-        ],
-        "strengths": [
-          "Strong profit margin (31.1%)"
-        ]
-      },
-      "combined_signal": {
-        "signal": "\u26aa NEUTRAL",
-        "sentiment": "Neutral",
-        "valuation": "Mixed",
-        "reasoning": [
-          "Mixed signals - further research needed"
-        ]
-      }
-    },
-    {
       "ticker": "AAPL",
       "company": "Apple",
-      "sentiment_score": -0.067,
-      "article_count": 15,
-      "positive_articles": 3,
-      "neutral_articles": 8,
-      "negative_articles": 4,
+      "sentiment_score": -0.1,
+      "article_count": 20,
+      "positive_articles": 4,
+      "neutral_articles": 10,
+      "negative_articles": 6,
       "articles": [
+        {
+          "title": "Meta Stock Ahead Fifth Straight Day Amid AI Job Cuts Report, $27 Billion Data Center Deal",
+          "source": "Investor's Business Daily",
+          "url": "https://www.investors.com/news/technology/meta-stock-ai-blue-owl-data-center-q3-earnings/",
+          "sentiment": -1.0,
+          "published_at": "2025-10-23T16:10:03Z"
+        },
         {
           "title": "Breakout Watch: Why Nvidia, Apple, Meta And Others Use This AI Brain",
           "source": "Biztoc.com",
@@ -196,18 +45,11 @@
           "url": "https://thedividendguyblog.com/why-cash-flow-from-operations-isnt-my-first-screen/",
           "sentiment": -1.0,
           "published_at": "2025-10-23T10:30:16Z"
-        },
-        {
-          "title": "Apple Q4 Preview: Earnings Quality And Margin Resilience Exceed Expectations (Rating Upgrade)",
-          "source": "Seeking Alpha",
-          "url": "https://seekingalpha.com/article/4832205-apple-stock-q4-preview-earnings-quality-margin-resilience-exceed-expectations-rating-upgrade",
-          "sentiment": 1.0,
-          "published_at": "2025-10-23T04:39:58Z"
         }
       ],
       "financial_metrics": {
-        "current_price": null,
-        "price_change_pct": null,
+        "current_price": 259.58,
+        "price_change_pct": 0.4372,
         "market_cap": "$3.85T",
         "pe_ratio": "39.39",
         "forward_pe": "32.05",
@@ -242,12 +84,33 @@
     {
       "ticker": "MSFT",
       "company": "Microsoft",
-      "sentiment_score": -0.188,
-      "article_count": 16,
-      "positive_articles": 2,
-      "neutral_articles": 9,
-      "negative_articles": 5,
+      "sentiment_score": 0.15,
+      "article_count": 20,
+      "positive_articles": 4,
+      "neutral_articles": 15,
+      "negative_articles": 1,
       "articles": [
+        {
+          "title": "Multi-Agent Supervisor Architecture: Orchestrating Enterprise AI at Scale",
+          "source": "Databricks.com",
+          "url": "https://www.databricks.com/blog/multi-agent-supervisor-architecture-orchestrating-enterprise-ai-scale",
+          "sentiment": 1.0,
+          "published_at": "2025-10-23T18:40:00Z"
+        },
+        {
+          "title": "Intel Stock Faces a Crucial Earnings Test Today. Here\u2019s What You Need To Know",
+          "source": "Investopedia",
+          "url": "https://www.investopedia.com/intel-stock-faces-crucial-earnings-test-what-you-need-to-know-11835495",
+          "sentiment": 1.0,
+          "published_at": "2025-10-23T15:59:25Z"
+        },
+        {
+          "title": "What is quantum computing, and why are Big Tech and Washington interested in it?",
+          "source": "Yahoo Entertainment",
+          "url": "https://finance.yahoo.com/news/what-is-quantum-computing-and-why-are-big-tech-and-washington-interested-in-it-153254260.html",
+          "sentiment": 1.0,
+          "published_at": "2025-10-23T15:32:54Z"
+        },
         {
           "title": "Stock Futures Down After Tesla Earnings Miss",
           "source": "Forbes",
@@ -256,37 +119,16 @@
           "published_at": "2025-10-23T11:59:54Z"
         },
         {
-          "title": "Brasada Capital Third Quarter Of 2025 Quarterly Update",
-          "source": "Seeking Alpha",
-          "url": "https://seekingalpha.com/article/4832202-brasada-capital-third-quarter-of-2025-quarterly-update",
-          "sentiment": -1.0,
-          "published_at": "2025-10-23T03:45:00Z"
-        },
-        {
-          "title": "Bretton Fund Q3 2025 Shareholder Letter",
-          "source": "Seeking Alpha",
-          "url": "https://seekingalpha.com/article/4832176-bretton-fund-q3-2025-shareholder-letter",
+          "title": "Nokia Vaults Higher On Proof of Growth In AI Infrastructure",
+          "source": "Forbes",
+          "url": "https://www.forbes.com/sites/rscottraynovich/2025/10/23/nokia-vaults-higher-on-proof-of-growth-in-ai-infrastructure/",
           "sentiment": 1.0,
-          "published_at": "2025-10-23T02:00:00Z"
-        },
-        {
-          "title": "IBM\u2019s big bet on AI and Cloud sparks surprising Q3 Twist",
-          "source": "Rolling Out",
-          "url": "https://rollingout.com/2025/10/23/ibms-big-bet-on-ai-and-cloud-q3-twist/",
-          "sentiment": -1.0,
-          "published_at": "2025-10-23T12:40:18Z"
-        },
-        {
-          "title": "Microsoft Forcing Xbox to Hit 30% Profit Margin, Resulting in Aggressive Practises",
-          "source": "iPhone in Canada",
-          "url": "https://www.iphoneincanada.ca/2025/10/23/microsoft-xbox-30-profit-margin/",
-          "sentiment": 1.0,
-          "published_at": "2025-10-23T12:39:37Z"
+          "published_at": "2025-10-23T19:44:30Z"
         }
       ],
       "financial_metrics": {
-        "current_price": null,
-        "price_change_pct": null,
+        "current_price": 520.56,
+        "price_change_pct": 0.0038,
         "market_cap": "$3.87T",
         "pe_ratio": "38.16",
         "forward_pe": "33.33",
@@ -320,41 +162,27 @@
       }
     },
     {
-      "ticker": "TSLA",
-      "company": "Tesla",
-      "sentiment_score": -0.389,
-      "article_count": 15,
-      "positive_articles": 2,
-      "neutral_articles": 5,
-      "negative_articles": 8,
+      "ticker": "GOOGL",
+      "company": "Google",
+      "sentiment_score": 0.056,
+      "article_count": 18,
+      "positive_articles": 5,
+      "neutral_articles": 9,
+      "negative_articles": 4,
       "articles": [
         {
-          "title": "Stock Market Today: Dow Jones Index Falls As Tesla Sells Off On Earnings (Live Coverage)",
-          "source": "Biztoc.com",
-          "url": "https://biztoc.com/x/44c4740ede2f385a",
-          "sentiment": -1.0,
-          "published_at": "2025-10-23T12:38:07Z"
+          "title": "What is quantum computing, and why are Big Tech and Washington interested in it?",
+          "source": "Yahoo Entertainment",
+          "url": "https://finance.yahoo.com/news/what-is-quantum-computing-and-why-are-big-tech-and-washington-interested-in-it-153254260.html",
+          "sentiment": 1.0,
+          "published_at": "2025-10-23T15:32:54Z"
         },
         {
-          "title": "Earnings live: Tesla stock falls after earnings miss, American Airlines climbs, IBM and Hasbro sink",
+          "title": "Breakout Watch: Why Nvidia, Apple, Meta And Others Use This AI Brain",
           "source": "Biztoc.com",
-          "url": "https://biztoc.com/x/9e4693716a5b6ce4",
-          "sentiment": -1.0,
-          "published_at": "2025-10-23T12:27:09Z"
-        },
-        {
-          "title": "Dow Jones Futures Fall; Tesla Skids After Earnings, Elon Musk; Quantum Stocks Spike",
-          "source": "Biztoc.com",
-          "url": "https://biztoc.com/x/b680c03d38b37741",
-          "sentiment": -1.0,
-          "published_at": "2025-10-23T12:16:24Z"
-        },
-        {
-          "title": "Stock Futures Down After Tesla Earnings Miss",
-          "source": "Forbes",
-          "url": "https://www.forbes.com/sites/catherinebrock/2025/10/23/stock-futures-down-after-tesla-earnings-miss/",
-          "sentiment": -1.0,
-          "published_at": "2025-10-23T11:59:54Z"
+          "url": "https://biztoc.com/x/ba0bf8de3cb56b44",
+          "sentiment": 1.0,
+          "published_at": "2025-10-23T12:26:57Z"
         },
         {
           "title": "US stock market futures today: Dow Jones, S&P 500, Nasdaq futures drop as US-China trade tensions escalate \u2014 Tesla, IBM, American Airlines earnings jolt Wall Street sentiment",
@@ -362,11 +190,104 @@
           "url": "https://economictimes.indiatimes.com/news/international/us/us-stock-market-futures-today-dow-jones-sp-500-nasdaq-futures-drop-as-us-china-trade-tensions-escalate-tesla-ibm-american-airlines-earnings-jolt-wall-street-sentiment/articleshow/124759852.cms",
           "sentiment": -1.0,
           "published_at": "2025-10-23T10:38:04Z"
+        },
+        {
+          "title": "Goldman Sachs Remains Bullish on Alphabet (GOOGL)\u00a0Ahead of Q3 Earnings",
+          "source": "Yahoo Entertainment",
+          "url": "https://finance.yahoo.com/news/goldman-sachs-remains-bullish-alphabet-092551709.html",
+          "sentiment": 1.0,
+          "published_at": "2025-10-23T09:25:51Z"
+        },
+        {
+          "title": "Brasada Capital Third Quarter Of 2025 Quarterly Update",
+          "source": "Seeking Alpha",
+          "url": "https://seekingalpha.com/article/4832202-brasada-capital-third-quarter-of-2025-quarterly-update",
+          "sentiment": -1.0,
+          "published_at": "2025-10-23T03:45:00Z"
         }
       ],
       "financial_metrics": {
-        "current_price": null,
-        "price_change_pct": null,
+        "current_price": 253.08,
+        "price_change_pct": 0.5523,
+        "market_cap": "$3.05T",
+        "pe_ratio": "26.95",
+        "forward_pe": "23.31",
+        "eps": "9.39",
+        "dividend_yield": "0.40%",
+        "debt_to_equity": "N/A",
+        "profit_margin": "31.10%",
+        "revenue_growth": "13.80%",
+        "beta": "1.00"
+      },
+      "valuation_analysis": {
+        "overall": "Mixed",
+        "signals": [
+          "Moderate P/E (26.95) - fairly valued"
+        ],
+        "concerns": [
+          "P/B ratio 8.19 - trading at premium"
+        ],
+        "strengths": [
+          "Strong profit margin (31.1%)"
+        ]
+      },
+      "combined_signal": {
+        "signal": "\u26aa NEUTRAL",
+        "sentiment": "Neutral",
+        "valuation": "Mixed",
+        "reasoning": [
+          "Mixed signals - further research needed"
+        ]
+      }
+    },
+    {
+      "ticker": "TSLA",
+      "company": "Tesla",
+      "sentiment_score": 0.202,
+      "article_count": 19,
+      "positive_articles": 6,
+      "neutral_articles": 11,
+      "negative_articles": 2,
+      "articles": [
+        {
+          "title": "US stock market today: Wall Street climbed 0.3% \u2013 Dow, S&P 500 and Nasdaq all rise as tech stocks drive rebound; gold and oil surge",
+          "source": "The Times of India",
+          "url": "https://economictimes.indiatimes.com/news/international/us/us-stock-market-today-wall-street-climbed-0-3-dow-sp-500-and-nasdaq-all-rise-as-tech-stocks-drive-rebound-gold-and-oil-surge/articleshow/124765682.cms",
+          "sentiment": 1.0,
+          "published_at": "2025-10-23T15:57:31Z"
+        },
+        {
+          "title": "Rowan Street Capital on Its New Addition to Tesla (TSLA)",
+          "source": "Biztoc.com",
+          "url": "https://biztoc.com/x/0e8806d15b2cbe79",
+          "sentiment": 1.0,
+          "published_at": "2025-10-23T15:46:54Z"
+        },
+        {
+          "title": "Why Is Tesla Stock Dropping Today?",
+          "source": "Biztoc.com",
+          "url": "https://biztoc.com/x/faa9bb381e54ee7c",
+          "sentiment": -1.0,
+          "published_at": "2025-10-23T15:46:46Z"
+        },
+        {
+          "title": "Musk Hijacks Tesla Earnings Call to Vouch for $1 Trillion Pay Plan",
+          "source": "Biztoc.com",
+          "url": "https://biztoc.com/x/3eb3b28312d7250e",
+          "sentiment": 1.0,
+          "published_at": "2025-10-23T14:39:30Z"
+        },
+        {
+          "title": "Musk's rollercoaster year: From boycotts to a potential trillion-dollar payday",
+          "source": "ABC News",
+          "url": "https://abcnews.go.com/Technology/wireStory/musks-rollercoaster-year-boycotts-plunging-earnings-potential-trillion-126810510",
+          "sentiment": 1.0,
+          "published_at": "2025-10-23T19:05:23Z"
+        }
+      ],
+      "financial_metrics": {
+        "current_price": 448.98,
+        "price_change_pct": 2.2803,
         "market_cap": "$1.49T",
         "pe_ratio": "311.79",
         "forward_pe": "172.41",
@@ -389,11 +310,90 @@
         "strengths": []
       },
       "combined_signal": {
-        "signal": "\ud83d\udd34 AVOID",
-        "sentiment": "Bearish",
+        "signal": "\u26aa NEUTRAL",
+        "sentiment": "Neutral",
         "valuation": "Concerns",
         "reasoning": [
-          "Negative sentiment + Valuation concerns"
+          "Mixed signals - further research needed"
+        ]
+      }
+    },
+    {
+      "ticker": "NVDA",
+      "company": "NVIDIA",
+      "sentiment_score": 0.167,
+      "article_count": 18,
+      "positive_articles": 7,
+      "neutral_articles": 7,
+      "negative_articles": 4,
+      "articles": [
+        {
+          "title": "Former Biden Adviser Explains What Concerns Him About NVIDIA (NVDA)-Led AI \u2018Bubble\u2019",
+          "source": "Biztoc.com",
+          "url": "https://biztoc.com/x/6e9749c19b490297",
+          "sentiment": -1.0,
+          "published_at": "2025-10-23T16:19:30Z"
+        },
+        {
+          "title": "Intel Stock Faces a Crucial Earnings Test Today. Here\u2019s What You Need To Know",
+          "source": "Investopedia",
+          "url": "https://www.investopedia.com/intel-stock-faces-crucial-earnings-test-what-you-need-to-know-11835495",
+          "sentiment": 1.0,
+          "published_at": "2025-10-23T15:59:25Z"
+        },
+        {
+          "title": "Former Biden Adviser Explains What Concerns Him About NVIDIA (NVDA)-Led AI \u2018Bubble\u2019",
+          "source": "Yahoo Entertainment",
+          "url": "https://finance.yahoo.com/news/former-biden-adviser-explains-concerns-155742889.html",
+          "sentiment": -1.0,
+          "published_at": "2025-10-23T15:57:42Z"
+        },
+        {
+          "title": "US stock market today: Wall Street climbed 0.3% \u2013 Dow, S&P 500 and Nasdaq all rise as tech stocks drive rebound; gold and oil surge",
+          "source": "The Times of India",
+          "url": "https://economictimes.indiatimes.com/news/international/us/us-stock-market-today-wall-street-climbed-0-3-dow-sp-500-and-nasdaq-all-rise-as-tech-stocks-drive-rebound-gold-and-oil-surge/articleshow/124765682.cms",
+          "sentiment": 1.0,
+          "published_at": "2025-10-23T15:57:31Z"
+        },
+        {
+          "title": "What is quantum computing, and why are Big Tech and Washington interested in it?",
+          "source": "Yahoo Entertainment",
+          "url": "https://finance.yahoo.com/news/what-is-quantum-computing-and-why-are-big-tech-and-washington-interested-in-it-153254260.html",
+          "sentiment": 1.0,
+          "published_at": "2025-10-23T15:32:54Z"
+        }
+      ],
+      "financial_metrics": {
+        "current_price": 182.16,
+        "price_change_pct": 1.0428,
+        "market_cap": "$4.44T",
+        "pe_ratio": "51.75",
+        "forward_pe": "29.94",
+        "eps": "3.52",
+        "dividend_yield": "0.02%",
+        "debt_to_equity": "N/A",
+        "profit_margin": "52.40%",
+        "revenue_growth": "55.60%",
+        "beta": "2.12"
+      },
+      "valuation_analysis": {
+        "overall": "Mixed",
+        "signals": [],
+        "concerns": [
+          "High P/E (51.75) - potentially overvalued",
+          "P/B ratio 45.93 - trading at premium"
+        ],
+        "strengths": [
+          "Strong profit margin (52.4%)",
+          "Strong revenue growth (55.6%)"
+        ]
+      },
+      "combined_signal": {
+        "signal": "\u26aa NEUTRAL",
+        "sentiment": "Neutral",
+        "valuation": "Mixed",
+        "reasoning": [
+          "Mixed signals - further research needed"
         ]
       }
     }
