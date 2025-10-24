@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { AlertCircle, TrendingUp, BarChart3, Zap } from 'lucide-react';
-import StockCard from '@/components/StockCard';
 
 export default function Dashboard() {
   const [stockData, setStockData] = useState<any[]>([]);
@@ -15,19 +14,24 @@ export default function Dashboard() {
 
   const fetchStockData = async () => {
     try {
-      // Fetch from S3 bucket in EU North (Stockholm)
+      console.log('🔍 Fetching S3 data...');
       const response = await fetch('https://putcall-dashboard-data.s3.eu-north-1.amazonaws.com/dashboard-data.json');
       const data = await response.json();
       
-      // Transform the data to match StockCard format
+      console.log('✅ Raw S3 data:', data);
+      
       const transformedStocks = data.stocks.map((stock: any) => {
-        // Extract numeric PE ratio (remove quotes)
         const peRatio = stock.financial_metrics?.pe_ratio 
           ? parseFloat(stock.financial_metrics.pe_ratio.replace(/[^\d.-]/g, '')) 
           : 0;
         
-        // Parse signal text (remove emoji)
         const signalText = stock.combined_signal?.signal?.replace(/[^\w\s]/g, '').trim() || 'NEUTRAL';
+        
+        console.log(`📊 Processing ${stock.ticker}:`, {
+          signalText,
+          peRatio,
+          originalSignal: stock.combined_signal?.signal
+        });
         
         return {
           ticker: stock.ticker,
@@ -41,17 +45,21 @@ export default function Dashboard() {
           pe: peRatio,
           marketCap: stock.financial_metrics?.market_cap || 'N/A',
           articles: stock.article_count || 0,
-          history: [] // We don't have historical data yet
+          history: []
         };
       });
+      
+      console.log('🎯 Transformed stocks:', transformedStocks);
+      console.log('📈 Setting stock data with', transformedStocks.length, 'stocks');
       
       setStockData(transformedStocks);
       setLastUpdated(data.timestamp);
       setLoading(false);
+      
+      console.log('✅ State updated!');
     } catch (error) {
-      console.error('Error fetching stock data:', error);
-      // Fallback to mock data
-      setStockData(mockData);
+      console.error('❌ Error fetching stock data:', error);
+      setStockData([]);
       setLoading(false);
     }
   };
@@ -74,6 +82,42 @@ export default function Dashboard() {
     return { bullish, bearish, neutral };
   };
 
+  const getSignalStyle = (signal: string) => {
+    if (signal.includes('STRONG BUY')) {
+      return {
+        color: '#10b981',
+        backgroundColor: 'rgba(16, 185, 129, 0.15)',
+        borderColor: 'rgba(16, 185, 129, 0.5)'
+      };
+    }
+    if (signal.includes('BUY')) {
+      return {
+        color: '#34d399',
+        backgroundColor: 'rgba(52, 211, 153, 0.12)',
+        borderColor: 'rgba(52, 211, 153, 0.4)'
+      };
+    }
+    if (signal.includes('AVOID')) {
+      return {
+        color: '#f87171',
+        backgroundColor: 'rgba(248, 113, 113, 0.12)',
+        borderColor: 'rgba(248, 113, 113, 0.4)'
+      };
+    }
+    if (signal.includes('CAUTION')) {
+      return {
+        color: '#fbbf24',
+        backgroundColor: 'rgba(251, 191, 36, 0.12)',
+        borderColor: 'rgba(251, 191, 36, 0.4)'
+      };
+    }
+    return {
+      color: '#94a3b8',
+      backgroundColor: 'rgba(148, 163, 184, 0.12)',
+      borderColor: 'rgba(148, 163, 184, 0.3)'
+    };
+  };
+
   const stats = getSignalStats();
 
   return (
@@ -81,17 +125,17 @@ export default function Dashboard() {
       {/* Header */}
       <header className="border-b border-[#2d3748] bg-[#0f1419]/95 backdrop-blur-md sticky top-0 z-50 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="text-center">
-              <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-[#4a9eff] via-[#8b5cf6] to-[#ec4899] bg-clip-text text-transparent mb-2 animate-gradient">
-                PUTCALL.NL
-              </h1>
-              <p className="text-[#8b95a5] text-lg">
-                AI-Powered Market Sentiment Intelligence
-              </p>
-              <p className="text-[#6b7280] text-sm mt-1">
-                Combining news analysis with financial fundamentals
-              </p>
-            </div>
+          <div className="text-center">
+            <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-[#4a9eff] via-[#8b5cf6] to-[#ec4899] bg-clip-text text-transparent mb-2 animate-gradient">
+              PUTCALL.NL
+            </h1>
+            <p className="text-[#8b95a5] text-lg">
+              AI-Powered Market Sentiment Intelligence
+            </p>
+            <p className="text-[#6b7280] text-sm mt-1">
+              Combining news analysis with financial fundamentals
+            </p>
+          </div>
         </div>
       </header>
 
@@ -129,16 +173,69 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Stock Grid */}
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-1 gap-6">
+        {/* Stock Table */}
+        <div className="max-w-6xl mx-auto">
+          <div className="bg-[#1a1d29] border border-[#2d3748] rounded-xl overflow-hidden">
+            {/* Table Header */}
+            <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-[#0f1419] border-b border-[#2d3748] text-sm font-semibold text-[#8b95a5]">
+              <div className="col-span-2">STOCK</div>
+              <div className="col-span-2">PRICE</div>
+              <div className="col-span-2">SIGNAL</div>
+              <div className="col-span-2">SENTIMENT</div>
+              <div className="col-span-2">P/E</div>
+              <div className="col-span-2">NEWS</div>
+            </div>
+            
+            {/* Table Rows */}
             {stockData.map((stock, index) => (
               <div 
                 key={stock.ticker}
-                className="animate-fadeIn"
-                style={{ animationDelay: `${index * 0.1}s` }}
+                className="grid grid-cols-12 gap-4 px-6 py-5 border-b border-[#2d3748] last:border-b-0 hover:bg-[#242938] transition-colors animate-fadeIn cursor-pointer"
+                style={{ animationDelay: `${index * 0.05}s` }}
               >
-                <StockCard stock={stock} />
+                {/* Stock */}
+                <div className="col-span-2">
+                  <div className="font-bold text-[#e1e8ed] text-lg">{stock.ticker}</div>
+                  <div className="text-xs text-[#6b7280]">{stock.company}</div>
+                </div>
+                
+                {/* Price */}
+                <div className="col-span-2">
+                  <div className="font-bold text-[#e1e8ed]">${stock.price > 0 ? stock.price.toFixed(2) : '0.00'}</div>
+                  <div className={`text-sm font-semibold ${stock.priceChange >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {stock.priceChange >= 0 ? '+' : ''}{stock.priceChange.toFixed(2)}%
+                  </div>
+                </div>
+                
+                {/* Signal */}
+                <div className="col-span-2">
+                  <span 
+                    className="inline-flex px-3 py-1 rounded-full text-xs font-bold border"
+                    style={getSignalStyle(stock.signal)}
+                  >
+                    {stock.signal}
+                  </span>
+                </div>
+                
+                {/* Sentiment */}
+                <div className="col-span-2">
+                  <div className="text-sm text-[#e1e8ed]">{stock.sentiment}</div>
+                  <div className="text-xs text-[#6b7280]">
+                    {stock.sentimentScore >= 0 ? '+' : ''}{stock.sentimentScore.toFixed(2)}
+                  </div>
+                </div>
+                
+                {/* P/E */}
+                <div className="col-span-2">
+                  <div className="text-sm text-[#e1e8ed]">{stock.pe > 0 ? stock.pe.toFixed(2) : 'N/A'}</div>
+                  <div className="text-xs text-[#6b7280]">{stock.valuation}</div>
+                </div>
+                
+                {/* News */}
+                <div className="col-span-2">
+                  <div className="text-sm text-[#e1e8ed] font-semibold">{stock.articles}</div>
+                  <div className="text-xs text-[#6b7280]">Last 24h</div>
+                </div>
               </div>
             ))}
           </div>
@@ -201,86 +298,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-const mockData = [
-  {
-    ticker: 'AAPL',
-    company: 'Apple',
-    signal: 'CAUTION',
-    sentiment: 'Bullish',
-    sentimentScore: 0.45,
-    valuation: 'Mixed',
-    price: 178.50,
-    priceChange: 2.3,
-    pe: 28.5,
-    marketCap: '$2.85T',
-    articles: 15,
-    history: [
-      { date: '2025-10-08', sentiment: 0.32 },
-      { date: '2025-10-09', sentiment: 0.41 },
-      { date: '2025-10-10', sentiment: 0.38 },
-      { date: '2025-10-11', sentiment: 0.42 },
-      { date: '2025-10-14', sentiment: 0.45 },
-    ]
-  },
-  {
-    ticker: 'NVDA',
-    company: 'NVIDIA',
-    signal: 'STRONG BUY',
-    sentiment: 'Bullish',
-    sentimentScore: 0.78,
-    valuation: 'Attractive',
-    price: 485.20,
-    priceChange: 3.8,
-    pe: 42.5,
-    marketCap: '$1.19T',
-    articles: 22,
-    history: [
-      { date: '2025-10-08', sentiment: 0.65 },
-      { date: '2025-10-09', sentiment: 0.72 },
-      { date: '2025-10-10', sentiment: 0.69 },
-      { date: '2025-10-11', sentiment: 0.75 },
-      { date: '2025-10-14', sentiment: 0.78 },
-    ]
-  },
-  {
-    ticker: 'MSFT',
-    company: 'Microsoft',
-    signal: 'BUY',
-    sentiment: 'Bullish',
-    sentimentScore: 0.52,
-    valuation: 'Attractive',
-    price: 412.30,
-    priceChange: 1.2,
-    pe: 35.2,
-    marketCap: '$3.06T',
-    articles: 19,
-    history: [
-      { date: '2025-10-08', sentiment: 0.48 },
-      { date: '2025-10-09', sentiment: 0.51 },
-      { date: '2025-10-10', sentiment: 0.49 },
-      { date: '2025-10-11', sentiment: 0.53 },
-      { date: '2025-10-14', sentiment: 0.52 },
-    ]
-  },
-  {
-    ticker: 'TSLA',
-    company: 'Tesla',
-    signal: 'NEUTRAL',
-    sentiment: 'Neutral',
-    sentimentScore: 0.12,
-    valuation: 'Concerns',
-    price: 242.80,
-    priceChange: -1.5,
-    pe: 257.03,
-    marketCap: '$1.45T',
-    articles: 17,
-    history: [
-      { date: '2025-10-08', sentiment: 0.15 },
-      { date: '2025-10-09', sentiment: 0.08 },
-      { date: '2025-10-10', sentiment: 0.22 },
-      { date: '2025-10-11', sentiment: 0.18 },
-      { date: '2025-10-14', sentiment: 0.12 },
-    ]
-  },
-];
