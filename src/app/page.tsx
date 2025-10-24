@@ -130,8 +130,8 @@ export default function Dashboard() {
         </div>
 
         {/* Stock Grid */}
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 gap-6">
             {stockData.map((stock, index) => (
               <div 
                 key={stock.ticker}
