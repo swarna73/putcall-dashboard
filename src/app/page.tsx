@@ -20,20 +20,30 @@ export default function Dashboard() {
       const data = await response.json();
       
       // Transform the data to match StockCard format
-      const transformedStocks = data.stocks.map((stock: any) => ({
-        ticker: stock.ticker,
-        company: stock.company,
-        signal: stock.combined_signal?.signal || 'NEUTRAL',
-        sentiment: stock.combined_signal?.sentiment || 'Neutral',
-        sentimentScore: stock.sentiment_score || 0,
-        valuation: stock.combined_signal?.valuation || 'Mixed',
-        price: stock.financial_metrics?.current_price || 0,
-        priceChange: stock.financial_metrics?.price_change_pct || 0,
-        pe: stock.financial_metrics?.pe_ratio || 0,
-        marketCap: stock.financial_metrics?.market_cap || 'N/A',
-        articles: stock.article_count || 0,
-        history: stock.history || []
-      }));
+      const transformedStocks = data.stocks.map((stock: any) => {
+        // Extract numeric PE ratio (remove quotes)
+        const peRatio = stock.financial_metrics?.pe_ratio 
+          ? parseFloat(stock.financial_metrics.pe_ratio.replace(/[^\d.-]/g, '')) 
+          : 0;
+        
+        // Parse signal text (remove emoji)
+        const signalText = stock.combined_signal?.signal?.replace(/[^\w\s]/g, '').trim() || 'NEUTRAL';
+        
+        return {
+          ticker: stock.ticker,
+          company: stock.company,
+          signal: signalText,
+          sentiment: stock.combined_signal?.sentiment || 'Neutral',
+          sentimentScore: stock.sentiment_score || 0,
+          valuation: stock.valuation_analysis?.overall || 'Mixed',
+          price: stock.financial_metrics?.current_price || 0,
+          priceChange: stock.financial_metrics?.price_change_pct || 0,
+          pe: peRatio,
+          marketCap: stock.financial_metrics?.market_cap || 'N/A',
+          articles: stock.article_count || 0,
+          history: [] // We don't have historical data yet
+        };
+      });
       
       setStockData(transformedStocks);
       setLastUpdated(data.timestamp);
