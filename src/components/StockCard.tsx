@@ -71,7 +71,7 @@ export default function StockCard({ stock }: { stock: Stock }) {
   };
 
   return (
-    <div className="group bg-[#1a1d29] border border-[#2d3748] rounded-2xl p-6 hover:border-[#4a9eff]/40 hover:shadow-2xl hover:shadow-[#4a9eff]/5 transition-all duration-300 max-w-2xl mx-auto">
+    <div className="group bg-[#1a1d29] border border-[#2d3748] rounded-xl p-5 hover:border-[#4a9eff]/40 hover:shadow-2xl hover:shadow-[#4a9eff]/5 transition-all duration-300">
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
