@@ -7,13 +7,44 @@ import StockCard from '@/components/StockCard';
 export default function Dashboard() {
   const [stockData, setStockData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<string>('');
 
   useEffect(() => {
-    setTimeout(() => {
+    fetchStockData();
+  }, []);
+
+  const fetchStockData = async () => {
+    try {
+      // Fetch from S3 bucket in EU North (Stockholm)
+      const response = await fetch('https://putcall-dashboard-data.s3.eu-north-1.amazonaws.com/dashboard-data.json');
+      const data = await response.json();
+      
+      // Transform the data to match StockCard format
+      const transformedStocks = data.stocks.map((stock: any) => ({
+        ticker: stock.ticker,
+        company: stock.company,
+        signal: stock.combined_signal?.signal || 'NEUTRAL',
+        sentiment: stock.combined_signal?.sentiment || 'Neutral',
+        sentimentScore: stock.sentiment_score || 0,
+        valuation: stock.combined_signal?.valuation || 'Mixed',
+        price: stock.financial_metrics?.current_price || 0,
+        priceChange: stock.financial_metrics?.price_change_pct || 0,
+        pe: stock.financial_metrics?.pe_ratio || 0,
+        marketCap: stock.financial_metrics?.market_cap || 'N/A',
+        articles: stock.article_count || 0,
+        history: stock.history || []
+      }));
+      
+      setStockData(transformedStocks);
+      setLastUpdated(data.timestamp);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching stock data:', error);
+      // Fallback to mock data
       setStockData(mockData);
       setLoading(false);
-    }, 1000);
-  }, []);
+    }
+  };
 
   if (loading) {
     return (
@@ -89,16 +120,19 @@ export default function Dashboard() {
         </div>
 
         {/* Stock Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {stockData.map((stock, index) => (
-            <div 
-              key={stock.ticker}
-              className="animate-fadeIn"
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
-              <StockCard stock={stock} />
-            </div>
-          ))}
+        <div className="space-y-12">
+          {/* Note: Currently showing all stocks - we'll split into gainers/losers later */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {stockData.map((stock, index) => (
+              <div 
+                key={stock.ticker}
+                className="animate-fadeIn"
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <StockCard stock={stock} />
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* About Section */}
