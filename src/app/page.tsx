@@ -3,14 +3,78 @@
 import { useState, useEffect } from 'react';
 import { AlertCircle, TrendingUp, BarChart3, Zap } from 'lucide-react';
 
+interface MoverStock {
+  ticker: string;
+  name?: string;
+  price: number;
+  change_pct: number;
+  signal: string;
+  sentiment: string;
+}
+
+interface MoversData {
+  gainers: MoverStock[];
+  losers: MoverStock[];
+  timestamp: string;
+  source: string;
+}
+
 export default function Dashboard() {
   const [stockData, setStockData] = useState<any[]>([]);
+  const [moversData, setMoversData] = useState<MoversData | null>(null);
+  const [moversLoading, setMoversLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<string>('');
 
   useEffect(() => {
     fetchStockData();
+    fetchMoversData();
   }, []);
+
+  const fetchMoversData = async () => {
+    try {
+      console.log('🔍 Fetching movers data...');
+      // Replace with your actual Lambda endpoint URL
+      const response = await fetch('https://sh2u6nv24gdu765h3vacbdni2q0yyppp.lambda-url.eu-north-1.on.aws/');
+      const data = await response.json();
+      
+      console.log('✅ Movers data:', data);
+      setMoversData(data);
+      setMoversLoading(false);
+    } catch (error) {
+      console.error('❌ Error fetching movers:', error);
+      setMoversLoading(false);
+    }
+  };
+
+  /*const fetchMoversData = async () => {
+  try {
+    // TEMPORARY: Mock data for testing
+    const mockData = {
+      gainers: [
+        { ticker: 'NVDA', price: 191.49, change_pct: 4.98, signal: '🟢 STRONG BUY', sentiment: 'Very Bullish' },
+        { ticker: 'TSLA', price: 452.42, change_pct: 4.31, signal: '🟢 STRONG BUY', sentiment: 'Bullish' },
+        { ticker: 'GOOGL', price: 269.27, change_pct: 3.60, signal: '🟢 BUY', sentiment: 'Bullish' },
+        { ticker: 'MSFT', price: 542.07, change_pct: 1.98, signal: '🟢 WEAK BUY', sentiment: 'Slightly Bullish' },
+        { ticker: 'AAPL', price: 268.81, change_pct: 2.28, signal: '🟢 BUY', sentiment: 'Bullish' }
+      ],
+      losers: [
+        { ticker: 'XYZ', price: 45.23, change_pct: -5.67, signal: '🔴 SELL', sentiment: 'Bearish' },
+        { ticker: 'ABC', price: 89.12, change_pct: -4.32, signal: '🔴 SELL', sentiment: 'Bearish' },
+        { ticker: 'DEF', price: 123.45, change_pct: -3.21, signal: '🔴 WEAK SELL', sentiment: 'Slightly Bearish' }
+      ],
+      timestamp: new Date().toISOString(),
+      source: 'Mock Data (Testing)'
+    };
+    
+    console.log('✅ Mock movers data loaded');
+    setMoversData(mockData);
+    setMoversLoading(false);
+  } catch (error) {
+    console.error('❌ Error:', error);
+    setMoversLoading(false);
+  }
+};*/
 
   const fetchStockData = async () => {
     try {
@@ -119,6 +183,25 @@ export default function Dashboard() {
   };
 
   const stats = getSignalStats();
+
+  const getMoversSignalClass = (signal: string) => {
+    if (!signal) return 'signal-neutral';
+    
+    const signalLower = signal.toLowerCase();
+    
+    if (signalLower.includes('strong buy')) return 'signal-strong-buy';
+    if (signalLower.includes('weak buy')) return 'signal-weak-buy';
+    if (signalLower.includes('buy')) return 'signal-buy';
+    
+    if (signalLower.includes('strong sell')) return 'signal-strong-sell';
+    if (signalLower.includes('weak sell')) return 'signal-weak-sell';
+    if (signalLower.includes('sell')) return 'signal-sell';
+    
+    if (signalLower.includes('overbought')) return 'signal-overbought';
+    if (signalLower.includes('oversold')) return 'signal-oversold';
+    
+    return 'signal-neutral';
+  };
 
   return (
     <div className="min-h-screen bg-[#0f1419] text-[#e1e8ed]">
@@ -239,6 +322,114 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Top Gainers & Losers Section */}
+        <div className="movers-wrapper mt-16">
+          <div className="movers-header">
+            <h2>📊 S&P 500 Market Movers</h2>
+            <p>Real-time top performers and underperformers with AI-powered signals</p>
+          </div>
+
+          {moversLoading ? (
+            <div className="loading">
+              <div className="loading-spinner"></div>
+              <p>Loading market movers...</p>
+            </div>
+          ) : moversData ? (
+            <div className="movers-container">
+              {/* Top Gainers */}
+              <div className="movers-section">
+                <div className="movers-section-header">
+                  <span className="icon">🚀</span>
+                  <h3>Top 10 Gainers</h3>
+                </div>
+                {moversData.gainers && moversData.gainers.length > 0 ? (
+                  <table className="movers-table">
+                    <thead>
+                      <tr>
+                        <th className="rank">#</th>
+                        <th>Ticker</th>
+                        <th>Price</th>
+                        <th>Change</th>
+                        <th>Signal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {moversData.gainers.map((stock, index) => (
+                        <tr key={stock.ticker}>
+                          <td className="rank">{index + 1}</td>
+                          <td className="ticker">{stock.ticker}</td>
+                          <td className="price">${stock.price ? stock.price.toFixed(2) : 'N/A'}</td>
+                          <td className="change-positive">
+                            +{stock.change_pct ? stock.change_pct.toFixed(2) : '0.00'}%
+                          </td>
+                          <td>
+                            <span className={`signal ${getMoversSignalClass(stock.signal)}`}>
+                              {stock.signal}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p className="text-[#8b95a5] text-center py-8">No gainers data available</p>
+                )}
+              </div>
+
+              {/* Top Losers */}
+              <div className="movers-section">
+                <div className="movers-section-header">
+                  <span className="icon">📉</span>
+                  <h3>Top 10 Losers</h3>
+                </div>
+                {moversData.losers && moversData.losers.length > 0 ? (
+                  <table className="movers-table">
+                    <thead>
+                      <tr>
+                        <th className="rank">#</th>
+                        <th>Ticker</th>
+                        <th>Price</th>
+                        <th>Change</th>
+                        <th>Signal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {moversData.losers.map((stock, index) => (
+                        <tr key={stock.ticker}>
+                          <td className="rank">{index + 1}</td>
+                          <td className="ticker">{stock.ticker}</td>
+                          <td className="price">${stock.price ? stock.price.toFixed(2) : 'N/A'}</td>
+                          <td className="change-negative">
+                            {stock.change_pct ? stock.change_pct.toFixed(2) : '0.00'}%
+                          </td>
+                          <td>
+                            <span className={`signal ${getMoversSignalClass(stock.signal)}`}>
+                              {stock.signal}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p className="text-[#8b95a5] text-center py-8">No losers data available</p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="error-message">
+              <p><strong>⚠️ Error</strong></p>
+              <p>Unable to load market movers data. Please try again later.</p>
+            </div>
+          )}
+
+          {moversData && (
+            <div className="last-updated">
+              Last updated: {new Date(moversData.timestamp).toLocaleString()} • Source: {moversData.source}
+            </div>
+          )}
         </div>
 
         {/* About Section */}

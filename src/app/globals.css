@@ -146,3 +146,259 @@ html {
 }
 /* Updated Sat Oct 18 21:31:36 CEST 2025 */
 /* Force rebuild Sat Oct 18 21:48:01 CEST 2025 */
+
+/* ============================================================================
+   S&P 500 TOP GAINERS & LOSERS SECTION
+   ============================================================================ */
+
+.movers-wrapper {
+  margin-top: 3rem;
+  padding: 2rem 0;
+}
+
+.movers-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.movers-header h2 {
+  color: var(--accent-blue);
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+
+.movers-header p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.movers-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.movers-section {
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-primary);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.movers-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--border-primary);
+}
+
+.movers-section-header h3 {
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  margin: 0;
+  font-weight: 600;
+}
+
+.movers-section-header .icon {
+  font-size: 1.8rem;
+}
+
+.movers-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.movers-table thead {
+  background: rgba(74, 158, 255, 0.1);
+}
+
+.movers-table th {
+  padding: 0.75rem 0.5rem;
+  text-align: left;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.movers-table tbody tr {
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.movers-table tbody tr:hover {
+  background: rgba(74, 158, 255, 0.05);
+}
+
+.movers-table td {
+  padding: 1rem 0.5rem;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.movers-table .rank {
+  font-weight: bold;
+  color: var(--text-secondary);
+  width: 40px;
+}
+
+.movers-table .ticker {
+  font-weight: bold;
+  color: var(--accent-blue);
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+}
+
+.movers-table .ticker:hover {
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.movers-table .price {
+  font-weight: 500;
+}
+
+.movers-table .change-positive {
+  color: var(--status-success);
+  font-weight: bold;
+}
+
+.movers-table .change-negative {
+  color: var(--status-danger);
+  font-weight: bold;
+}
+
+.movers-table .signal {
+  font-weight: 600;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  text-align: center;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+/* Signal color styles using your existing color variables */
+.signal-strong-buy {
+  background: var(--status-success-bg);
+  color: var(--status-success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.signal-buy {
+  background: rgba(16, 185, 129, 0.08);
+  color: var(--status-success);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.signal-weak-buy {
+  background: rgba(16, 185, 129, 0.05);
+  color: var(--status-success);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+}
+
+.signal-strong-sell {
+  background: var(--status-danger-bg);
+  color: var(--status-danger);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.signal-sell {
+  background: rgba(239, 68, 68, 0.08);
+  color: var(--status-danger);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.signal-weak-sell {
+  background: rgba(239, 68, 68, 0.05);
+  color: var(--status-danger);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+}
+
+.signal-overbought,
+.signal-oversold {
+  background: var(--status-warning-bg);
+  color: var(--status-warning);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.signal-neutral {
+  background: rgba(139, 149, 165, 0.1);
+  color: var(--text-secondary);
+  border: 1px solid rgba(139, 149, 165, 0.2);
+}
+
+.loading {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-secondary);
+}
+
+.loading-spinner {
+  border: 3px solid var(--border-primary);
+  border-top: 3px solid var(--accent-blue);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-message {
+  background: var(--status-danger-bg);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: var(--status-danger);
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.last-updated {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-top: 1.5rem;
+}
+
+/* Mobile Responsive */
+@media (max-width: 1024px) {
+  .movers-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .movers-table {
+    font-size: 0.85rem;
+  }
+  
+  .movers-table th,
+  .movers-table td {
+    padding: 0.5rem 0.3rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .movers-table .signal {
+    font-size: 0.7rem;
+    padding: 0.3rem 0.5rem;
+  }
+  
+  .movers-section-header h3 {
+    font-size: 1.2rem;
+  }
+  
+  .movers-header h2 {
+    font-size: 1.5rem;
+  }
+}
