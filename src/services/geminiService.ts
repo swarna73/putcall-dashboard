@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { DashboardData, RedditTicker, NewsItem, FundamentalPick } from "../types";
+import { DashboardData } from "../types";
 
 /**
  * Robustly extracts JSON from a string, handling markdown code blocks
@@ -8,11 +8,10 @@ import { DashboardData, RedditTicker, NewsItem, FundamentalPick } from "../types
 function extractJSON(text: string): any {
   try {
     // 1. Fast path: Try to parse the cleaned text directly
-    // Remove markdown code blocks (```json ... ```)
     const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     return JSON.parse(clean);
   } catch (e) {
-    // 2. Fallback: Find the first valid outer JSON object using brace counting
+    // 2. Fallback: Find the first valid outer JSON object
     const startIndex = text.indexOf('{');
     if (startIndex === -1) throw new Error("No JSON start found in response");
 
@@ -34,18 +33,11 @@ function extractJSON(text: string): any {
       return JSON.parse(jsonStr);
     }
     
-    console.error("JSON Extraction failed. Raw text:", text);
     throw new Error("Could not extract valid JSON object from response");
   }
 }
 
-/**
- * Fetches comprehensive market data: Reddit trends, News, and Smart Picks.
- * Uses search grounding to get real-time info.
- */
 export const fetchMarketDashboard = async (): Promise<DashboardData> => {
-  // 1. Defensive Check: Ensure API Key exists before attempting to use the SDK.
-  // This prevents the "API Key must be set" crash and allows the UI to handle the missing key gracefully.
   const apiKey = process.env.API_KEY;
   if (!apiKey) {
     throw new Error("API_KEY_MISSING");
@@ -55,47 +47,43 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
   const model = 'gemini-2.5-flash';
   
   const prompt = `
-    Act as a Wall Street quantitative analyst. I need a JSON market intelligence report for "PutCall.nl".
-    
-    SECTION 1: REDDIT MOMENTUM (The Hype)
-    - Search r/wallstreetbets, r/stocks, r/options, and r/investing.
-    - Identify the TOP 5 tickers being discussed *right now*.
-    - Focus on discussion volume and "most talked about" status.
-    - 'sentiment': 'Bullish', 'Bearish', or 'Neutral'.
-    - 'sentimentScore': 0-100 (50 is neutral).
-    - 'discussionSummary': A punchy, 1-sentence explanation of the driver (e.g. "Gamma squeeze speculation on 0DTE calls").
+    Act as a Senior Market Analyst. I need a JSON intelligence report for "PutCall.nl".
 
-    SECTION 2: CRITICAL MARKET WIRE (The Truth)
-    - Search specifically for BREAKING financial news from the last 6 hours.
-    - **MANDATORY SOURCES**: Reuters, Bloomberg, Financial Times, CNBC, WSJ.
-    - **FILTER**: EXCLUDE opinions, "Motley Fool", or "5 stocks to buy". ONLY HARD NEWS.
-    - Focus on: Central Banks, Earnings Surprises, Geopolitics, Macro Data (CPI/Jobs).
-    - 'impact': 'Critical' (Market Moving) or 'High' (Sector Moving).
+    **Task 1: REDDIT "KING OF THE HILL" (Hype)**
+    - Scan r/wallstreetbets, r/stocks, r/investing for the **Single Most Talked About Stock** right now.
+    - Identify 4 other trending tickers.
+    - **Strict Criteria**: Rank purely by discussion volume (Mentions).
+    - 'sentiment': 'Bullish' or 'Bearish'.
+    - 'discussionSummary': "Why is it moving?" (e.g. "Earnings leak," "Short squeeze," "FDA approval").
 
-    SECTION 3: DEEP VALUE ALPHA PICKS (The Fundamentals)
-    - Search for 3 companies with STRONG fundamentals that are currently undervalued.
-    - **Criteria**: P/E Ratio < 20, Positive Free Cash Flow, Solid Moat.
-    - **Exclude**: Meme stocks or pure speculation.
-    - 'metrics': Specific stats found (e.g. "P/E: 8.4, Div: 5.2%").
-    - 'analysis': Why is this a buy *now*? Professional tone.
-    - 'conviction': 'Strong Buy' or 'Buy'.
+    **Task 2: THE WIRE (Critical News)**
+    - Fetch 6 BREAKING headlines from **Reuters, Bloomberg, CNBC, FT**.
+    - **Strict Filter**: NO OPINION PIECES. NO "5 Stocks to Buy". ONLY Hard News (Macro, Earnings, Central Banks, Geopolitics).
+    - 'impact': 'Critical' if it affects the whole market, 'High' if it affects a sector.
 
-    **Output Format (Strict JSON)**:
+    **Task 3: DEEP VALUE BOX (Fundamentals)**
+    - Identify 3 stocks that are fundamentally strong but currently undervalued.
+    - **Criteria**: Low P/E (<15), High Free Cash Flow, or strong Dividend.
+    - 'metrics': You MUST find real numbers (P/E, Yield, etc).
+    - 'analysis': One short, punchy sentence on why it's a value play.
+
+    **Output JSON Schema**:
     {
       "redditTrends": [
-        { "symbol": "NVDA", "name": "NVIDIA", "mentions": 5200, "sentiment": "Bullish", "sentimentScore": 94, "discussionSummary": "..." }
+        { "symbol": "TSLA", "name": "Tesla", "mentions": 12500, "sentiment": "Bullish", "sentimentScore": 85, "discussionSummary": "Robotaxi event hype driving call volume." },
+        ... (4 more)
       ],
       "news": [
-        { "title": "...", "source": "Reuters", "url": "...", "timestamp": "15m ago", "summary": "...", "impact": "Critical" }
+        { "title": "Fed Chair Powell Hints at Rate Cut", "source": "Bloomberg", "url": "...", "timestamp": "10m ago", "summary": "...", "impact": "Critical" }
       ],
       "picks": [
         { 
-          "symbol": "...", 
-          "name": "...", 
-          "price": "$...", 
-          "sector": "...", 
-          "metrics": { "peRatio": "...", "marketCap": "...", "dividendYield": "..." }, 
-          "analysis": "...", 
+          "symbol": "PFE", 
+          "name": "Pfizer", 
+          "price": "$28.50", 
+          "sector": "Healthcare",
+          "metrics": { "peRatio": "12.4x", "marketCap": "$160B", "dividendYield": "5.8%" }, 
+          "analysis": "Trading at multi-year lows despite robust pipeline and massive yield.", 
           "conviction": "Strong Buy" 
         }
       ]
@@ -108,21 +96,19 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
-        temperature: 0.1,
+        temperature: 0.1, // Low temp for factual data
       },
     });
 
     const text = response.text || "";
     const rawData = extractJSON(text);
 
-    const data: DashboardData = {
+    return {
       redditTrends: rawData.redditTrends || [],
       news: rawData.news || [],
       picks: rawData.picks || [],
       lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
-
-    return data;
 
   } catch (error) {
     console.error("Gemini API Error:", error);

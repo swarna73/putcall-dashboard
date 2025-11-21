@@ -1,6 +1,6 @@
 import React from 'react';
 import { FundamentalPick } from '../types';
-import { IconBrain, IconActivity } from './Icons';
+import { IconBrain, IconDollar } from './Icons';
 
 interface SmartStockBoxProps {
   picks: FundamentalPick[];
@@ -8,83 +8,69 @@ interface SmartStockBoxProps {
 
 const SmartStockBox: React.FC<SmartStockBoxProps> = ({ picks }) => {
   return (
-    <div className="w-full rounded-2xl border border-indigo-500/20 bg-[#0a0f1e] overflow-hidden shadow-2xl shadow-indigo-900/10">
-      
-      {/* Header */}
-      <div className="relative p-5 border-b border-indigo-500/10 bg-gradient-to-r from-indigo-950/30 to-transparent">
-        <div className="flex items-center gap-3 relative z-10">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/20">
-            <IconBrain className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-white">Alpha Picks</h2>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-400">Deep Value & Fundamentals</p>
-          </div>
+    <div className="w-full flex flex-col gap-4">
+      <div className="flex items-center gap-2 px-1">
+        <IconBrain className="h-5 w-5 text-emerald-400" />
+        <div>
+           <h2 className="text-lg font-bold text-white leading-none">Value Hunter</h2>
+           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Fundamentals & Cash Flow</p>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="p-4 space-y-4">
+      <div className="flex flex-col gap-3">
         {picks.length === 0 ? (
-          <div className="py-12 text-center opacity-50">
-            <div className="h-1 w-16 mx-auto bg-indigo-500/50 rounded mb-4 animate-pulse"></div>
-            <p className="text-xs text-indigo-200/60">Scanning fundamentals...</p>
+          <div className="rounded-xl border border-slate-800 bg-[#0a0f1e] p-8 text-center">
+            <div className="h-8 w-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin mx-auto mb-2"></div>
+            <p className="text-xs text-slate-500">Scanning P/E ratios...</p>
           </div>
         ) : (
           picks.map((pick, index) => (
             <div 
               key={`${pick.symbol}-${index}`} 
-              className="group relative rounded-xl bg-slate-900/40 border border-slate-800 p-4 transition-all hover:bg-slate-900 hover:border-indigo-500/40"
+              className="relative overflow-hidden rounded-xl border border-slate-800 bg-[#0a0f1e] p-4 transition-all hover:border-emerald-500/40 hover:bg-slate-900 group"
             >
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-xl font-black text-white tracking-tight">{pick.symbol}</h3>
-                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-800 text-slate-400 uppercase tracking-wide">
-                      {pick.sector}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-400 font-medium truncate w-32">{pick.name}</p>
+                   <span className="text-xs font-bold text-slate-500 uppercase mb-0.5 block">{pick.sector}</span>
+                   <h3 className="text-2xl font-black text-white tracking-tight group-hover:text-emerald-400 transition-colors">{pick.symbol}</h3>
+                   <div className="text-xs text-slate-300 font-medium truncate max-w-[120px]">{pick.name}</div>
                 </div>
                 <div className="text-right">
-                  <div className="font-mono text-sm font-bold text-indigo-300">{pick.price}</div>
-                  <div className={`text-[9px] font-bold uppercase tracking-wide mt-1 ${
-                      pick.conviction === 'Strong Buy' ? 'text-green-400' : 'text-blue-400'
-                  }`}>
-                    {pick.conviction}
-                  </div>
+                   <div className="font-mono text-sm font-bold text-white">{pick.price}</div>
+                   <div className="mt-1 inline-flex px-1.5 py-0.5 rounded bg-emerald-500/10 text-[9px] font-bold text-emerald-400 uppercase tracking-wide border border-emerald-500/20">
+                      {pick.conviction}
+                   </div>
                 </div>
               </div>
 
-              {/* Metrics Strip */}
-              <div className="flex divide-x divide-slate-800 border-y border-slate-800 mb-3 bg-slate-950/30 rounded-lg overflow-hidden">
-                <div className="flex-1 p-2 text-center">
-                  <div className="text-[8px] text-slate-500 uppercase font-bold">P/E</div>
-                  <div className="text-xs font-mono text-slate-200">{pick.metrics.peRatio}</div>
-                </div>
-                <div className="flex-1 p-2 text-center">
-                   <div className="text-[8px] text-slate-500 uppercase font-bold">Mkt Cap</div>
-                   <div className="text-xs font-mono text-slate-200">{pick.metrics.marketCap}</div>
-                </div>
-                <div className="flex-1 p-2 text-center">
-                   <div className="text-[8px] text-slate-500 uppercase font-bold">Yield</div>
-                   <div className="text-xs font-mono text-green-400">{pick.metrics.dividendYield}</div>
-                </div>
+              {/* Key Metrics Row */}
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                 <div className="bg-slate-950 rounded p-1.5 text-center border border-slate-800">
+                    <div className="text-[8px] text-slate-500 uppercase font-bold">P/E</div>
+                    <div className="text-xs font-mono text-emerald-300 font-medium">{pick.metrics.peRatio}</div>
+                 </div>
+                 <div className="bg-slate-950 rounded p-1.5 text-center border border-slate-800">
+                    <div className="text-[8px] text-slate-500 uppercase font-bold">Yield</div>
+                    <div className="text-xs font-mono text-emerald-300 font-medium">{pick.metrics.dividendYield}</div>
+                 </div>
+                 <div className="bg-slate-950 rounded p-1.5 text-center border border-slate-800">
+                    <div className="text-[8px] text-slate-500 uppercase font-bold">Mkt Cap</div>
+                    <div className="text-xs font-mono text-slate-300 font-medium">{pick.metrics.marketCap}</div>
+                 </div>
               </div>
 
-              <div className="relative">
-                <p className="text-xs leading-relaxed text-slate-400 line-clamp-3 group-hover:text-slate-300 transition-colors">
-                  {pick.analysis}
-                </p>
-              </div>
+              <p className="text-xs leading-relaxed text-slate-400 border-t border-slate-800/50 pt-2">
+                <span className="text-emerald-500/80 mr-1">Analysis:</span>
+                {pick.analysis}
+              </p>
             </div>
           ))
         )}
       </div>
       
-      <div className="bg-indigo-950/20 p-3 text-center border-t border-indigo-500/10">
-         <p className="text-[9px] text-indigo-300/40 uppercase tracking-widest flex items-center justify-center gap-2">
-           <IconActivity className="h-3 w-3" /> AI Analysis • Not Advice
+      <div className="rounded-lg bg-slate-900/50 p-3 text-center border border-slate-800/50">
+         <p className="text-[10px] text-slate-500">
+            AI screening for low P/E & high FCF.
          </p>
       </div>
     </div>
