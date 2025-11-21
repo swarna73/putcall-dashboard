@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import Header from './Header';
+import { Header } from './Header';
 import RedditSentiment from './RedditSentiment';
 import NewsFeed from './NewsFeed';
 import SmartStockBox from './SmartStockBox';
