@@ -7,7 +7,7 @@ import NewsFeed from './NewsFeed';
 import SmartStockBox from './SmartStockBox';
 import { fetchMarketDashboard } from '../services/geminiService';
 import { DashboardData, LoadingState } from '../types';
-import { IconAlert, IconActivity } from './Icons';
+import { IconAlert, IconActivity, IconZap } from './Icons';
 
 const Dashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData>({
@@ -19,19 +19,16 @@ const Dashboard: React.FC = () => {
   const [status, setStatus] = useState<LoadingState>(LoadingState.IDLE);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
-  // API Key Management State
   const [hasApiKey, setHasApiKey] = useState<boolean>(false);
   const [isCheckingKey, setIsCheckingKey] = useState<boolean>(true);
 
   useEffect(() => {
     const checkApiKey = async () => {
-      // Cast window to any to avoid TypeScript conflicts with existing global definitions
       const win = window as any;
       if (win.aistudio && win.aistudio.hasSelectedApiKey) {
         const hasKey = await win.aistudio.hasSelectedApiKey();
         setHasApiKey(hasKey);
       } else {
-        // Fallback for environments without the AI Studio wrapper (local dev)
         setHasApiKey(true);
       }
       setIsCheckingKey(false);
@@ -46,14 +43,19 @@ const Dashboard: React.FC = () => {
       const dashboardData = await fetchMarketDashboard();
       setData(dashboardData);
       setStatus(LoadingState.SUCCESS);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setStatus(LoadingState.ERROR);
-      setErrorMsg("Failed to retrieve market data. Please check your API key or connection.");
+      // Explicitly handle missing API key error from service
+      if (err.message === "API_KEY_MISSING" || err.toString().includes("API Key")) {
+        setHasApiKey(false); // Reset state to trigger landing page
+        setStatus(LoadingState.IDLE);
+      } else {
+        setStatus(LoadingState.ERROR);
+        setErrorMsg("Failed to retrieve market data. The API might be overloaded or the search failed.");
+      }
     }
   };
 
-  // Load data once we have a key
   useEffect(() => {
     if (hasApiKey && !isCheckingKey && status === LoadingState.IDLE) {
       loadData();
@@ -62,16 +64,15 @@ const Dashboard: React.FC = () => {
   }, [hasApiKey, isCheckingKey]);
 
   const handleConnectApiKey = async () => {
-    // Cast window to any to avoid TypeScript conflicts with existing global definitions
     const win = window as any;
     if (win.aistudio && win.aistudio.openSelectKey) {
       await win.aistudio.openSelectKey();
-      // Assume success to avoid race conditions as per guidelines
       setHasApiKey(true);
+      // Reset status to trigger loadData in useEffect
+      setStatus(LoadingState.IDLE);
     }
   };
 
-  // 1. Loading State for Key Check
   if (isCheckingKey) {
     return (
       <div className="min-h-screen bg-[#020617] flex items-center justify-center">
@@ -80,91 +81,104 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  // 2. No API Key State (Landing Screen)
   if (!hasApiKey) {
     return (
-      <div className="min-h-screen bg-[#020617] text-slate-100 flex flex-col items-center justify-center p-4">
-         <div className="max-w-md w-full text-center space-y-8">
+      <div className="min-h-screen bg-[#020617] text-slate-100 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+         {/* Background FX */}
+         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
+         <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[120px]"></div>
+         <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px]"></div>
+
+         <div className="max-w-md w-full text-center space-y-8 relative z-10">
             <div className="flex justify-center">
-              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-indigo-600/20 text-indigo-400 shadow-2xl shadow-indigo-500/20 ring-1 ring-indigo-500/40">
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-indigo-600/20 text-indigo-400 shadow-2xl shadow-indigo-500/20 ring-1 ring-indigo-500/40 backdrop-blur-md">
                 <IconActivity className="h-10 w-10" />
               </div>
             </div>
             
             <div className="space-y-2">
-              <h1 className="text-3xl font-bold tracking-tight text-white">
+              <h1 className="text-4xl font-black tracking-tighter text-white">
                 PutCall<span className="text-indigo-500">.nl</span>
               </h1>
-              <p className="text-slate-400 text-sm uppercase tracking-widest font-medium">Intelligent Market Dashboard</p>
+              <p className="text-indigo-200/60 text-sm uppercase tracking-[0.2em] font-semibold">Market Intelligence</p>
             </div>
 
-            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 backdrop-blur-sm">
-              <p className="text-slate-300 leading-relaxed mb-6">
-                Access real-time Reddit sentiment, breaking Reuters headlines, and deep-value stock picks powered by Gemini 2.5 Flash.
-              </p>
+            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 backdrop-blur-xl shadow-2xl">
+              <div className="space-y-4 mb-8">
+                 <div className="flex items-center gap-3 text-left">
+                    <div className="h-8 w-8 rounded-lg bg-orange-500/20 flex items-center justify-center text-orange-500"><IconZap className="h-4 w-4"/></div>
+                    <div><div className="font-bold text-slate-200">Reddit Sentiment</div><div className="text-xs text-slate-500">Real-time hype tracking</div></div>
+                 </div>
+                 <div className="flex items-center gap-3 text-left">
+                    <div className="h-8 w-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-500"><IconActivity className="h-4 w-4"/></div>
+                    <div><div className="font-bold text-slate-200">Bloomberg Wire</div><div className="text-xs text-slate-500">Breaking macro news</div></div>
+                 </div>
+              </div>
+
               <button 
                 onClick={handleConnectApiKey}
-                className="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg shadow-lg shadow-indigo-600/20 transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2"
+                className="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition-all transform hover:scale-[1.02] hover:shadow-indigo-600/40 flex items-center justify-center gap-2 group"
               >
-                <IconActivity className="h-5 w-5" />
-                Connect API Key
+                <span>Connect Terminal</span>
+                <IconActivity className="h-4 w-4 group-hover:animate-pulse" />
               </button>
-              <p className="mt-4 text-xs text-slate-600">
-                A paid Google Cloud Project API key is required for search grounding.
-              </p>
             </div>
          </div>
       </div>
     );
   }
 
-  // 3. Main Dashboard
   return (
-    <div className="min-h-screen bg-[#020617] text-slate-100 selection:bg-indigo-500/30">
+    <div className="min-h-screen bg-[#020617] text-slate-100 selection:bg-indigo-500/30 pb-12">
       <Header 
         onRefresh={loadData} 
         isLoading={status === LoadingState.LOADING}
         lastUpdated={data.lastUpdated}
       />
 
-      <main className="container mx-auto px-4 py-8">
-        {/* Error Banner */}
+      <main className="container mx-auto px-4 py-6 lg:py-8">
         {status === LoadingState.ERROR && (
-          <div className="mb-6 flex items-center gap-3 rounded-lg border border-red-900/50 bg-red-950/20 p-4 text-red-200">
+          <div className="mb-6 flex items-center gap-3 rounded-lg border border-red-900/50 bg-red-950/20 p-4 text-red-200 animate-in fade-in slide-in-from-top-2">
             <IconAlert className="h-5 w-5 text-red-500" />
-            <p>{errorMsg}</p>
+            <p className="text-sm font-medium">{errorMsg}</p>
             <button 
               onClick={loadData} 
-              className="ml-auto text-sm font-semibold underline hover:text-white"
+              className="ml-auto text-xs bg-red-900/30 hover:bg-red-900/50 px-3 py-1 rounded border border-red-800 transition-colors"
             >
               Retry
             </button>
           </div>
         )}
 
-        {/* Dashboard Grid */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
-          {/* Left Column: Reddit Trends */}
-          <div className="col-span-1 lg:col-span-2">
-            <RedditSentiment trends={data.redditTrends} />
+          {/* Left: Reddit Trends (Takes up 8 columns) */}
+          <div className="lg:col-span-8 flex flex-col gap-6">
+             <RedditSentiment trends={data.redditTrends} />
+             <NewsFeed news={data.news} />
           </div>
 
-          {/* Right Column: AI Smart Picks */}
-          <div className="col-span-1 lg:row-span-2">
-            <SmartStockBox picks={data.picks} />
+          {/* Right: Smart Picks (Takes up 4 columns, Sticky) */}
+          <div className="lg:col-span-4">
+            <div className="sticky top-24">
+               <SmartStockBox picks={data.picks} />
+            </div>
           </div>
 
-          {/* Bottom Row: News Feed */}
-          <div className="col-span-1 lg:col-span-2">
-            <NewsFeed news={data.news} />
-          </div>
         </div>
 
-        {/* Footer */}
-        <footer className="mt-12 border-t border-slate-900 py-6 text-center text-xs text-slate-600">
-          <p>&copy; {new Date().getFullYear()} PutCall.nl. Market data powered by Gemini AI & Google Search.</p>
-          <p className="mt-2">Disclaimer: Not financial advice. For informational purposes only.</p>
+        <footer className="mt-16 border-t border-slate-900 pt-8 text-center">
+           <div className="flex items-center justify-center gap-2 mb-4 opacity-50">
+              <div className="h-1 w-1 rounded-full bg-slate-600"></div>
+              <div className="h-1 w-1 rounded-full bg-slate-600"></div>
+              <div className="h-1 w-1 rounded-full bg-slate-600"></div>
+           </div>
+           <p className="text-xs text-slate-600 font-medium">
+            &copy; {new Date().getFullYear()} PutCall.nl • Market Intelligence Dashboard
+           </p>
+           <p className="mt-1 text-[10px] text-slate-700 uppercase tracking-wider">
+             Powered by Gemini 2.5 Flash & Google Search
+           </p>
         </footer>
       </main>
     </div>
