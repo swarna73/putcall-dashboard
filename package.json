@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "rm -f next.config.ts && next dev",
-    "build": "rm -f next.config.ts && next build",
+    "dev": "rm -f next.config.ts src/App.tsx index.tsx index.html && next dev",
+    "build": "rm -f next.config.ts src/App.tsx index.tsx index.html && next build",
     "start": "next start",
     "lint": "next lint"
   },
