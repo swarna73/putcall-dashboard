@@ -1,9 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { DashboardData, RedditTicker, NewsItem, FundamentalPick } from "../types";
 
-// Initialize Gemini
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 /**
  * Robustly extracts JSON from a string, handling markdown code blocks
  * and potential trailing text by counting braces.
@@ -48,6 +45,9 @@ function extractJSON(text: string): any {
  * Uses search grounding to get real-time info.
  */
 export const fetchMarketDashboard = async (): Promise<DashboardData> => {
+  // Initialize Gemini client INSIDE the function to ensure it uses the latest API Key
+  // available in process.env.API_KEY at the time of execution.
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const model = 'gemini-2.5-flash';
   
   const prompt = `
