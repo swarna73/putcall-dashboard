@@ -5,6 +5,45 @@ import { DashboardData, RedditTicker, NewsItem, FundamentalPick } from "../types
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 /**
+ * Robustly extracts JSON from a string, handling markdown code blocks
+ * and potential trailing text by counting braces.
+ */
+function extractJSON(text: string): any {
+  try {
+    // 1. Fast path: Try to parse the cleaned text directly
+    // Remove markdown code blocks (```json ... ```)
+    const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    return JSON.parse(clean);
+  } catch (e) {
+    // 2. Fallback: Find the first valid outer JSON object using brace counting
+    // This handles cases where the model adds text *after* the JSON object
+    const startIndex = text.indexOf('{');
+    if (startIndex === -1) throw new Error("No JSON start found in response");
+
+    let braceCount = 0;
+    let endIndex = -1;
+
+    for (let i = startIndex; i < text.length; i++) {
+      if (text[i] === '{') braceCount++;
+      else if (text[i] === '}') braceCount--;
+
+      if (braceCount === 0) {
+        endIndex = i;
+        break;
+      }
+    }
+
+    if (endIndex !== -1) {
+      const jsonStr = text.substring(startIndex, endIndex + 1);
+      return JSON.parse(jsonStr);
+    }
+    
+    console.error("JSON Extraction failed. Raw text:", text);
+    throw new Error("Could not extract valid JSON object from response");
+  }
+}
+
+/**
  * Fetches comprehensive market data: Reddit trends, News, and Smart Picks.
  * Uses search grounding to get real-time info.
  */
@@ -35,6 +74,7 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
        - 'conviction': 'Strong Buy' or 'Buy'.
 
     **Output Format (Strict JSON)**:
+    Provide ONLY the JSON object. Do not add any intro or outro text.
     {
       "redditTrends": [
         { "symbol": "NVDA", "name": "NVIDIA", "mentions": 4500, "sentiment": "Bullish", "sentimentScore": 92, "discussionSummary": "Anticipation of Blackwell chip details driving volume." }
@@ -62,18 +102,12 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
-        temperature: 0.3, // Lower temperature for more factual adherence
+        temperature: 0.1, // Lower temperature for more factual adherence and strict format
       },
     });
 
     const text = response.text || "";
-    
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error("Failed to parse JSON from AI response");
-    }
-
-    const rawData = JSON.parse(jsonMatch[0]);
+    const rawData = extractJSON(text);
 
     // Basic validation to ensure arrays exist
     const data: DashboardData = {
