@@ -29,6 +29,7 @@ const Dashboard: React.FC = () => {
         const hasKey = await win.aistudio.hasSelectedApiKey();
         setHasApiKey(hasKey);
       } else {
+        // If bridge is missing, we default to false, but user can bypass via button
         setHasApiKey(false); 
       }
       setIsCheckingKey(false);
@@ -69,6 +70,11 @@ const Dashboard: React.FC = () => {
       await win.aistudio.openSelectKey();
       setHasApiKey(true);
       setStatus(LoadingState.IDLE); // This will trigger the useEffect to loadData
+    } else {
+      // FALLBACK for local dev/testing where window.aistudio is missing
+      console.warn("AI Studio bridge missing - bypassing lock for UI demo");
+      setHasApiKey(true);
+      setStatus(LoadingState.IDLE);
     }
   };
 
@@ -81,7 +87,8 @@ const Dashboard: React.FC = () => {
         lastUpdated={data.lastUpdated}
       />
 
-      <main className={`container mx-auto px-4 lg:px-8 py-8 max-w-7xl space-y-8 transition-all duration-500 ${!hasApiKey ? 'blur-sm scale-[0.99] opacity-50 pointer-events-none' : ''}`}>
+      {/* Main Content - Removed blur so it is visible behind overlay */}
+      <main className={`container mx-auto px-4 lg:px-8 py-8 max-w-7xl space-y-8 transition-all duration-500 ${!hasApiKey ? 'pointer-events-none select-none grayscale-[0.5]' : ''}`}>
         
         {status === LoadingState.ERROR && (
           <div className="flex items-center justify-between gap-3 rounded-lg border border-red-900/50 bg-red-950/20 p-4 text-red-200 animate-in fade-in slide-in-from-top-4">
@@ -150,24 +157,24 @@ const Dashboard: React.FC = () => {
 
       {/* OVERLAY FOR API KEY CONNECTION */}
       {(!hasApiKey && !isCheckingKey) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/60 backdrop-blur-md animate-in fade-in duration-500">
-            <div className="max-w-md w-full mx-4 relative">
-                <div className="absolute inset-0 bg-indigo-500/20 blur-[60px] rounded-full"></div>
-                <div className="relative bg-[#0b1221] border border-slate-800 p-8 rounded-2xl shadow-2xl shadow-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/40 backdrop-blur-sm animate-in fade-in duration-500">
+            <div className="max-w-md w-full mx-4 relative pointer-events-auto">
+                <div className="absolute inset-0 bg-indigo-500/10 blur-[80px] rounded-full"></div>
+                <div className="relative bg-[#0b1221]/90 border border-indigo-500/30 p-8 rounded-2xl shadow-2xl shadow-black/80 backdrop-blur-md">
                     <div className="flex justify-center mb-6">
-                        <div className="h-16 w-16 bg-slate-900 rounded-2xl flex items-center justify-center border border-slate-800 shadow-inner">
-                            <IconZap className="h-8 w-8 text-indigo-500" />
+                        <div className="h-16 w-16 bg-indigo-500/10 rounded-2xl flex items-center justify-center border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+                            <IconZap className="h-8 w-8 text-indigo-400" />
                         </div>
                     </div>
                     
-                    <h2 className="text-2xl font-bold text-center text-white mb-2">Terminal Locked</h2>
+                    <h2 className="text-2xl font-bold text-center text-white mb-2 tracking-tight">Terminal Access</h2>
                     <p className="text-center text-slate-400 text-sm mb-8 leading-relaxed">
-                        Please connect your Gemini API key to access real-time Reddit sentiment and Bloomberg wire data.
+                        Connect your Gemini API key to unlock real-time sentiment analysis and live market data.
                     </p>
 
                     <button 
                         onClick={handleConnectApiKey}
-                        className="group w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-900/20 flex items-center justify-center gap-2"
+                        className="group w-full py-4 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-900/30 flex items-center justify-center gap-2 ring-1 ring-indigo-400/20"
                     >
                         <span>Initialize Connection</span>
                         <IconZap className="h-4 w-4 group-hover:scale-110 transition-transform" />
