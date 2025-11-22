@@ -14,7 +14,7 @@ const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends }) => {
     <div className="w-full">
       {/* Hero Section: The "King of the Hill" */}
       {topTicker ? (
-        <div className="relative w-full overflow-hidden rounded-2xl border border-orange-500/20 bg-[#0f172a] shadow-2xl shadow-orange-900/10">
+        <div className="relative w-full overflow-hidden rounded-2xl border border-orange-500/20 bg-[#0f172a] shadow-2xl shadow-orange-900/10 animate-in fade-in duration-700">
            
            {/* Background Elements */}
            <div className="absolute inset-0 bg-gradient-to-r from-[#1a1008] via-[#0f172a] to-[#0f172a]"></div>
@@ -102,7 +102,12 @@ const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends }) => {
            </div>
         </div>
       ) : (
-        <div className="h-64 w-full animate-pulse rounded-2xl bg-slate-900/50 border border-slate-800"></div>
+        <div className="w-full space-y-4 animate-pulse">
+           {/* Skeleton mimics the Hero Layout */}
+           <div className="h-[400px] w-full rounded-2xl bg-slate-900/30 border border-slate-800 relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-slate-800/10 to-transparent -translate-x-full animate-[shimmer_2s_infinite]"></div>
+           </div>
+        </div>
       )}
     </div>
   );

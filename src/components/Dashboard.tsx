@@ -29,7 +29,6 @@ const Dashboard: React.FC = () => {
         const hasKey = await win.aistudio.hasSelectedApiKey();
         setHasApiKey(hasKey);
       } else {
-        // Fallback for dev environments or if aistudio isn't injected yet
         setHasApiKey(false); 
       }
       setIsCheckingKey(false);
@@ -41,18 +40,18 @@ const Dashboard: React.FC = () => {
     setStatus(LoadingState.LOADING);
     setErrorMsg(null);
     try {
-      // Re-instantiate service to ensure latest env var is picked up
       const dashboardData = await fetchMarketDashboard();
       setData(dashboardData);
       setStatus(LoadingState.SUCCESS);
     } catch (err: any) {
       console.error("Dashboard Error:", err);
-      if (err.message === "API_KEY_MISSING" || err.toString().includes("API Key")) {
+      // Handle API Key specific errors
+      if (err.message?.includes("API key") || err.message?.includes("403") || err.message === "API_KEY_MISSING") {
         setHasApiKey(false);
         setStatus(LoadingState.IDLE);
       } else {
         setStatus(LoadingState.ERROR);
-        setErrorMsg("Failed to retrieve market data. Please retry.");
+        setErrorMsg("Unable to fetch market intelligence. Please retry.");
       }
     }
   };
@@ -68,86 +67,46 @@ const Dashboard: React.FC = () => {
     const win = window as any;
     if (win.aistudio && win.aistudio.openSelectKey) {
       await win.aistudio.openSelectKey();
-      // Small delay to allow environment variable propagation
-      setTimeout(() => {
-        setHasApiKey(true);
-        setStatus(LoadingState.IDLE);
-      }, 500);
+      setHasApiKey(true);
+      setStatus(LoadingState.IDLE); // This will trigger the useEffect to loadData
     }
   };
 
-  if (isCheckingKey) {
-    return (
-      <div className="min-h-screen bg-[#020617] flex items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent"></div>
-      </div>
-    );
-  }
-
-  if (!hasApiKey) {
-    return (
-      <div className="min-h-screen bg-[#020617] text-slate-100 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10"></div>
-         {/* Ambient Glow */}
-         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[100px]"></div>
-         
-         <div className="max-w-md w-full text-center space-y-8 relative z-10">
-            <div className="flex justify-center">
-              <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 text-indigo-400 shadow-2xl shadow-indigo-500/20 ring-1 ring-white/10 backdrop-blur-xl">
-                <IconActivity className="h-12 w-12" />
-              </div>
-            </div>
-            
-            <div className="space-y-3">
-              <h1 className="text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400">
-                PutCall<span className="text-indigo-500">.nl</span>
-              </h1>
-              <p className="text-indigo-200/60 text-xs uppercase tracking-[0.3em] font-bold">Intelligent Market Dashboard</p>
-            </div>
-
-            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 backdrop-blur-xl shadow-2xl">
-              <p className="text-slate-400 mb-8 text-sm leading-relaxed">
-                Access real-time <strong>Reddit Sentiment Analysis</strong>, breaking <strong>Bloomberg Wire</strong> headlines, and AI-curated <strong>Deep Value Picks</strong>.
-              </p>
-              <button 
-                onClick={handleConnectApiKey}
-                className="group w-full py-4 px-6 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3"
-              >
-                <span>Initialize Terminal</span>
-                <IconZap className="h-4 w-4 transition-transform group-hover:scale-125" />
-              </button>
-              <p className="mt-4 text-[10px] text-slate-600">Requires Gemini API Access</p>
-            </div>
-         </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-[#020617] text-slate-100 selection:bg-indigo-500/30 pb-20">
+    <div className="min-h-screen bg-[#020617] text-slate-100 selection:bg-indigo-500/30 pb-20 relative">
+      
       <Header 
         onRefresh={loadData} 
         isLoading={status === LoadingState.LOADING}
         lastUpdated={data.lastUpdated}
       />
 
-      <main className="container mx-auto px-4 lg:px-8 py-8 max-w-7xl space-y-8">
+      <main className={`container mx-auto px-4 lg:px-8 py-8 max-w-7xl space-y-8 transition-all duration-500 ${!hasApiKey ? 'blur-sm scale-[0.99] opacity-50 pointer-events-none' : ''}`}>
         
         {status === LoadingState.ERROR && (
-          <div className="flex items-center gap-3 rounded-lg border border-red-900/50 bg-red-950/20 p-4 text-red-200 animate-in fade-in slide-in-from-top-4">
-            <IconAlert className="h-5 w-5 text-red-500" />
-            <p className="text-sm font-medium">{errorMsg}</p>
-            <button onClick={loadData} className="ml-auto text-xs bg-red-900/30 px-4 py-1.5 rounded-md border border-red-800 hover:bg-red-900/50 hover:text-white transition-colors font-bold">RETRY CONNECTION</button>
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-red-900/50 bg-red-950/20 p-4 text-red-200 animate-in fade-in slide-in-from-top-4">
+            <div className="flex items-center gap-3">
+              <IconAlert className="h-5 w-5 text-red-500" />
+              <p className="text-sm font-medium">{errorMsg}</p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={handleConnectApiKey} className="text-[10px] bg-red-900/40 px-3 py-1.5 rounded hover:bg-red-900/60 transition-colors uppercase font-bold tracking-wide">
+                Check Key
+              </button>
+              <button onClick={loadData} className="text-[10px] bg-red-500/20 px-3 py-1.5 rounded border border-red-500/30 hover:bg-red-500/40 transition-colors uppercase font-bold tracking-wide">
+                Retry
+              </button>
+            </div>
           </div>
         )}
 
         {/* SECTION 1: THE HERO (REDDIT MOST TALKED ABOUT) */}
-        <section className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <section>
            <RedditSentiment trends={data.redditTrends} />
         </section>
 
         {/* SECTION 2: THE GRID (NEWS & VALUE) */}
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-100">
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
            
            {/* LEFT: CRITICAL NEWS WIRE (2/3 Width) */}
            <div className="lg:col-span-2 flex flex-col gap-6">
@@ -188,6 +147,35 @@ const Dashboard: React.FC = () => {
         </section>
 
       </main>
+
+      {/* OVERLAY FOR API KEY CONNECTION */}
+      {(!hasApiKey && !isCheckingKey) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/60 backdrop-blur-md animate-in fade-in duration-500">
+            <div className="max-w-md w-full mx-4 relative">
+                <div className="absolute inset-0 bg-indigo-500/20 blur-[60px] rounded-full"></div>
+                <div className="relative bg-[#0b1221] border border-slate-800 p-8 rounded-2xl shadow-2xl shadow-black/50">
+                    <div className="flex justify-center mb-6">
+                        <div className="h-16 w-16 bg-slate-900 rounded-2xl flex items-center justify-center border border-slate-800 shadow-inner">
+                            <IconZap className="h-8 w-8 text-indigo-500" />
+                        </div>
+                    </div>
+                    
+                    <h2 className="text-2xl font-bold text-center text-white mb-2">Terminal Locked</h2>
+                    <p className="text-center text-slate-400 text-sm mb-8 leading-relaxed">
+                        Please connect your Gemini API key to access real-time Reddit sentiment and Bloomberg wire data.
+                    </p>
+
+                    <button 
+                        onClick={handleConnectApiKey}
+                        className="group w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-900/20 flex items-center justify-center gap-2"
+                    >
+                        <span>Initialize Connection</span>
+                        <IconZap className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
       
       <footer className="mt-24 border-t border-slate-900/50 py-8 text-center">
          <p className="text-[10px] text-slate-600 font-medium uppercase tracking-widest opacity-50">
