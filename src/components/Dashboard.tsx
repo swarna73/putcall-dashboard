@@ -9,13 +9,16 @@ import { fetchMarketDashboard } from '../services/geminiService';
 import { DashboardData, LoadingState } from '../types';
 import { IconAlert, IconActivity, IconZap, IconBrain } from './Icons';
 
+// Preview data to show structure before load
+const PREVIEW_DATA: DashboardData = {
+  redditTrends: [], 
+  news: [],
+  picks: [],
+  lastUpdated: ''
+};
+
 const Dashboard: React.FC = () => {
-  const [data, setData] = useState<DashboardData>({
-    redditTrends: [],
-    news: [],
-    picks: [],
-    lastUpdated: '',
-  });
+  const [data, setData] = useState<DashboardData>(PREVIEW_DATA);
   const [status, setStatus] = useState<LoadingState>(LoadingState.IDLE);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
@@ -29,7 +32,6 @@ const Dashboard: React.FC = () => {
         const hasKey = await win.aistudio.hasSelectedApiKey();
         setHasApiKey(hasKey);
       } else {
-        // If bridge is missing, we default to false, but user can bypass via button
         setHasApiKey(false); 
       }
       setIsCheckingKey(false);
@@ -46,14 +48,8 @@ const Dashboard: React.FC = () => {
       setStatus(LoadingState.SUCCESS);
     } catch (err: any) {
       console.error("Dashboard Error:", err);
-      // Handle API Key specific errors
-      if (err.message?.includes("API key") || err.message?.includes("403") || err.message === "API_KEY_MISSING") {
-        setHasApiKey(false);
-        setStatus(LoadingState.IDLE);
-      } else {
-        setStatus(LoadingState.ERROR);
-        setErrorMsg("Unable to fetch market intelligence. Please retry.");
-      }
+      setStatus(LoadingState.ERROR);
+      setErrorMsg("System error. Please retry connection.");
     }
   };
 
@@ -66,16 +62,23 @@ const Dashboard: React.FC = () => {
 
   const handleConnectApiKey = async () => {
     const win = window as any;
+    // Try standard connect
     if (win.aistudio && win.aistudio.openSelectKey) {
-      await win.aistudio.openSelectKey();
-      setHasApiKey(true);
-      setStatus(LoadingState.IDLE); // This will trigger the useEffect to loadData
-    } else {
-      // FALLBACK for local dev/testing where window.aistudio is missing
-      console.warn("AI Studio bridge missing - bypassing lock for UI demo");
-      setHasApiKey(true);
-      setStatus(LoadingState.IDLE);
-    }
+      try {
+         await win.aistudio.openSelectKey();
+         setHasApiKey(true);
+         setStatus(LoadingState.IDLE);
+         return;
+      } catch (e) {
+         console.error("Key selection failed", e);
+      }
+    } 
+    
+    // If we get here, either bridge is missing OR user cancelled/failed.
+    // We proceed to "Simulation Mode" (handled by service returning mock data)
+    console.warn("Proceeding to Simulation/Dev Mode");
+    setHasApiKey(true);
+    setStatus(LoadingState.IDLE);
   };
 
   return (
@@ -87,8 +90,8 @@ const Dashboard: React.FC = () => {
         lastUpdated={data.lastUpdated}
       />
 
-      {/* Main Content - Removed blur so it is visible behind overlay */}
-      <main className={`container mx-auto px-4 lg:px-8 py-8 max-w-7xl space-y-8 transition-all duration-500 ${!hasApiKey ? 'pointer-events-none select-none grayscale-[0.5]' : ''}`}>
+      {/* Main Content - Visible but dimmed when locked */}
+      <main className={`container mx-auto px-4 lg:px-8 py-8 max-w-7xl space-y-8 transition-all duration-500 ${!hasApiKey ? 'opacity-40 pointer-events-none blur-[2px]' : 'opacity-100 blur-0'}`}>
         
         {status === LoadingState.ERROR && (
           <div className="flex items-center justify-between gap-3 rounded-lg border border-red-900/50 bg-red-950/20 p-4 text-red-200 animate-in fade-in slide-in-from-top-4">
@@ -96,14 +99,9 @@ const Dashboard: React.FC = () => {
               <IconAlert className="h-5 w-5 text-red-500" />
               <p className="text-sm font-medium">{errorMsg}</p>
             </div>
-            <div className="flex gap-2">
-              <button onClick={handleConnectApiKey} className="text-[10px] bg-red-900/40 px-3 py-1.5 rounded hover:bg-red-900/60 transition-colors uppercase font-bold tracking-wide">
-                Check Key
-              </button>
-              <button onClick={loadData} className="text-[10px] bg-red-500/20 px-3 py-1.5 rounded border border-red-500/30 hover:bg-red-500/40 transition-colors uppercase font-bold tracking-wide">
-                Retry
-              </button>
-            </div>
+            <button onClick={loadData} className="text-[10px] bg-red-500/20 px-3 py-1.5 rounded border border-red-500/30 hover:bg-red-500/40 transition-colors uppercase font-bold tracking-wide">
+               Retry
+            </button>
           </div>
         )}
 
@@ -157,19 +155,22 @@ const Dashboard: React.FC = () => {
 
       {/* OVERLAY FOR API KEY CONNECTION */}
       {(!hasApiKey && !isCheckingKey) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/40 backdrop-blur-sm animate-in fade-in duration-500">
-            <div className="max-w-md w-full mx-4 relative pointer-events-auto">
-                <div className="absolute inset-0 bg-indigo-500/10 blur-[80px] rounded-full"></div>
-                <div className="relative bg-[#0b1221]/90 border border-indigo-500/30 p-8 rounded-2xl shadow-2xl shadow-black/80 backdrop-blur-md">
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {/* Background gradient - subtle so user can see app behind */}
+            <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-[1px]"></div>
+            
+            <div className="max-w-md w-full mx-4 relative pointer-events-auto animate-in zoom-in-95 duration-300">
+                <div className="absolute inset-0 bg-indigo-500/20 blur-[60px] rounded-full"></div>
+                <div className="relative bg-[#0b1221]/95 border border-indigo-500/40 p-8 rounded-2xl shadow-2xl shadow-black backdrop-blur-xl">
                     <div className="flex justify-center mb-6">
-                        <div className="h-16 w-16 bg-indigo-500/10 rounded-2xl flex items-center justify-center border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+                        <div className="h-16 w-16 bg-indigo-500/10 rounded-2xl flex items-center justify-center border border-indigo-500/20 shadow-[0_0_20px_rgba(99,102,241,0.2)]">
                             <IconZap className="h-8 w-8 text-indigo-400" />
                         </div>
                     </div>
                     
-                    <h2 className="text-2xl font-bold text-center text-white mb-2 tracking-tight">Terminal Access</h2>
+                    <h2 className="text-2xl font-bold text-center text-white mb-2 tracking-tight">System Locked</h2>
                     <p className="text-center text-slate-400 text-sm mb-8 leading-relaxed">
-                        Connect your Gemini API key to unlock real-time sentiment analysis and live market data.
+                        Initialize the terminal to access real-time Reddit sentiment and Bloomberg wire data.
                     </p>
 
                     <button 
@@ -179,6 +180,9 @@ const Dashboard: React.FC = () => {
                         <span>Initialize Connection</span>
                         <IconZap className="h-4 w-4 group-hover:scale-110 transition-transform" />
                     </button>
+                    <p className="mt-4 text-center text-[10px] text-slate-600 uppercase tracking-widest">
+                        Powered by Gemini 2.5 Flash
+                    </p>
                 </div>
             </div>
         </div>
