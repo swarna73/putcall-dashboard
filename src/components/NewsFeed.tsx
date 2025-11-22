@@ -8,58 +8,63 @@ interface NewsFeedProps {
 
 const NewsFeed: React.FC<NewsFeedProps> = ({ news }) => {
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between mb-4 px-1">
-        <div className="flex items-center gap-2">
-          <IconActivity className="h-5 w-5 text-blue-400" />
-          <h2 className="text-lg font-bold text-white">Global Wire</h2>
+    <div className="flex flex-col gap-3">
+      {news.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 rounded-xl bg-slate-900/20 border border-slate-800 border-dashed">
+           <IconNews className="h-8 w-8 text-slate-600 mb-3 opacity-50" />
+           <p className="text-sm text-slate-500 font-medium">Waiting for wire feed...</p>
         </div>
-        <span className="flex h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></span>
-      </div>
-
-      <div className="flex flex-col gap-px bg-slate-800 rounded-xl overflow-hidden border border-slate-800">
-        {news.length === 0 && (
-           <div className="p-8 text-center bg-[#0a0f1e]">
-              <p className="text-slate-500 text-sm">Connecting to terminals...</p>
-           </div>
-        )}
-        
-        {news.map((item, index) => (
+      ) : (
+        news.map((item, index) => (
           <a 
             key={index} 
             href={item.url} 
             target="_blank" 
             rel="noopener noreferrer"
-            className="group bg-[#0a0f1e] p-4 hover:bg-slate-900 transition-colors relative pl-4"
+            className="group relative flex flex-col gap-2 rounded-lg border border-slate-800 bg-[#0b1221] p-5 transition-all hover:border-blue-500/30 hover:bg-[#0f192d] hover:shadow-lg hover:shadow-blue-900/5"
           >
-            {/* Importance Indicator Line */}
-            <div className={`absolute left-0 top-0 bottom-0 w-1 ${
-               item.impact === 'Critical' ? 'bg-red-500' : 'bg-slate-700'
-            }`}></div>
+            {/* Critical Indicator */}
+            {item.impact === 'Critical' && (
+               <div className="absolute -left-[1px] top-4 bottom-4 w-1 rounded-r bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.4)]"></div>
+            )}
 
-            <div className="flex items-baseline justify-between mb-1.5">
-              <div className="flex items-center gap-2">
-                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">
-                    {item.source}
-                 </span>
-                 {item.impact === 'Critical' && (
-                    <span className="text-[9px] font-black uppercase tracking-widest text-red-500 flex items-center gap-1 animate-pulse">
-                       <IconAlert className="h-3 w-3" /> BREAKING
-                    </span>
-                 )}
-              </div>
-              <span className="text-[10px] font-mono text-slate-500">{item.timestamp}</span>
+            <div className="flex items-center justify-between">
+               <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
+                     item.source.includes('Bloomberg') ? 'bg-blue-950 text-blue-400 border border-blue-900' :
+                     item.source.includes('Reuters') ? 'bg-orange-950 text-orange-400 border border-orange-900' :
+                     'bg-slate-800 text-slate-400'
+                  }`}>
+                     {item.source}
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-500">{item.timestamp}</span>
+               </div>
+               {item.impact === 'Critical' && (
+                  <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-red-500 animate-pulse">
+                     <IconAlert className="h-3 w-3" /> CRITICAL
+                  </span>
+               )}
             </div>
 
-            <h3 className="text-sm font-semibold text-slate-200 leading-snug mb-1 group-hover:text-blue-300 transition-colors">
-              {item.title}
-            </h3>
-            <p className="text-xs text-slate-400 line-clamp-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-               {item.summary}
-            </p>
+            <div className="pl-2">
+               <h3 className={`text-base font-bold leading-tight mb-2 group-hover:text-blue-200 transition-colors ${
+                  item.impact === 'Critical' ? 'text-white' : 'text-slate-200'
+               }`}>
+                  {item.title}
+               </h3>
+               <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">
+                  {item.summary}
+               </p>
+            </div>
+            
+            <div className="mt-2 flex justify-end opacity-0 transition-opacity group-hover:opacity-100">
+               <span className="flex items-center gap-1 text-[10px] font-bold text-blue-400 uppercase tracking-wide">
+                  Read Source <IconExternalLink className="h-3 w-3" />
+               </span>
+            </div>
           </a>
-        ))}
-      </div>
+        ))
+      )}
     </div>
   );
 };

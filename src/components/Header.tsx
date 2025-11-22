@@ -1,13 +1,16 @@
+
+"use client";
+
 import React, { useState } from 'react';
 import { IconActivity, IconRefresh, IconExternalLink } from './Icons';
 
-export interface HeaderProps {
+interface HeaderProps {
   onRefresh: () => void;
   isLoading: boolean;
   lastUpdated: string | null;
 }
 
-export function Header({ onRefresh, isLoading, lastUpdated }: HeaderProps) {
+export default function Header({ onRefresh, isLoading, lastUpdated }: HeaderProps) {
   const [copied, setCopied] = useState(false);
   
   const handleShare = async () => {
@@ -79,5 +82,3 @@ export function Header({ onRefresh, isLoading, lastUpdated }: HeaderProps) {
     </header>
   );
 }
-
-export default Header;

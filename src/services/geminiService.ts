@@ -47,43 +47,64 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
   const model = 'gemini-2.5-flash';
   
   const prompt = `
-    Act as a Senior Market Analyst. I need a JSON intelligence report for "PutCall.nl".
+    Act as a Senior Financial Data Architect. I need a JSON object representing the current "State of the Market" for a dashboard called PutCall.nl.
 
-    **Task 1: REDDIT "KING OF THE HILL" (Hype)**
-    - Scan r/wallstreetbets, r/stocks, r/investing for the **Single Most Talked About Stock** right now.
-    - Identify 4 other trending tickers.
-    - **Strict Criteria**: Rank purely by discussion volume (Mentions).
-    - 'sentiment': 'Bullish' or 'Bearish'.
-    - 'discussionSummary': "Why is it moving?" (e.g. "Earnings leak," "Short squeeze," "FDA approval").
+    **SECTION 1: REDDIT "KING OF THE HILL"**
+    - Search r/wallstreetbets, r/stocks, r/investing, and Twitter/X Finance.
+    - Identify the **#1 SINGLE MOST TALKED ABOUT STOCK** right now. This is the "King".
+    - Identify 4 runners-up.
+    - **Ranking Criteria**: PURELY discussion volume (Mentions).
+    - 'discussionSummary': A sharp, professional 1-sentence explanation of the catalyst (e.g., "Stock surging 15% pre-market on rumors of Apple partnership").
+    - 'sentimentScore': 0-100 based on tone.
 
-    **Task 2: THE WIRE (Critical News)**
-    - Fetch 6 BREAKING headlines from **Reuters, Bloomberg, CNBC, FT**.
-    - **Strict Filter**: NO OPINION PIECES. NO "5 Stocks to Buy". ONLY Hard News (Macro, Earnings, Central Banks, Geopolitics).
-    - 'impact': 'Critical' if it affects the whole market, 'High' if it affects a sector.
+    **SECTION 2: THE GLOBAL WIRE (Critical News)**
+    - Fetch 5-7 **BREAKING** headlines from the last 12 hours.
+    - **SOURCES**: Reuters, Bloomberg, Financial Times, CNBC, WSJ.
+    - **STRICT FILTER**: 
+      - NO "5 Stocks to Buy".
+      - NO "Opinion" or "Editorial".
+      - NO "Motley Fool".
+      - **ONLY** Hard News: Earnings, Fed Decisions, Inflation Data, Mergers, Geopolitics.
+    - 'impact': 'Critical' (Market Moving) or 'High' (Sector Moving).
 
-    **Task 3: DEEP VALUE BOX (Fundamentals)**
-    - Identify 3 stocks that are fundamentally strong but currently undervalued.
-    - **Criteria**: Low P/E (<15), High Free Cash Flow, or strong Dividend.
-    - 'metrics': You MUST find real numbers (P/E, Yield, etc).
-    - 'analysis': One short, punchy sentence on why it's a value play.
+    **SECTION 3: DEEP VALUE (The Alpha Box)**
+    - Identify 3 stocks that are fundamentally strong but currently undervalued (The "Smart Money" plays).
+    - **Criteria**: P/E < 20, Solid Dividend, or Massive Cash Flow.
+    - 'metrics': Must provide REAL numbers found in search (e.g. "P/E: 8.4", "Div: 4.2%").
+    - 'analysis': "Why buy now?" (e.g. "Trading at book value despite record Q3 earnings").
+    - 'conviction': 'Strong Buy' or 'Buy'.
 
-    **Output JSON Schema**:
+    **Output Format (Strict JSON)**:
     {
       "redditTrends": [
-        { "symbol": "TSLA", "name": "Tesla", "mentions": 12500, "sentiment": "Bullish", "sentimentScore": 85, "discussionSummary": "Robotaxi event hype driving call volume." },
-        ... (4 more)
+        { 
+          "symbol": "NVDA", 
+          "name": "NVIDIA", 
+          "mentions": 4200, 
+          "sentiment": "Bullish", 
+          "sentimentScore": 88, 
+          "discussionSummary": "Blackwell chip delays debunked by CEO, sending stock to ATH." 
+        },
+        ... (4 runners up)
       ],
       "news": [
-        { "title": "Fed Chair Powell Hints at Rate Cut", "source": "Bloomberg", "url": "...", "timestamp": "10m ago", "summary": "...", "impact": "Critical" }
+        { 
+          "title": "ECB Cuts Rates by 25bps as Inflation cools", 
+          "source": "Bloomberg", 
+          "url": "...", 
+          "timestamp": "15m ago", 
+          "summary": "...", 
+          "impact": "Critical" 
+        }
       ],
       "picks": [
         { 
-          "symbol": "PFE", 
-          "name": "Pfizer", 
-          "price": "$28.50", 
-          "sector": "Healthcare",
-          "metrics": { "peRatio": "12.4x", "marketCap": "$160B", "dividendYield": "5.8%" }, 
-          "analysis": "Trading at multi-year lows despite robust pipeline and massive yield.", 
+          "symbol": "C", 
+          "name": "Citigroup", 
+          "price": "$62.50", 
+          "sector": "Financials",
+          "metrics": { "peRatio": "9.1x", "marketCap": "$118B", "dividendYield": "3.4%" }, 
+          "analysis": "Restructuring ahead of schedule; trading well below tangible book value.", 
           "conviction": "Strong Buy" 
         }
       ]
@@ -96,7 +117,7 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
-        temperature: 0.1, // Low temp for factual data
+        temperature: 0.1, // Keep it factual
       },
     });
 
