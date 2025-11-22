@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState } from 'react';
@@ -5,12 +6,13 @@ import Header from './Header';
 import RedditSentiment from './RedditSentiment';
 import NewsFeed from './NewsFeed';
 import SmartStockBox from './SmartStockBox';
+import MarketOverview from './MarketOverview';
 import { fetchMarketDashboard } from '../services/geminiService';
 import { DashboardData, LoadingState } from '../types';
-import { IconAlert, IconActivity, IconZap, IconBrain } from './Icons';
+import { IconAlert, IconZap, IconBrain, IconActivity } from './Icons';
 
-// Preview data to show structure before load
 const PREVIEW_DATA: DashboardData = {
+  marketIndices: [],
   redditTrends: [], 
   news: [],
   picks: [],
@@ -62,7 +64,6 @@ const Dashboard: React.FC = () => {
 
   const handleConnectApiKey = async () => {
     const win = window as any;
-    // Try standard connect
     if (win.aistudio && win.aistudio.openSelectKey) {
       try {
          await win.aistudio.openSelectKey();
@@ -74,15 +75,13 @@ const Dashboard: React.FC = () => {
       }
     } 
     
-    // If we get here, either bridge is missing OR user cancelled/failed.
-    // We proceed to "Simulation Mode" (handled by service returning mock data)
     console.warn("Proceeding to Simulation/Dev Mode");
     setHasApiKey(true);
     setStatus(LoadingState.IDLE);
   };
 
   return (
-    <div className="min-h-screen bg-[#020617] text-slate-100 selection:bg-indigo-500/30 pb-20 relative">
+    <div className="min-h-screen bg-[#020617] text-slate-100 selection:bg-indigo-500/30 pb-20 relative flex flex-col">
       
       <Header 
         onRefresh={loadData} 
@@ -90,8 +89,11 @@ const Dashboard: React.FC = () => {
         lastUpdated={data.lastUpdated}
       />
 
-      {/* Main Content - Visible but dimmed when locked */}
-      <main className={`container mx-auto px-4 lg:px-8 py-8 max-w-7xl space-y-8 transition-all duration-500 ${!hasApiKey ? 'opacity-40 pointer-events-none blur-[2px]' : 'opacity-100 blur-0'}`}>
+      {/* Market Pulse Bar */}
+      <MarketOverview indices={data.marketIndices} />
+
+      {/* Main Content */}
+      <main className={`container mx-auto px-4 lg:px-8 py-8 max-w-7xl space-y-8 transition-all duration-500 flex-1 ${!hasApiKey ? 'opacity-40 pointer-events-none blur-[2px]' : 'opacity-100 blur-0'}`}>
         
         {status === LoadingState.ERROR && (
           <div className="flex items-center justify-between gap-3 rounded-lg border border-red-900/50 bg-red-950/20 p-4 text-red-200 animate-in fade-in slide-in-from-top-4">
@@ -133,7 +135,7 @@ const Dashboard: React.FC = () => {
               <NewsFeed news={data.news} />
            </div>
 
-           {/* RIGHT: SMART STOCK BOX (1/3 Width) - Sticky Sidebar */}
+           {/* RIGHT: SMART STOCK BOX (1/3 Width) */}
            <div className="lg:col-span-1">
               <div className="sticky top-24">
                  <div className="flex items-center gap-3 border-b border-slate-800 pb-4 mb-6">
@@ -142,7 +144,7 @@ const Dashboard: React.FC = () => {
                     </div>
                     <div>
                       <h2 className="text-xl font-bold text-white">Deep Value</h2>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">AI Fundamental Scan</p>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fundamental Scan</p>
                     </div>
                  </div>
                  <SmartStockBox picks={data.picks} />
@@ -153,12 +155,10 @@ const Dashboard: React.FC = () => {
 
       </main>
 
-      {/* OVERLAY FOR API KEY CONNECTION */}
+      {/* OVERLAY FOR API KEY */}
       {(!hasApiKey && !isCheckingKey) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-            {/* Background gradient - subtle so user can see app behind */}
             <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-[1px]"></div>
-            
             <div className="max-w-md w-full mx-4 relative pointer-events-auto animate-in zoom-in-95 duration-300">
                 <div className="absolute inset-0 bg-indigo-500/20 blur-[60px] rounded-full"></div>
                 <div className="relative bg-[#0b1221]/95 border border-indigo-500/40 p-8 rounded-2xl shadow-2xl shadow-black backdrop-blur-xl">
@@ -167,12 +167,10 @@ const Dashboard: React.FC = () => {
                             <IconZap className="h-8 w-8 text-indigo-400" />
                         </div>
                     </div>
-                    
                     <h2 className="text-2xl font-bold text-center text-white mb-2 tracking-tight">System Locked</h2>
                     <p className="text-center text-slate-400 text-sm mb-8 leading-relaxed">
-                        Initialize the terminal to access real-time Reddit sentiment and Bloomberg wire data.
+                        Initialize the terminal to access real-time Reddit sentiment, Index data, and Bloomberg wire.
                     </p>
-
                     <button 
                         onClick={handleConnectApiKey}
                         className="group w-full py-4 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-900/30 flex items-center justify-center gap-2 ring-1 ring-indigo-400/20"
@@ -180,9 +178,6 @@ const Dashboard: React.FC = () => {
                         <span>Initialize Connection</span>
                         <IconZap className="h-4 w-4 group-hover:scale-110 transition-transform" />
                     </button>
-                    <p className="mt-4 text-center text-[10px] text-slate-600 uppercase tracking-widest">
-                        Powered by Gemini 2.5 Flash
-                    </p>
                 </div>
             </div>
         </div>
@@ -190,7 +185,7 @@ const Dashboard: React.FC = () => {
       
       <footer className="mt-24 border-t border-slate-900/50 py-8 text-center">
          <p className="text-[10px] text-slate-600 font-medium uppercase tracking-widest opacity-50">
-          PutCall.nl • Intelligent Market Dashboard • v2.0
+          PutCall.nl • Intelligent Market Dashboard • v2.5
          </p>
       </footer>
     </div>
