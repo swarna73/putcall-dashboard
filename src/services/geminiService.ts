@@ -1,4 +1,3 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { DashboardData } from "../types";
 
@@ -60,7 +59,7 @@ const getMockData = (): DashboardData => {
         sentimentScore: 94, 
         discussionSummary: "Hype exploding around Blackwell chip benchmarks crushing expectations.",
         volumeChange: "+45%",
-        keywords: ["AI Supercycle", "Blackwell", "Moat", "Guidance Beat", "FOMO", "Semis"]
+        keywords: ["AI Supercycle", "Blackwell", "Moat", "Guidance Beat", "FOMO", "Semis", "H100"]
       },
       { 
         symbol: "PLTR", 
@@ -70,7 +69,7 @@ const getMockData = (): DashboardData => {
         sentimentScore: 88, 
         discussionSummary: "New government defense contracts driving massive retail volume.",
         volumeChange: "+12%",
-        keywords: ["Defense", "AIP", "S&P500", "Contract Wins"]
+        keywords: ["Defense", "AIP", "S&P500", "Contract Wins", "Bootcamp"]
       },
       { 
         symbol: "TSLA", 
@@ -80,7 +79,7 @@ const getMockData = (): DashboardData => {
         sentimentScore: 35, 
         discussionSummary: "Concerns over margin compression and slowing delivery growth.",
         volumeChange: "-5%",
-        keywords: ["Margins", "Competition", "Price Cuts", "Inventory"]
+        keywords: ["Margins", "Competition", "Price Cuts", "Inventory", "Robotaxi"]
       },
       { 
         symbol: "AMD", 
@@ -90,7 +89,7 @@ const getMockData = (): DashboardData => {
         sentimentScore: 72, 
         discussionSummary: "Gaining market share in data center CPU space against competitors.",
         volumeChange: "+8%",
-        keywords: ["MI300", "Data Center", "Catch-up"]
+        keywords: ["MI300", "Data Center", "Catch-up", "Lisa Su"]
       },
       { 
         symbol: "GME", 
@@ -100,7 +99,7 @@ const getMockData = (): DashboardData => {
         sentimentScore: 50, 
         discussionSummary: "Low volume consolidation awaiting next major catalyst.",
         volumeChange: "0%",
-        keywords: ["DRS", "Cohen", "Illiquid"]
+        keywords: ["DRS", "Cohen", "Illiquid", "Swap Cycles"]
       }
     ],
     news: [
@@ -235,7 +234,7 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
     **Part 1: REDDIT "KING OF THE HILL"**
     - Search r/wallstreetbets, r/stocks, and r/investing for the #1 most discussed stock RIGHT NOW.
     - Identify 4 runners-up.
-    - 'keywords': Extract 5-7 "Buzzwords" or emotional triggers driving the volume (e.g. "Short Squeeze", "Guidance", "FOMO").
+    - 'keywords': Extract 6-8 distinct, one-word "Matrix Rain" keywords related to the sentiment (e.g. "SQUEEZE", "GAMMA", "BEAT", "HODL").
     - 'sentimentScore': 0-100.
 
     **Part 2: DAY TRADER "ALPHA SCAN" (3 Stocks)**
@@ -248,8 +247,8 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
     
     **Part 3: NEWS WIRE**
     - Search for 3-4 Critical Hard News stories from the last 6 hours.
-    - **CRITICAL**: You MUST find the DIRECT URL to the specific article.
-    - **URL RULE**: Do NOT use generic homepages like "reuters.com". Do NOT use "#". If you find a story, you MUST provide the link to it.
+    - **CRITICAL**: You MUST find the DIRECT URL to the specific article (e.g., https://www.bloomberg.com/news/articles/...).
+    - **URL RULE**: ABSOLUTELY NO generic homepages (like bloomberg.com or reuters.com). NO relative links. NO '#'.
     - **TIMESTAMP**: Calculate relative time from NOW (${currentTime}). E.g. "12m ago", "1h ago".
 
     **Output JSON Format**:
@@ -261,7 +260,7 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
       "redditTrends": [
         { 
           "symbol": "NVDA", 
-          "keywords": ["Blackwell", "AI", "Beat"], 
+          "keywords": ["AI", "CHIPS", "H100", "JENSEN", "BEAT"], 
           ...
         }
       ],
@@ -269,7 +268,7 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
         {
           "title": "Headlines here",
           "source": "Bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2024-...",
+          "url": "https://www.bloomberg.com/news/articles/2024-03-20/some-article-slug",
           "timestamp": "14m ago",
           "impact": "Critical",
           "summary": "..."
