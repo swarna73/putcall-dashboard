@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   TrendingUp, 
@@ -13,7 +12,9 @@ import {
   DollarSign,
   Activity,
   Search,
-  X
+  X,
+  Lock,
+  Shield
 } from 'lucide-react';
 
 export const IconTrendingUp = ({ className }: { className?: string }) => <TrendingUp className={className} />;
@@ -29,3 +30,5 @@ export const IconDollar = ({ className }: { className?: string }) => <DollarSign
 export const IconActivity = ({ className }: { className?: string }) => <Activity className={className} />;
 export const IconSearch = ({ className }: { className?: string }) => <Search className={className} />;
 export const IconX = ({ className }: { className?: string }) => <X className={className} />;
+export const IconLock = ({ className }: { className?: string }) => <Lock className={className} />;
+export const IconShield = ({ className }: { className?: string }) => <Shield className={className} />;

@@ -1,23 +1,3 @@
-
-export interface MarketIndex {
-  name: string;
-  value: string;
-  change: string; // e.g., "+1.2%"
-  trend: 'Up' | 'Down' | 'Flat';
-}
-
-export interface MarketSentiment {
-  score: number; // 0-100
-  label: 'Extreme Fear' | 'Fear' | 'Neutral' | 'Greed' | 'Extreme Greed';
-  primaryDriver: string; // e.g., "Inflation Data"
-}
-
-export interface SectorPerformance {
-  name: string; // e.g. "Tech"
-  performance: 'Bullish' | 'Bearish' | 'Neutral';
-  change: string; // e.g. "+2.1%"
-}
-
 export interface RedditTicker {
   symbol: string;
   name: string;
@@ -44,7 +24,6 @@ export interface FundamentalPick {
   name: string;
   price: string;
   sector: string;
-  // Trader's Cheat Sheet Data
   metrics: {
     peRatio: string;
     marketCap: string;
@@ -52,29 +31,27 @@ export interface FundamentalPick {
     pegRatio: string;
     earningsDate: string;
     range52w: string;
-    // New Technicals
-    rsi: number;          // Relative Strength Index (0-100)
-    shortFloat: string;   // e.g., "12%"
-    beta: string;         // Volatility relative to market
-    relativeVolume: string; // e.g., "2.5x" (RVOL)
+    rsi: number;          
+    shortFloat: string;   
+    beta: string;         
+    relativeVolume: string; 
   };
   technicalLevels: {
-    support: string;      // e.g., "$120.50"
-    resistance: string;   // e.g., "$135.00"
-    stopLoss: string;     // Suggested stop
+    support: string;      
+    resistance: string;   
+    stopLoss: string;     
   };
-  catalyst: string;       // e.g. "Earnings in 3 days"
+  catalyst: string;       
   analysis: string;
   conviction: 'Strong Buy' | 'Buy' | 'Hold';
 }
 
-// NEW: Deep Dive Analysis Data
 export interface StockAnalysis {
   symbol: string;
   name: string;
   currentPrice: string;
-  fairValue: string; // Estimated Intrinsic Value
-  upside: string; // e.g. "+15%"
+  fairValue: string; 
+  upside: string; 
   
   valuation: {
     evEbitda: string;
@@ -84,23 +61,42 @@ export interface StockAnalysis {
   };
   
   health: {
-    roic: string; // Return on Invested Capital (Quality metric)
+    roic: string; 
     debtToEquity: string;
-    currentRatio: string; // Liquidity
+    currentRatio: string; 
     rating: 'Strong' | 'Stable' | 'Weak';
   };
   
   growth: {
-    revenueGrowth: string; // YoY
-    earningsGrowth: string; // YoY
+    revenueGrowth: string; 
+    earningsGrowth: string; 
   };
 
   institutional: {
     instOwnership: string;
-    recentTrends: string; // e.g. "Hedge Funds Buying"
+    recentTrends: string; 
   };
 
-  verdict: string; // 1-2 sentence CFA summary
+  verdict: string; 
+}
+
+export interface MarketIndex {
+  name: string;
+  value: string;
+  change: string; 
+  trend: 'Up' | 'Down' | 'Flat';
+}
+
+export interface MarketSentiment {
+  score: number; 
+  label: 'Extreme Fear' | 'Fear' | 'Neutral' | 'Greed' | 'Extreme Greed';
+  primaryDriver: string; 
+}
+
+export interface SectorPerformance {
+  name: string; 
+  performance: 'Bullish' | 'Bearish' | 'Neutral';
+  change: string; 
 }
 
 export interface DashboardData {
@@ -111,7 +107,7 @@ export interface DashboardData {
   news: NewsItem[];
   picks: FundamentalPick[];
   lastUpdated: string;
-  groundingMetadata?: any; // Contains source URLs from Google Search
+  groundingMetadata?: any; 
 }
 
 export enum LoadingState {
@@ -121,11 +117,13 @@ export enum LoadingState {
   ERROR
 }
 
-// Global Window Interface for AI Studio
 declare global {
-  // We augment the AIStudio interface which is used by window.aistudio
   interface AIStudio {
     hasSelectedApiKey: () => Promise<boolean>;
     openSelectKey: () => Promise<void>;
+  }
+
+  interface Window {
+    aistudio?: AIStudio;
   }
 }

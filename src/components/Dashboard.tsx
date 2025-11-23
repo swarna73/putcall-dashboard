@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useState } from 'react';
@@ -47,8 +46,7 @@ const Dashboard: React.FC = () => {
       } else {
         // Fallback for dev environments without the wrapper
         setIsAIStudioEnv(false);
-        // We assume the user has set process.env.API_KEY in .env
-        // We optimistically set hasKey to true to try and load.
+        // We optimistically set hasKey to true for local dev, relying on process.env.API_KEY
         setHasKey(true); 
         setTimeout(loadData, 100);
       }

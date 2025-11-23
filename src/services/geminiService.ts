@@ -1,4 +1,3 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { DashboardData, StockAnalysis } from "../types";
 
@@ -55,7 +54,7 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
     Generate a comprehensive JSON market intelligence report using REAL-TIME data from Google Search.
     
     **Instructions**:
-    1. **NO MARDEKOWN**: Return raw JSON only. Do not wrap in \`\`\`json.
+    1. **NO MARKDOWN**: Return raw JSON only. Do not wrap in \`\`\`json.
     2. **REAL-TIME ONLY**: Use the "googleSearch" tool to find data from the last 24 hours.
 
     **Part 0: MARKET PULSE (LIVE)**
