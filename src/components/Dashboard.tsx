@@ -9,21 +9,19 @@ import MarketOverview from './MarketOverview';
 import StockDeepDive from './StockDeepDive';
 import { fetchMarketDashboard } from '../services/geminiService';
 import { DashboardData, LoadingState } from '../types';
-import { IconAlert } from './Icons';
-
-const PREVIEW_DATA: DashboardData = {
-  marketIndices: [],
-  marketSentiment: { score: 50, label: 'Neutral', primaryDriver: 'Loading...' },
-  sectorRotation: [],
-  redditTrends: [], 
-  news: [],
-  picks: [],
-  lastUpdated: ''
-};
+import { IconShield } from './Icons';
 
 const Dashboard: React.FC = () => {
-  const [data, setData] = useState<DashboardData>(PREVIEW_DATA);
-  const [status, setStatus] = useState<LoadingState>(LoadingState.IDLE);
+  const [data, setData] = useState<DashboardData>({
+    marketIndices: [],
+    marketSentiment: { score: 50, label: 'Neutral', primaryDriver: 'Loading...' },
+    sectorRotation: [],
+    redditTrends: [], 
+    news: [],
+    picks: [],
+    lastUpdated: ''
+  });
+  const [status, setStatus] = useState<LoadingState>(LoadingState.LOADING);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -34,7 +32,6 @@ const Dashboard: React.FC = () => {
     setStatus(LoadingState.LOADING);
     setErrorMsg(null);
     try {
-      // Call Service (Client-side execution)
       const dashboardData = await fetchMarketDashboard();
       setData(dashboardData);
       setStatus(LoadingState.SUCCESS);
@@ -45,13 +42,11 @@ const Dashboard: React.FC = () => {
       const msg = err?.message || "Unknown Error";
       // Improved Error Mapping
       if (msg.includes("API Key is missing")) {
-        setErrorMsg("Configuration Error: API Key not found in environment.");
+        setErrorMsg("API Key Missing. Please check your environment variables.");
       } else if (msg.includes("403")) {
-        setErrorMsg("API Access Denied: Please check quota or billing.");
-      } else if (msg.includes("fetch")) {
-        setErrorMsg("Network Error: Could not connect to Gemini API.");
+        setErrorMsg("API Access Denied. Quota exceeded or billing issue.");
       } else {
-        setErrorMsg(`System Error: ${msg.substring(0, 50)}...`);
+        setErrorMsg("Connection interrupted. The AI is analyzing too much data. Retrying often fixes this.");
       }
     }
   };
@@ -74,25 +69,20 @@ const Dashboard: React.FC = () => {
       />
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 lg:px-8 py-8 max-w-7xl space-y-8 transition-all duration-500 flex-1 opacity-100 blur-0">
+      <main className="container mx-auto px-4 lg:px-8 py-8 max-w-7xl space-y-8 flex-1">
         
-        {/* Error State */}
+        {/* Error State - No Lock Screen, just a polite banner */}
         {status === LoadingState.ERROR && (
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-red-900/50 bg-red-950/20 p-4 text-red-200 animate-in fade-in slide-in-from-top-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-lg border border-red-900/50 bg-red-950/20 p-4 text-red-200 animate-in fade-in slide-in-from-top-4">
             <div className="flex items-center gap-3">
-              <IconAlert className="h-5 w-5 text-red-500" />
+              <IconShield className="h-5 w-5 text-red-500 shrink-0" />
               <p className="text-sm font-medium">{errorMsg}</p>
             </div>
-            <button onClick={loadData} className="text-[10px] bg-red-500/20 px-3 py-1.5 rounded border border-red-500/30 hover:bg-red-500/40 transition-colors uppercase font-bold tracking-wide">
-               Retry
+            <button onClick={loadData} className="whitespace-nowrap text-[10px] bg-red-500/20 px-3 py-1.5 rounded border border-red-500/30 hover:bg-red-500/40 transition-colors uppercase font-bold tracking-wide">
+               Retry Connection
             </button>
           </div>
         )}
-
-        {/* SECTION: Deep Dive Search Tool */}
-        <section className="max-w-4xl mx-auto">
-           <StockDeepDive />
-        </section>
 
         {/* SECTION 1: THE HERO (REDDIT MOST TALKED ABOUT) */}
         <section>
@@ -103,19 +93,24 @@ const Dashboard: React.FC = () => {
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
            
            {/* LEFT: CRITICAL NEWS WIRE (2/3 Width) */}
-           <div className="lg:col-span-2 flex flex-col gap-6">
+           <div className="lg:col-span-2">
               <NewsFeed news={data.news} />
            </div>
 
            {/* RIGHT: DEEP VALUE PICKS (1/3 Width) */}
-           <div className="col-span-1 flex flex-col gap-6">
+           <div className="col-span-1">
               <SmartStockBox picks={data.picks} />
            </div>
         </section>
 
+        {/* SECTION: Deep Dive Search Tool */}
+        <section className="max-w-4xl mx-auto pt-8 border-t border-slate-800">
+           <StockDeepDive />
+        </section>
+
         {/* FOOTER: GROUNDING SOURCES */}
         {data.groundingMetadata?.groundingChunks && (
-           <section className="border-t border-slate-800 pt-6 mt-8">
+           <section className="pt-6 mt-8 opacity-60 hover:opacity-100 transition-opacity">
              <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Verified Sources</h4>
              <div className="flex flex-wrap gap-2">
                {data.groundingMetadata.groundingChunks.map((chunk: any, i: number) => (

@@ -38,15 +38,13 @@ function extractJSON(text: string): any {
 }
 
 export const fetchMarketDashboard = async (): Promise<DashboardData> => {
-  // Access API Key from environment (injected by bundler)
-  const apiKey = process.env.API_KEY;
-
-  if (!apiKey) {
-    console.error("CONFIG ERROR: API_KEY is missing in process.env");
+  // Lazy initialization ensures we don't crash at module load time if env is slow
+  if (!process.env.API_KEY) {
+    console.error("CONFIG ERROR: API_KEY is missing.");
     throw new Error("API Key is missing. Please check your environment variables.");
   }
 
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const model = 'gemini-2.5-flash';
   
   const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
@@ -58,22 +56,26 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
     **CRITICAL INSTRUCTION**: You must use the 'googleSearch' tool to find the absolute latest data from the last 24 hours.
 
     **Part 1: REDDIT & SOCIAL MOMENTUM ("The Hype")**
-    - Search r/wallstreetbets, r/investing, r/stocks, and Twitter for the **single most discussed stock ticker** right now.
+    - Search r/wallstreetbets, r/investing, r/stocks for the **#1 most discussed stock ticker** right now.
     - Identify the specific catalyst (Earnings, FDA approval, Short Squeeze, CEO scandal).
-    - 'sentiment': 'Bullish', 'Bearish', or 'Neutral'.
-    - 'keywords': 5 slang words or specific themes driving the chat (e.g. "YOLO", "Gamma", "Guidance Cut").
+    - 'keywords': 5 slang words or specific themes driving the chat.
 
     **Part 2: CRITICAL NEWS WIRE ("The Truth")**
     - Search for **Breaking Financial News** from: Bloomberg, Reuters, Financial Times, CNBC.
     - **Timeframe**: Last 6 hours only.
     - **STRICT FILTER**: Do NOT include "Top 5 stocks to buy" or "Opinion" articles. I want HARD NEWS (Central Banks, M&A, Earnings Reports, Geopolitics).
-    - 'impact': Mark as 'Critical' only if it affects the broader market (S&P 500 movement) or is a major constituent move >5%.
+    - 'impact': Mark as 'Critical' only if it affects the broader market.
 
-    **Part 3: DEEP VALUE PICKS ("The Alpha")**
-    - Search for **EXACTLY 3 DISTINCT** companies with strong fundamentals that are currently undervalued.
-    - **MANDATORY**: You MUST provide 3 separate objects in the 'picks' array. Do not stop after one.
-    - **Criteria**: Low P/E relative to sector, Strong Free Cash Flow, or Recent Oversold Status.
-    - **Metrics**: You must find the ACTUAL current P/E ratio and Dividend Yield.
+    **Part 3: SUGGESTED STOCKS - FINANCIALS + FUNDAMENTALS ("The Value")**
+    - Search for **3 DISTINCT** companies that are "Strong Buys" based purely on **Fundamentals**.
+    - **Criteria**: Solid Balance Sheets (Low Debt), High Free Cash Flow, Low P/E relative to growth.
+    - **EXCLUDE**: Hype stocks, Meme stocks, Unprofitable tech. Stick to quality companies.
+    - **Metrics**: You must find the ACTUAL current:
+       - 'peRatio'
+       - 'roe' (Return on Equity)
+       - 'debtToEquity'
+       - 'freeCashFlow'
+    - **Analysis**: Explain the fundamental thesis in one sentence (e.g. "Generates $5B FCF with 20% ROE, trading at 8x earnings").
 
     **Output JSON Structure (No Markdown)**:
     {
@@ -85,9 +87,7 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
       ],
       "news": [ { "title": "...", "source": "Bloomberg", "url": "...", "timestamp": "10m ago", "summary": "...", "impact": "Critical" } ],
       "picks": [ 
-         { "symbol": "T", "name": "AT&T Inc.", "price": "$18.50", "sector": "Telecom", "metrics": { "peRatio": "6.2", "marketCap": "130B", "dividendYield": "6.1%", "pegRatio": "0.9", "earningsDate": "...", "range52w": "...", "rsi": 40, "shortFloat": "1%", "beta": "0.6", "relativeVolume": "0.9" }, "technicalLevels": { "support": "18.00", "resistance": "19.50", "stopLoss": "17.80" }, "catalyst": "Free Cash Flow Beat", "analysis": "...", "conviction": "Strong Buy" },
-         { "symbol": "GM", "name": "General Motors", "price": "...", "sector": "Auto", "metrics": {...}, "technicalLevels": {...}, "catalyst": "...", "analysis": "...", "conviction": "Buy" },
-         { "symbol": "C", "name": "Citigroup", "price": "...", "sector": "Finance", "metrics": {...}, "technicalLevels": {...}, "catalyst": "...", "analysis": "...", "conviction": "Buy" }
+         { "symbol": "T", "name": "AT&T Inc.", "price": "$18.50", "sector": "Telecom", "metrics": { "peRatio": "6.2", "roe": "12%", "debtToEquity": "0.9", "freeCashFlow": "$16B", "marketCap": "130B", "dividendYield": "6.1%" }, "technicalLevels": { "support": "18.00", "resistance": "19.50", "stopLoss": "17.80" }, "catalyst": "Free Cash Flow Beat", "analysis": "Trading below book value with massive FCF generation.", "conviction": "Strong Buy" }
       ]
     }
   `;
@@ -98,7 +98,7 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
-        temperature: 0.4, 
+        temperature: 0.3, // Low temp for factual financial data
       },
     });
 
@@ -126,13 +126,11 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
  * Performs a Deep Dive Financial X-Ray on a specific ticker.
  */
 export const analyzeStock = async (symbol: string): Promise<StockAnalysis> => {
-  const apiKey = process.env.API_KEY;
-  
-  if (!apiKey) {
+  if (!process.env.API_KEY) {
      throw new Error("API Key is missing. Please check your environment variables.");
   }
 
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const model = 'gemini-2.5-flash';
 
   const prompt = `
