@@ -1,8 +1,6 @@
-import { GoogleGenAI } from "@google/genai";
-import { DashboardData, RedditTicker, NewsItem, FundamentalPick } from "../types";
 
-// Initialize Gemini
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+import { GoogleGenAI } from "@google/genai";
+import { DashboardData } from "../types";
 
 /**
  * Robustly extracts JSON from a string, handling markdown code blocks
@@ -11,12 +9,10 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 function extractJSON(text: string): any {
   try {
     // 1. Fast path: Try to parse the cleaned text directly
-    // Remove markdown code blocks (```json ... ```)
     const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     return JSON.parse(clean);
   } catch (e) {
-    // 2. Fallback: Find the first valid outer JSON object using brace counting
-    // This handles cases where the model adds text *after* the JSON object
+    // 2. Fallback: Find the first valid outer JSON object
     const startIndex = text.indexOf('{');
     if (startIndex === -1) throw new Error("No JSON start found in response");
 
@@ -38,59 +34,243 @@ function extractJSON(text: string): any {
       return JSON.parse(jsonStr);
     }
     
-    console.error("JSON Extraction failed. Raw text:", text);
     throw new Error("Could not extract valid JSON object from response");
   }
 }
 
-/**
- * Fetches comprehensive market data: Reddit trends, News, and Smart Picks.
- * Uses search grounding to get real-time info.
- */
+// --- MOCK DATA FOR SIMULATION / FALLBACK ---
+const MOCK_DATA: DashboardData = {
+  marketIndices: [
+    { name: "S&P 500", value: "5,240.12", change: "+0.8%", trend: "Up" },
+    { name: "NASDAQ", value: "16,420.50", change: "+1.2%", trend: "Up" },
+    { name: "VIX", value: "12.50", change: "-4.1%", trend: "Down" },
+    { name: "Bitcoin", value: "$96,400", change: "+2.3%", trend: "Up" },
+    { name: "Gold", value: "$2,150", change: "+0.1%", trend: "Flat" }
+  ],
+  redditTrends: [
+    { 
+      symbol: "NVDA", 
+      name: "NVIDIA Corp", 
+      mentions: 15420, 
+      sentiment: "Bullish", 
+      sentimentScore: 94, 
+      discussionSummary: "Hype exploding around Blackwell chip benchmarks crushing expectations.",
+      volumeChange: "+45%",
+      keywords: ["AI Supercycle", "Blackwell", "Moat", "Guidance Beat", "FOMO", "Semis"]
+    },
+    { 
+      symbol: "PLTR", 
+      name: "Palantir", 
+      mentions: 8200, 
+      sentiment: "Bullish", 
+      sentimentScore: 88, 
+      discussionSummary: "New government defense contracts driving massive retail volume.",
+      volumeChange: "+12%",
+      keywords: ["Defense", "AIP", "S&P500", "Contract Wins"]
+    },
+    { 
+      symbol: "TSLA", 
+      name: "Tesla Inc", 
+      mentions: 6100, 
+      sentiment: "Bearish", 
+      sentimentScore: 35, 
+      discussionSummary: "Concerns over margin compression and slowing delivery growth.",
+      volumeChange: "-5%",
+      keywords: ["Margins", "Competition", "Price Cuts", "Inventory"]
+    },
+    { 
+      symbol: "AMD", 
+      name: "Advanced Micro Devices", 
+      mentions: 4300, 
+      sentiment: "Bullish", 
+      sentimentScore: 72, 
+      discussionSummary: "Gaining market share in data center CPU space against competitors.",
+      volumeChange: "+8%",
+      keywords: ["MI300", "Data Center", "Catch-up"]
+    },
+    { 
+      symbol: "GME", 
+      name: "GameStop", 
+      mentions: 3800, 
+      sentiment: "Neutral", 
+      sentimentScore: 50, 
+      discussionSummary: "Low volume consolidation awaiting next major catalyst.",
+      volumeChange: "0%",
+      keywords: ["DRS", "Cohen", "Illiquid"]
+    }
+  ],
+  news: [
+    { 
+      title: "Fed Signals Potential Rate Cut in Q3 as Inflation Cools", 
+      source: "Bloomberg", 
+      url: "#", 
+      timestamp: "15m ago", 
+      summary: "Federal Reserve officials indicated that recent data supports a shift in policy stance, sparking a rally in small-cap stocks...", 
+      impact: "Critical",
+      tags: ["Macro", "Fed"]
+    },
+    { 
+      title: "Oil Surge: Brent Crude Tops $90 on Geopolitical Tensions", 
+      source: "Reuters", 
+      url: "#", 
+      timestamp: "45m ago", 
+      summary: "Supply chain disruptions in the Middle East have triggered a sharp rally in energy markets, pressuring transport stocks...", 
+      impact: "High",
+      tags: ["Energy", "Geopolitics"]
+    },
+    { 
+      title: "Tech Sector Earnings: Big Tech Continues to Outperform", 
+      source: "CNBC", 
+      url: "#", 
+      timestamp: "2h ago", 
+      summary: "AI-driven CAPEX spending continues to lead the market higher despite broader economic concerns...", 
+      impact: "Medium",
+      tags: ["Earnings", "Tech"]
+    }
+  ],
+  picks: [
+    { 
+      symbol: "INTC", 
+      name: "Intel Corp", 
+      price: "$30.50", 
+      sector: "Technology", 
+      metrics: { 
+        peRatio: "12.5x", 
+        marketCap: "$130B", 
+        dividendYield: "3.1%", 
+        pegRatio: "0.9", 
+        earningsDate: "Apr 25", 
+        range52w: "Near Low",
+        rsi: 32,
+        shortFloat: "4.5%",
+        beta: "1.1"
+      },
+      technicalLevels: {
+        support: "$29.80",
+        resistance: "$32.50",
+        stopLoss: "$28.50"
+      }, 
+      analysis: "Trading at near-historic low multiples. Heavy oversold RSI suggests bounce.", 
+      conviction: "Strong Buy" 
+    },
+    { 
+      symbol: "PFE", 
+      name: "Pfizer", 
+      price: "$28.10", 
+      sector: "Healthcare", 
+      metrics: { 
+        peRatio: "9.2x", 
+        marketCap: "$158B", 
+        dividendYield: "5.8%", 
+        pegRatio: "1.1", 
+        earningsDate: "May 02", 
+        range52w: "52w Low",
+        rsi: 28,
+        shortFloat: "1.2%",
+        beta: "0.6"
+      },
+      technicalLevels: {
+        support: "$27.50",
+        resistance: "$29.50",
+        stopLoss: "$27.00"
+      },
+      analysis: "Oversold territory (RSI < 30) with robust dividend support.", 
+      conviction: "Buy" 
+    },
+    { 
+      symbol: "F", 
+      name: "Ford Motor Co", 
+      price: "$12.15", 
+      sector: "Consumer Cyclical", 
+      metrics: { 
+        peRatio: "6.8x", 
+        marketCap: "$48B", 
+        dividendYield: "4.9%", 
+        pegRatio: "0.7", 
+        earningsDate: "Apr 28", 
+        range52w: "Mid Range",
+        rsi: 45,
+        shortFloat: "3.1%",
+        beta: "1.4"
+      },
+      technicalLevels: {
+        support: "$11.80",
+        resistance: "$13.00",
+        stopLoss: "$11.50"
+      },
+      analysis: "EV division losses narrowing while legacy truck sales generate massive FCF.", 
+      conviction: "Strong Buy" 
+    }
+  ],
+  lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+};
+
 export const fetchMarketDashboard = async (): Promise<DashboardData> => {
+  const apiKey = process.env.API_KEY;
+
+  // 1. Check for API Key. If missing, return Mock Data (Simulation Mode).
+  if (!apiKey) {
+    console.warn("Gemini API Key missing - Returning Simulation Data for preview.");
+    await new Promise(resolve => setTimeout(resolve, 800));
+    return { ...MOCK_DATA, lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
   const model = 'gemini-2.5-flash';
   
   const prompt = `
-    Act as a Wall Street quantitative analyst. I need a JSON market intelligence report.
+    Act as a Senior Hedge Fund Trader. Generate a comprehensive JSON market intelligence report for "PutCall.nl".
     
-    1. **Reddit Momentum (The Hype)**: 
-       - Search r/wallstreetbets, r/stocks, and r/investing for the top 5 tickers being discussed *right now*. 
-       - Focus on volume of discussion.
-       - 'sentiment' must be 'Bullish', 'Bearish', or 'Neutral'.
-       - 'discussionSummary': One punchy sentence explaining the driver (e.g., "Short squeeze speculation after earnings miss").
+    **Part 0: MARKET PULSE**
+    - Get values for: S&P 500, NASDAQ, VIX, Bitcoin, Gold.
+    
+    **Part 1: REDDIT "KING OF THE HILL"**
+    - Search r/wallstreetbets for the #1 most discussed stock.
+    - Identify 4 runners-up.
+    - 'keywords': Extract 5-7 "Buzzwords" or emotional triggers driving the volume (e.g. "Short Squeeze", "Guidance", "FOMO").
+    - 'sentimentScore': 0-100.
 
-    2. **Critical News Wire (The Truth)**: 
-       - Search specifically for BREAKING financial news from the last 6 hours.
-       - **MANDATORY SOURCES**: Reuters, Bloomberg, Financial Times, WSJ, CNBC.
-       - **FILTER**: Strictly filter out "Opinion", "Editorial", or "5 Stocks to buy" articles. I only want HARD NEWS (Central Banks, Earnings, Geopolitics, Macro Data).
-       - 'impact': 'Critical' for macro events (Fed, War, Inflation), 'High' for major company news.
+    **Part 2: DAY TRADER "ALPHA SCAN" (3 Stocks)**
+    - Search for 3 stocks with strong technical/fundamental setups.
+    - **Trader Metrics Required**:
+        - 'rsi': Estimate 14-day RSI (e.g., 30-70).
+        - 'shortFloat': Estimate Short Interest % (e.g., "12%").
+        - 'beta': Volatility measure.
+        - 'technicalLevels': Estimate immediate Support and Resistance based on recent charts/news.
+    
+    **Part 3: NEWS WIRE**
+    - 3-4 Critical Hard News stories.
 
-    3. **Smart "Deep Value" Picks (The Alpha)**: 
-       - Search for companies with STRONG fundamentals that are currently undervalued.
-       - **Criteria**: P/E Ratio < 25, Positive Free Cash Flow, Solid Dividend or Growth.
-       - **EXCLUDE**: Meme stocks, Unprofitable tech.
-       - 'metrics': Must include specific numbers found in search (e.g., "P/E: 12.4", "Div: 3.1%", "FCF: $2B").
-       - 'analysis': Professional analyst tone. Why is this a buy *now*?
-       - 'conviction': 'Strong Buy' or 'Buy'.
-
-    **Output Format (Strict JSON)**:
-    Provide ONLY the JSON object. Do not add any intro or outro text.
+    **Output JSON Format**:
     {
+      "marketIndices": [
+        { "name": "S&P 500", "value": "5100.20", "change": "+0.5%", "trend": "Up" },
+        ...
+      ],
       "redditTrends": [
-        { "symbol": "NVDA", "name": "NVIDIA", "mentions": 4500, "sentiment": "Bullish", "sentimentScore": 92, "discussionSummary": "Anticipation of Blackwell chip details driving volume." }
+        { 
+          "symbol": "NVDA", 
+          "keywords": ["Blackwell", "AI", "Beat"], 
+          ...
+        }
       ],
-      "news": [
-        { "title": "Fed Signals Pause...", "source": "Bloomberg", "url": "https://...", "timestamp": "20m ago", "summary": "...", "impact": "Critical" }
-      ],
+      "news": [...],
       "picks": [
         { 
-          "symbol": "VALE", 
-          "name": "Vale S.A.", 
-          "price": "$12.50", 
-          "sector": "Materials",
-          "metrics": { "peRatio": "6.5x", "marketCap": "$58B", "dividendYield": "9.2%" }, 
-          "analysis": "Trading at near-historic low multiples despite robust iron ore demand forecasts.", 
-          "conviction": "Strong Buy" 
+          "symbol": "XYZ", 
+          "metrics": { 
+             "rsi": 45, 
+             "shortFloat": "5%",
+             "beta": "1.2",
+             "peRatio": "10x",
+             ...
+          }, 
+          "technicalLevels": {
+             "support": "$100",
+             "resistance": "$110",
+             "stopLoss": "$98"
+          },
+          ...
         }
       ]
     }
@@ -102,25 +282,26 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
-        temperature: 0.1, // Lower temperature for more factual adherence and strict format
+        temperature: 0.1,
       },
     });
 
     const text = response.text || "";
     const rawData = extractJSON(text);
 
-    // Basic validation to ensure arrays exist
-    const data: DashboardData = {
+    return {
+      marketIndices: rawData.marketIndices || [],
       redditTrends: rawData.redditTrends || [],
       news: rawData.news || [],
       picks: rawData.picks || [],
       lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
-    return data;
-
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini API Error:", error);
+    if (error.message?.includes("API_KEY") || error.message?.includes("403")) {
+        return { ...MOCK_DATA, lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+    }
     throw error;
   }
 };

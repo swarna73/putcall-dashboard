@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { FundamentalPick } from '../types';
-import { IconBrain } from './Icons';
+import { IconActivity, IconTrendingUp, IconTrendingDown } from './Icons';
 
 interface SmartStockBoxProps {
   picks: FundamentalPick[];
@@ -8,87 +9,117 @@ interface SmartStockBoxProps {
 
 const SmartStockBox: React.FC<SmartStockBoxProps> = ({ picks }) => {
   return (
-    <div className="h-full flex flex-col rounded-xl border border-amber-500/30 bg-[#0a0f1e] shadow-xl shadow-amber-900/5 relative overflow-hidden">
-      {/* Decorative background glow */}
-      <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-amber-500/10 blur-3xl"></div>
-      
-      {/* Header */}
-      <div className="relative z-10 flex items-center justify-between border-b border-amber-500/20 bg-gradient-to-r from-amber-950/30 to-transparent p-4 backdrop-blur-sm">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20">
-            <IconBrain className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="text-base font-bold text-amber-100">Alpha Picks</h2>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-500">Fundamentals & Deep Value</p>
-          </div>
+    <div className="space-y-4">
+      {picks.length === 0 ? (
+        <div className="rounded-lg border border-emerald-900/30 bg-emerald-950/10 p-6 text-center">
+           <div className="mx-auto mb-2 h-6 w-6 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent"></div>
+           <p className="text-xs font-medium text-emerald-500/50">Scanning Technicals & Fundamentals...</p>
         </div>
-      </div>
-
-      {/* Content */}
-      <div className="relative z-10 flex-1 overflow-y-auto p-4 space-y-4">
-        {picks.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-3 text-center opacity-60">
-            <div className="h-10 w-10 animate-pulse rounded bg-amber-900/20"></div>
-            <p className="text-xs text-amber-200/50">Scanning market fundamentals...</p>
-          </div>
-        ) : (
-          picks.map((pick, index) => (
-            <div 
-              key={`${pick.symbol}-${index}`} 
-              className="group relative overflow-hidden rounded-lg border border-amber-500/10 bg-slate-900/50 p-4 transition-all hover:border-amber-500/40 hover:bg-slate-900"
-            >
-              <div className="mb-3 flex items-start justify-between">
-                <div>
-                  <div className="flex items-baseline gap-2">
-                    <h3 className="text-xl font-bold text-white tracking-tight">{pick.symbol}</h3>
-                    <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] font-medium uppercase text-slate-400">{pick.sector}</span>
-                  </div>
-                  <p className="text-xs font-medium text-slate-300 truncate max-w-[140px]">{pick.name}</p>
-                </div>
-                <div className="text-right">
-                  <div className="font-mono text-sm font-bold text-amber-100">{pick.price}</div>
-                  <span className={`mt-1 inline-flex items-center rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide shadow-sm ${
-                    pick.conviction === 'Strong Buy' 
-                      ? 'bg-green-500/10 text-green-400 ring-1 ring-green-500/30' 
-                      : 'bg-blue-500/10 text-blue-400 ring-1 ring-blue-500/30'
-                  }`}>
-                    {pick.conviction}
-                  </span>
-                </div>
+      ) : (
+        picks.map((pick, index) => (
+          <div 
+            key={`${pick.symbol}-${index}`} 
+            className="group relative overflow-hidden rounded-xl border border-slate-800 bg-[#0f172a] p-4 transition-all hover:border-emerald-500/50 hover:bg-[#0f192d] hover:shadow-lg hover:shadow-emerald-900/10"
+          >
+            {/* HEADER: Symbol, Price, Conviction */}
+            <div className="mb-3 flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                 <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-slate-800 font-black text-white text-lg ring-1 ring-slate-700">
+                    {pick.symbol[0]}
+                 </div>
+                 <div>
+                    <div className="flex items-baseline gap-2">
+                        <h3 className="text-lg font-black text-white tracking-tight">{pick.symbol}</h3>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">{pick.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                        <span className="font-mono text-sm font-bold text-emerald-400">{pick.price}</span>
+                        <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border ${
+                            pick.conviction === 'Strong Buy' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                        }`}>
+                            {pick.conviction}
+                        </span>
+                    </div>
+                 </div>
               </div>
-
-              {/* Metrics Grid */}
-              <div className="mb-3 grid grid-cols-3 gap-2">
-                <div className="rounded bg-slate-950 p-2 text-center ring-1 ring-inset ring-slate-800">
-                  <div className="text-[9px] text-slate-500 uppercase">P/E Ratio</div>
-                  <div className="font-mono text-xs font-medium text-amber-300">{pick.metrics.peRatio}</div>
-                </div>
-                <div className="rounded bg-slate-950 p-2 text-center ring-1 ring-inset ring-slate-800">
-                  <div className="text-[9px] text-slate-500 uppercase">Mkt Cap</div>
-                  <div className="font-mono text-xs font-medium text-slate-300">{pick.metrics.marketCap}</div>
-                </div>
-                <div className="rounded bg-slate-950 p-2 text-center ring-1 ring-inset ring-slate-800">
-                  <div className="text-[9px] text-slate-500 uppercase">Yield</div>
-                  <div className="font-mono text-xs font-medium text-green-400">{pick.metrics.dividendYield}</div>
-                </div>
-              </div>
-
-              <div className="relative rounded bg-amber-950/10 p-3">
-                <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l bg-amber-600/50"></div>
-                <p className="text-xs leading-relaxed text-slate-300/90">
-                  "{pick.analysis}"
-                </p>
+              
+              {/* RSI INDICATOR (Mini Gauge) */}
+              <div className="text-right">
+                 <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">RSI (14D)</div>
+                 <div className={`inline-flex items-center justify-center rounded px-2 py-1 text-xs font-black ${
+                    pick.metrics.rsi > 70 ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+                    pick.metrics.rsi < 30 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                    'bg-slate-700 text-slate-300 border border-slate-600'
+                 }`}>
+                    {pick.metrics.rsi}
+                 </div>
               </div>
             </div>
-          ))
-        )}
-      </div>
-      
-      {/* Footer */}
-      <div className="border-t border-amber-500/10 bg-amber-950/20 p-2 text-center backdrop-blur-sm">
-         <p className="text-[9px] text-amber-200/40 uppercase tracking-widest">AI Generated • Fundamental Analysis</p>
-      </div>
+
+            {/* TRADER'S CHEAT SHEET GRID */}
+            <div className="grid grid-cols-2 gap-3 mb-3">
+                {/* Technicals Column */}
+                <div className="space-y-1.5">
+                    <h4 className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest border-b border-slate-800 pb-1 mb-2">Technicals</h4>
+                    
+                    <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-500">Short Float</span>
+                        <span className="font-mono font-bold text-slate-200">{pick.metrics.shortFloat}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-500">Beta</span>
+                        <span className="font-mono font-bold text-slate-200">{pick.metrics.beta}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-500">Range 52w</span>
+                        <span className="font-mono font-bold text-slate-200 text-[10px]">{pick.metrics.range52w}</span>
+                    </div>
+                </div>
+
+                {/* Levels Column */}
+                <div className="space-y-1.5">
+                    <h4 className="text-[9px] font-bold text-blue-500 uppercase tracking-widest border-b border-slate-800 pb-1 mb-2">Key Levels</h4>
+                    
+                    <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-500">Resistance</span>
+                        <span className="font-mono font-bold text-red-400">{pick.technicalLevels?.resistance || '--'}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-500">Support</span>
+                        <span className="font-mono font-bold text-emerald-400">{pick.technicalLevels?.support || '--'}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-500">Stop Loss</span>
+                        <span className="font-mono font-bold text-orange-400">{pick.technicalLevels?.stopLoss || '--'}</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* FUNDAMENTAL MINI-BAR */}
+            <div className="grid grid-cols-3 gap-px bg-slate-800 rounded overflow-hidden mb-3 border border-slate-700/50">
+                <div className="bg-[#0b1221] py-1.5 text-center">
+                    <div className="text-[8px] text-slate-500">P/E</div>
+                    <div className="text-[10px] font-mono font-bold text-slate-300">{pick.metrics.peRatio}</div>
+                </div>
+                <div className="bg-[#0b1221] py-1.5 text-center">
+                    <div className="text-[8px] text-slate-500">EPS Date</div>
+                    <div className="text-[10px] font-mono font-bold text-slate-300">{pick.metrics.earningsDate}</div>
+                </div>
+                <div className="bg-[#0b1221] py-1.5 text-center">
+                    <div className="text-[8px] text-slate-500">Yield</div>
+                    <div className="text-[10px] font-mono font-bold text-slate-300">{pick.metrics.dividendYield}</div>
+                </div>
+            </div>
+
+            {/* Thesis Footer */}
+            <div className="relative pl-3 border-l-2 border-emerald-500/30">
+               <p className="text-[11px] leading-snug text-slate-400">
+                  {pick.analysis}
+               </p>
+            </div>
+          </div>
+        ))
+      )}
     </div>
   );
 };
