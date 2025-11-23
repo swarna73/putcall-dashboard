@@ -82,9 +82,10 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
     - 'impact': Mark as 'Critical' only if it affects the broader market (S&P 500 movement) or is a major constituent move >5%.
 
     **Part 3: DEEP VALUE PICKS ("The Alpha")**
-    - Search for companies with **strong fundamentals** (Low P/E, High FCF) that are currently trading at a discount or have a specific catalyst today.
+    - Search for **EXACTLY 3 DISTINCT** companies with strong fundamentals that are currently undervalued.
+    - **Criteria**: Low P/E relative to sector, Strong Free Cash Flow, or Recent Oversold Status.
     - **Metrics**: You must find the ACTUAL current P/E ratio and Dividend Yield.
-    - 'analysis': A concise, professional reason why this is a buy.
+    - **Requirement**: Provide 3 different tickers. Do not duplicates.
 
     **Output JSON Structure (No Markdown)**:
     {
@@ -96,7 +97,9 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
       ],
       "news": [ { "title": "...", "source": "Bloomberg", "url": "...", "timestamp": "10m ago", "summary": "...", "impact": "Critical" } ],
       "picks": [ 
-         { "symbol": "T", "name": "AT&T", "price": "$18.50", "sector": "Telecom", "metrics": { "peRatio": "6.2", "marketCap": "130B", "dividendYield": "6.1%", "pegRatio": "0.9", "earningsDate": "...", "range52w": "...", "rsi": 40, "shortFloat": "1%", "beta": "0.6", "relativeVolume": "0.9" }, "technicalLevels": { "support": "18.00", "resistance": "19.50", "stopLoss": "17.80" }, "catalyst": "Free Cash Flow Beat", "analysis": "...", "conviction": "Strong Buy" } 
+         { "symbol": "T", "name": "AT&T Inc.", "price": "$18.50", "sector": "Telecom", "metrics": { "peRatio": "6.2", "marketCap": "130B", "dividendYield": "6.1%", "pegRatio": "0.9", "earningsDate": "...", "range52w": "...", "rsi": 40, "shortFloat": "1%", "beta": "0.6", "relativeVolume": "0.9" }, "technicalLevels": { "support": "18.00", "resistance": "19.50", "stopLoss": "17.80" }, "catalyst": "Free Cash Flow Beat", "analysis": "...", "conviction": "Strong Buy" },
+         { "symbol": "INTC", "name": "Intel Corp", "price": "...", "sector": "Tech", "metrics": {...}, "technicalLevels": {...}, "catalyst": "...", "analysis": "...", "conviction": "Buy" },
+         { "symbol": "PFE", "name": "Pfizer", "price": "...", "sector": "Healthcare", "metrics": {...}, "technicalLevels": {...}, "catalyst": "...", "analysis": "...", "conviction": "Buy" }
       ]
     }
   `;
@@ -201,4 +204,4 @@ export const analyzeStock = async (symbol: string): Promise<StockAnalysis> => {
     console.error("Deep Dive Error:", error);
     throw error;
   }
-};
+};  
