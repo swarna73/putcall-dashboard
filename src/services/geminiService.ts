@@ -44,6 +44,10 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
     throw new Error("API Key is missing. Please connect your account.");
   }
 
+  console.log("Available env vars:", Object.keys(process.env));
+  console.log("API_KEY exists:", !!process.env.API_KEY);
+
+
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const model = 'gemini-2.5-flash';
   
