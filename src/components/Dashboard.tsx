@@ -9,7 +9,7 @@ import MarketOverview from './MarketOverview';
 import StockDeepDive from './StockDeepDive';
 import { fetchMarketDashboard } from '../services/geminiService';
 import { DashboardData, LoadingState } from '../types';
-import { IconAlert, IconLock, IconShield, IconSearch } from './Icons';
+import { IconAlert, IconLock, IconShield } from './Icons';
 
 const PREVIEW_DATA: DashboardData = {
   marketIndices: [],
@@ -27,28 +27,33 @@ const Dashboard: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [hasKey, setHasKey] = useState<boolean>(false);
   const [isCheckingKey, setIsCheckingKey] = useState<boolean>(true);
-  const [isAIStudioEnv, setIsAIStudioEnv] = useState<boolean>(false);
 
   // Initial Key Check
   useEffect(() => {
     const checkKey = async () => {
       setIsCheckingKey(true);
+      
+      // 1. Check for Local Environment Key (Prioritize .env)
+      if (process.env.API_KEY) {
+        setHasKey(true);
+        setIsCheckingKey(false);
+        // Instant load if key exists
+        loadData(); 
+        return;
+      }
+
+      // 2. Fallback: Check for AI Studio Embedded Key
       if (typeof window !== 'undefined' && window.aistudio) {
-        setIsAIStudioEnv(true);
         const keySelected = await window.aistudio.hasSelectedApiKey();
         if (keySelected) {
           setHasKey(true);
-          // Don't auto-load here, wait for render to prevent race conditions with env var injection
-          setTimeout(loadData, 100); 
+          loadData();
         } else {
           setHasKey(false);
         }
       } else {
-        // Fallback for dev environments without the wrapper
-        setIsAIStudioEnv(false);
-        // We optimistically set hasKey to true for local dev, relying on process.env.API_KEY
-        setHasKey(true); 
-        setTimeout(loadData, 100);
+        // No key found in env or AI Studio
+        setHasKey(false);
       }
       setIsCheckingKey(false);
     };
@@ -81,11 +86,10 @@ const Dashboard: React.FC = () => {
       
       const msg = err?.message || "";
       if (msg.includes("API Key is missing") || msg.includes("Requested entity was not found")) {
-        // Force re-auth if the key is invalid or missing
         setHasKey(false);
         setErrorMsg("API Access Token Required");
       } else {
-        setErrorMsg("System error. Connection to Bloomberg/Reuters simulation failed.");
+        setErrorMsg("Connection failed. Retrying...");
       }
     }
   };
@@ -113,48 +117,30 @@ const Dashboard: React.FC = () => {
             <IconLock className="h-8 w-8 text-indigo-400" />
           </div>
           
-          <h1 className="text-2xl font-black text-white tracking-tight mb-2">TERMINAL ACCESS</h1>
+          <h1 className="text-2xl font-black text-white tracking-tight mb-2">TERMINAL LOCKED</h1>
           
-          {isAIStudioEnv ? (
-            <>
-              <p className="text-sm text-slate-400 mb-8 leading-relaxed">
-                PutCall.nl uses the Gemini API to scan real-time market data. <br/>
-                Please authenticate to initialize the data feed.
-              </p>
-              <button 
-                onClick={requestKey}
-                className="group relative w-full overflow-hidden rounded-lg bg-indigo-600 py-3.5 text-sm font-bold text-white shadow-lg transition-all hover:bg-indigo-500 hover:shadow-indigo-500/25 active:scale-[0.98]"
-              >
-                <div className="absolute inset-0 flex items-center justify-center gap-2 transition-transform group-hover:-translate-y-full">
-                   <IconShield className="h-4 w-4" /> INITIALIZE SECURE FEED
-                </div>
-                <div className="absolute inset-0 flex translate-y-full items-center justify-center gap-2 transition-transform group-hover:translate-y-0">
-                   CONNECT GOOGLE API
-                </div>
-              </button>
-              <div className="mt-6 border-t border-slate-800 pt-4">
-                 <p className="text-[10px] text-slate-500">
-                   Requires a valid Google Cloud Project. 
-                   <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noreferrer" className="text-indigo-400 hover:text-indigo-300 ml-1 underline underline-offset-2">
-                     Billing Info
-                   </a>
-                 </p>
-              </div>
-            </>
+          <p className="text-sm text-slate-400 mb-8 leading-relaxed">
+             API Key not detected in environment.<br/>
+             If you added <code>.env</code>, please <strong>restart the server</strong>.
+          </p>
+
+          {/* If inside AI Studio, offer the button. If local, offer reload. */}
+          {typeof window !== 'undefined' && window.aistudio ? (
+             <button 
+               onClick={requestKey}
+               className="group relative w-full overflow-hidden rounded-lg bg-indigo-600 py-3.5 text-sm font-bold text-white shadow-lg transition-all hover:bg-indigo-500"
+             >
+               <span className="flex items-center justify-center gap-2">
+                  <IconShield className="h-4 w-4" /> AUTHORIZE
+               </span>
+             </button>
           ) : (
-            <>
-              <p className="text-sm text-red-400 mb-8 leading-relaxed border border-red-900/30 bg-red-950/20 p-4 rounded">
-                <strong>Development Mode Error</strong><br/>
-                Gemini API Key is missing.<br/>
-                Please add <code>API_KEY</code> to your environment variables or <code>.env</code> file.
-              </p>
-              <button 
-                onClick={() => window.location.reload()}
-                className="w-full rounded-lg border border-slate-700 bg-slate-800 py-2.5 text-xs font-bold text-white hover:bg-slate-700"
-              >
-                RELOAD
-              </button>
-            </>
+            <button 
+              onClick={() => window.location.reload()}
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 py-2.5 text-xs font-bold text-white hover:bg-slate-700 transition-colors"
+            >
+              RELOAD SYSTEM
+            </button>
           )}
         </div>
       </div>
@@ -188,20 +174,13 @@ const Dashboard: React.FC = () => {
               <IconAlert className="h-5 w-5 text-red-500" />
               <p className="text-sm font-medium">{errorMsg}</p>
             </div>
-            <div className="flex gap-2">
-              {errorMsg?.includes("API Access") && isAIStudioEnv && (
-                 <button onClick={requestKey} className="text-[10px] bg-red-500/20 px-3 py-1.5 rounded border border-red-500/30 hover:bg-red-500/40 transition-colors uppercase font-bold tracking-wide">
-                   Change Key
-                 </button>
-              )}
-              <button onClick={loadData} className="text-[10px] bg-red-500/20 px-3 py-1.5 rounded border border-red-500/30 hover:bg-red-500/40 transition-colors uppercase font-bold tracking-wide">
-                 Retry
-              </button>
-            </div>
+            <button onClick={loadData} className="text-[10px] bg-red-500/20 px-3 py-1.5 rounded border border-red-500/30 hover:bg-red-500/40 transition-colors uppercase font-bold tracking-wide">
+               Retry
+            </button>
           </div>
         )}
 
-        {/* NEW SECTION: Deep Dive Search Tool */}
+        {/* SECTION: Deep Dive Search Tool */}
         <section className="max-w-4xl mx-auto">
            <StockDeepDive />
         </section>
@@ -216,33 +195,11 @@ const Dashboard: React.FC = () => {
            
            {/* LEFT: CRITICAL NEWS WIRE (2/3 Width) */}
            <div className="lg:col-span-2 flex flex-col gap-6">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-                <div className="flex items-center gap-2">
-                   <div className="p-1.5 rounded bg-blue-500/10 text-blue-400">
-                      <IconSearch className="h-5 w-5" />
-                   </div>
-                   <h2 className="text-lg font-bold text-white">Global Wire</h2>
-                </div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                   Real-time Intelligence
-                </div>
-              </div>
               <NewsFeed news={data.news} />
            </div>
 
            {/* RIGHT: DEEP VALUE PICKS (1/3 Width) */}
            <div className="col-span-1 flex flex-col gap-6">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-                <div className="flex items-center gap-2">
-                   <div className="p-1.5 rounded bg-emerald-500/10 text-emerald-400">
-                      <IconLock className="h-5 w-5" />
-                   </div>
-                   <h2 className="text-lg font-bold text-white">Alpha Scan</h2>
-                </div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                   Fundamentals + Technicals
-                </div>
-              </div>
               <SmartStockBox picks={data.picks} />
            </div>
         </section>

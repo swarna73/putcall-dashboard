@@ -38,6 +38,7 @@ function extractJSON(text: string): any {
 }
 
 export const fetchMarketDashboard = async (): Promise<DashboardData> => {
+  // Access key via process.env - ensured by next.config.mjs
   const apiKey = process.env.API_KEY;
 
   if (!apiKey) {
@@ -50,46 +51,41 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
   const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
 
   const prompt = `
-    Act as a Senior Wall Street Quantitative Analyst. The current time in New York is: ${currentTime}.
-    Generate a comprehensive JSON market intelligence report using REAL-TIME data from Google Search.
+    Act as a Senior Hedge Fund Analyst. The current time in New York is: ${currentTime}.
+    Generate a JSON market report using **REAL-TIME** data from Google Search.
     
-    **Instructions**:
-    1. **NO MARKDOWN**: Return raw JSON only. Do not wrap in \`\`\`json.
-    2. **REAL-TIME ONLY**: Use the "googleSearch" tool to find data from the last 24 hours.
+    **CRITICAL INSTRUCTION**: You must use the 'googleSearch' tool to find the absolute latest data from the last 24 hours.
 
-    **Part 0: MARKET PULSE (LIVE)**
-    - Get current values for: S&P 500, NASDAQ, VIX.
-    - Search for "CNN Fear and Greed Index current score".
-    - Identify 3 key sectors and their % change today.
+    **Part 1: REDDIT MOMENTUM ("The Hype")**
+    - Search r/wallstreetbets, r/investing, and Twitter/X for the **single most discussed stock ticker** right now.
+    - Focus on **VOLUME** of discussion, not just price.
+    - Return the Top 1 "King" ticker and 4 "Runner Ups".
+    - 'sentiment': 'Bullish', 'Bearish', or 'Neutral'.
+    - 'keywords': 5 slang words or themes driving the chat (e.g. "YOLO", "Gamma Squeeze", "Earnings Miss").
 
-    **Part 1: REDDIT MOMENTUM (MOST TALKED ABOUT)**
-    - Search r/wallstreetbets, r/stocks, and r/options for the **#1 most discussed ticker** right now.
-    - Identify 4 runner-up tickers.
-    - 'sentiment': Must be 'Bullish', 'Bearish', or 'Neutral'.
-    - 'keywords': 5-6 one-word buzzwords associated with the current discussion (e.g. "YOLO", "Squeeze", "Earnings").
+    **Part 2: CRITICAL NEWS WIRE ("The Truth")**
+    - Search for **Breaking Financial News** from: Bloomberg, Reuters, Financial Times, CNBC.
+    - **Timeframe**: Last 6 hours only.
+    - **STRICT FILTER**: Do NOT include "Top 5 stocks to buy" or "Opinion" articles. I want HARD NEWS (Central Banks, M&A, Earnings, Geopolitics).
+    - 'impact': Mark as 'Critical' only if it affects the broader market (S&P 500 movement).
 
-    **Part 2: CRITICAL NEWS WIRE**
-    - Search for BREAKING financial news from **Reuters, Bloomberg, CNBC, Financial Times** (Last 6 hours).
-    - **Filter**: Only Hard News (Macro, Earnings, M&A). No Opinion pieces.
-    - **URL**: Provide the direct link found in search.
+    **Part 3: DEEP VALUE PICKS ("The Alpha")**
+    - Search for companies with **strong fundamentals** (Low P/E, High FCF) that are currently trading at a discount.
+    - **Avoid**: Meme stocks in this section.
+    - **Metrics**: You must find the ACTUAL current P/E ratio and Dividend Yield.
+    - 'analysis': A concise, professional reason why this is a buy.
 
-    **Part 3: DEEP VALUE PICKS (Suggested Stocks)**
-    - Search for "undervalued stocks with strong fundamentals today".
-    - Select 3 distinct companies.
-    - **Metrics**: Find actual P/E, PEG, and Analyst Ratings.
-    - **Conviction**: 'Strong Buy' or 'Buy'.
-
-    **Output JSON Structure**:
+    **Output JSON Structure (No Markdown)**:
     {
-      "marketIndices": [ { "name": "S&P 500", "value": "5,200.00", "change": "+0.5%", "trend": "Up" } ],
-      "marketSentiment": { "score": 75, "label": "Greed", "primaryDriver": "Fed Rate Cuts" },
-      "sectorRotation": [ { "name": "Tech", "performance": "Bullish", "change": "+1.2%" } ],
+      "marketIndices": [ { "name": "S&P 500", "value": "...", "change": "...", "trend": "Up" } ],
+      "marketSentiment": { "score": 75, "label": "Greed", "primaryDriver": "..." },
+      "sectorRotation": [ { "name": "Energy", "performance": "Bullish", "change": "+1.5%" } ],
       "redditTrends": [ 
-         { "symbol": "NVDA", "name": "NVIDIA", "mentions": 5000, "sentiment": "Bullish", "sentimentScore": 90, "discussionSummary": "Blackwell chip delay rumors debunked", "keywords": ["Blackwell", "Jensen", "AI", "Calls"] } 
+         { "symbol": "NVDA", "name": "NVIDIA", "mentions": 5000, "sentiment": "Bullish", "sentimentScore": 90, "discussionSummary": "...", "keywords": ["AI", "Blackwell", "Calls"] } 
       ],
-      "news": [ { "title": "...", "source": "Reuters", "url": "...", "timestamp": "10m ago", "summary": "...", "impact": "Critical" } ],
+      "news": [ { "title": "...", "source": "Bloomberg", "url": "...", "timestamp": "10m ago", "summary": "...", "impact": "Critical" } ],
       "picks": [ 
-         { "symbol": "VALE", "name": "Vale S.A.", "price": "$10.50", "sector": "Mining", "metrics": { "peRatio": "5.2", "marketCap": "45B", "dividendYield": "9%", "pegRatio": "0.8", "earningsDate": "Oct 25", "range52w": "10-15", "rsi": 35, "shortFloat": "2%", "beta": "0.8", "relativeVolume": "1.2x" }, "technicalLevels": { "support": "10.00", "resistance": "11.50", "stopLoss": "9.80" }, "catalyst": "Iron Ore Rebound", "analysis": "...", "conviction": "Strong Buy" } 
+         { "symbol": "T", "name": "AT&T", "price": "$18.50", "sector": "Telecom", "metrics": { "peRatio": "6.2", "marketCap": "130B", "dividendYield": "6.1%", "pegRatio": "0.9", "earningsDate": "...", "range52w": "...", "rsi": 40, "shortFloat": "1%", "beta": "0.6", "relativeVolume": "0.9" }, "technicalLevels": { "support": "18.00", "resistance": "19.50", "stopLoss": "17.80" }, "catalyst": "Free Cash Flow Beat", "analysis": "...", "conviction": "Strong Buy" } 
       ]
     }
   `;
@@ -100,7 +96,7 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
-        temperature: 0.1,
+        temperature: 0.1, // Low temperature for factual accuracy
       },
     });
 
@@ -143,44 +139,38 @@ export const analyzeStock = async (symbol: string): Promise<StockAnalysis> => {
     
     **Instructions**:
     1. Search for "current share price ${symbol}".
-    2. Search for "Analyst Price Target ${symbol}" or "Fair Value Estimate ${symbol}" (Morningstar/CFRA).
-    3. Search for "${symbol} financial ratios": EV/EBITDA, Forward P/E, Price to Book, ROIC, Debt-to-Equity, Current Ratio.
+    2. Search for "Analyst Price Target ${symbol}" or "Fair Value Estimate ${symbol}".
+    3. Search for "${symbol} financial ratios": EV/EBITDA, Forward P/E, Price to Book, ROIC, Debt-to-Equity.
     4. Search for "${symbol} institutional ownership".
-
-    **Required Metrics**:
-    - **Valuation**: Current EV/EBITDA, Forward P/E, Price to Book.
-    - **Fair Value**: A specific dollar figure estimate based on consensus.
-    - **Quality/Health**: ROIC, Debt-to-Equity, Current Ratio.
-    - **Institutional**: What are big money managers doing? (Buying/Selling/Holding).
 
     **Output Format (Strict JSON)**:
     {
       "symbol": "${symbol}",
       "name": "Full Company Name",
-      "currentPrice": "$150.00",
-      "fairValue": "$175.00",
-      "upside": "+16%",
+      "currentPrice": "$...",
+      "fairValue": "$...",
+      "upside": "...",
       "valuation": {
-        "evEbitda": "14.2x",
-        "peFwd": "22.5x",
-        "priceToBook": "5.1x",
+        "evEbitda": "...",
+        "peFwd": "...",
+        "priceToBook": "...",
         "rating": "Undervalued" | "Fair" | "Overvalued"
       },
       "health": {
-        "roic": "24.5%",
-        "debtToEquity": "1.2",
-        "currentRatio": "1.5",
+        "roic": "...",
+        "debtToEquity": "...",
+        "currentRatio": "...",
         "rating": "Strong" | "Stable" | "Weak"
       },
       "growth": {
-        "revenueGrowth": "12%",
-        "earningsGrowth": "15%"
+        "revenueGrowth": "...",
+        "earningsGrowth": "..."
       },
       "institutional": {
-        "instOwnership": "72%",
-        "recentTrends": "Net Buying"
+        "instOwnership": "...",
+        "recentTrends": "..."
       },
-      "verdict": "A concise 2 sentence professional summary of why this is a buy/sell/hold based on the numbers."
+      "verdict": "Two sentence professional summary."
     }
   `;
 
