@@ -9,7 +9,7 @@ import MarketOverview from './MarketOverview';
 import StockDeepDive from './StockDeepDive';
 import { fetchMarketDashboard } from '../services/geminiService';
 import { DashboardData, LoadingState } from '../types';
-import { IconAlert, IconLock, IconShield, IconZap } from './Icons';
+import { IconAlert } from './Icons';
 
 const PREVIEW_DATA: DashboardData = {
   marketIndices: [],
@@ -25,75 +25,16 @@ const Dashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData>(PREVIEW_DATA);
   const [status, setStatus] = useState<LoadingState>(LoadingState.IDLE);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [hasKey, setHasKey] = useState<boolean>(false);
-  const [isCheckingKey, setIsCheckingKey] = useState<boolean>(true);
-  const [manualKey, setManualKey] = useState('');
 
-  // Initial Key Check
   useEffect(() => {
-    const checkKey = async () => {
-      setIsCheckingKey(true);
-      
-      // 1. Check for Environment Keys
-      if (process.env.API_KEY || process.env.NEXT_PUBLIC_API_KEY) {
-        setHasKey(true);
-        setIsCheckingKey(false);
-        loadData(); 
-        return;
-      }
-
-      // 2. Check LocalStorage (Fail-safe)
-      const storedKey = localStorage.getItem('gemini_api_key');
-      if (storedKey) {
-        setHasKey(true);
-        setIsCheckingKey(false);
-        loadData();
-        return;
-      }
-
-      // 3. Fallback: Check for AI Studio Embedded Key
-      if (typeof window !== 'undefined' && window.aistudio) {
-        const keySelected = await window.aistudio.hasSelectedApiKey();
-        if (keySelected) {
-          setHasKey(true);
-          loadData();
-        } else {
-          setHasKey(false);
-        }
-      } else {
-        setHasKey(false);
-      }
-      setIsCheckingKey(false);
-    };
-    checkKey();
+    loadData();
   }, []);
-
-  const handleManualKeySubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (manualKey.trim().length > 10) {
-      localStorage.setItem('gemini_api_key', manualKey.trim());
-      setHasKey(true);
-      window.location.reload(); // Reload to ensure service picks it up cleanly
-    }
-  };
-
-  const requestKey = async () => {
-    if (window.aistudio) {
-      try {
-        await window.aistudio.openSelectKey();
-        setHasKey(true);
-        setStatus(LoadingState.IDLE);
-        loadData();
-      } catch (e) {
-        console.error("Key selection failed", e);
-      }
-    }
-  };
 
   const loadData = async () => {
     setStatus(LoadingState.LOADING);
     setErrorMsg(null);
     try {
+      // Call Server Action
       const dashboardData = await fetchMarketDashboard();
       setData(dashboardData);
       setStatus(LoadingState.SUCCESS);
@@ -101,91 +42,16 @@ const Dashboard: React.FC = () => {
       console.error("Dashboard Error:", err);
       setStatus(LoadingState.ERROR);
       
-      const msg = err?.message || "";
-      if (msg.includes("KEY_MISSING") || msg.includes("API Key is missing") || msg.includes("Requested entity was not found") || msg.includes("403")) {
-        // If key is invalid, clear it so user can try again
-        if (localStorage.getItem('gemini_api_key')) {
-          localStorage.removeItem('gemini_api_key');
-        }
-        setHasKey(false);
-        setErrorMsg("Invalid or Missing API Key");
+      const msg = err?.message || "Unknown Error";
+      if (msg.includes("API Key is missing")) {
+        setErrorMsg("Server Configuration Error: API Key missing.");
+      } else if (msg.includes("Requested entity was not found") || msg.includes("403")) {
+        setErrorMsg("API Access Error: Please check server quotas.");
       } else {
         setErrorMsg("Connection failed. Retrying...");
       }
     }
   };
-
-  // --- RENDERING ---
-
-  if (isCheckingKey) {
-    return (
-      <div className="min-h-screen bg-[#020617] flex items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent"></div>
-      </div>
-    );
-  }
-
-  // API KEY LOCK SCREEN
-  if (!hasKey) {
-    return (
-      <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center p-4 relative overflow-hidden">
-        {/* Animated Background */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-950/20 via-[#020617] to-[#020617]"></div>
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150"></div>
-        
-        <div className="relative z-10 w-full max-w-md bg-[#0b1221]/90 backdrop-blur-xl border border-indigo-500/20 rounded-2xl p-8 shadow-2xl shadow-indigo-900/30 text-center">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-500/10 ring-1 ring-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.3)]">
-            <IconLock className="h-8 w-8 text-indigo-400" />
-          </div>
-          
-          <h1 className="text-2xl font-black text-white tracking-tight mb-2">TERMINAL ACCESS</h1>
-          
-          <p className="text-sm text-slate-400 mb-6 leading-relaxed">
-             Secure connection required.<br/>
-             Please authenticate to access real-time market streams.
-          </p>
-
-          {/* AI STUDIO BUTTON (If applicable) */}
-          {typeof window !== 'undefined' && window.aistudio && (
-             <button 
-               onClick={requestKey}
-               className="mb-4 group relative w-full overflow-hidden rounded-lg bg-indigo-600 py-3.5 text-sm font-bold text-white shadow-lg transition-all hover:bg-indigo-500"
-             >
-               <span className="flex items-center justify-center gap-2">
-                  <IconShield className="h-4 w-4" /> AUTO-CONNECT (AI STUDIO)
-               </span>
-             </button>
-          )}
-
-          {/* MANUAL ENTRY FALLBACK (The Fix) */}
-          <form onSubmit={handleManualKeySubmit} className="mt-4 pt-4 border-t border-slate-800">
-             <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
-               Manual Override (Paste Key)
-             </label>
-             <div className="flex gap-2">
-               <input 
-                 type="password"
-                 value={manualKey}
-                 onChange={(e) => setManualKey(e.target.value)}
-                 placeholder="AIzaSy..."
-                 className="flex-1 bg-slate-950 border border-slate-700 text-white px-3 py-2 rounded text-xs focus:outline-none focus:border-indigo-500 transition-colors"
-               />
-               <button 
-                 type="submit"
-                 disabled={manualKey.length < 10}
-                 className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded text-xs font-bold disabled:opacity-50 transition-colors"
-               >
-                 GO
-               </button>
-             </div>
-             <p className="mt-2 text-[10px] text-slate-600">
-               Key will be saved locally. No server restart required.
-             </p>
-          </form>
-        </div>
-      </div>
-    );
-  }
 
   // MAIN DASHBOARD
   return (

@@ -1,19 +1,7 @@
+"use server";
+
 import { GoogleGenAI } from "@google/genai";
 import { DashboardData, StockAnalysis } from "../types";
-
-// --- KEY MANAGEMENT HELPER ---
-const getApiKey = (): string | null => {
-  // 1. Check System Environment (Best practice)
-  if (process.env.API_KEY) return process.env.API_KEY;
-  if (process.env.NEXT_PUBLIC_API_KEY) return process.env.NEXT_PUBLIC_API_KEY;
-  
-  // 2. Check Browser Storage (Fallback for manual entry)
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('gemini_api_key');
-  }
-  
-  return null;
-};
 
 /**
  * Robustly extracts JSON from a string, handling markdown code blocks
@@ -52,10 +40,11 @@ function extractJSON(text: string): any {
 }
 
 export const fetchMarketDashboard = async (): Promise<DashboardData> => {
-  const apiKey = getApiKey();
+  const apiKey = process.env.API_KEY;
 
   if (!apiKey) {
-    throw new Error("KEY_MISSING");
+    console.error("SERVER ERROR: API_KEY is missing in process.env");
+    throw new Error("API Key is missing on Server");
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -83,9 +72,9 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
 
     **Part 3: DEEP VALUE PICKS ("The Alpha")**
     - Search for **EXACTLY 3 DISTINCT** companies with strong fundamentals that are currently undervalued.
+    - **MANDATORY**: You MUST provide 3 separate objects in the 'picks' array. Do not stop after one.
     - **Criteria**: Low P/E relative to sector, Strong Free Cash Flow, or Recent Oversold Status.
     - **Metrics**: You must find the ACTUAL current P/E ratio and Dividend Yield.
-    - **Requirement**: Provide 3 different tickers. Do not duplicates.
 
     **Output JSON Structure (No Markdown)**:
     {
@@ -98,8 +87,8 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
       "news": [ { "title": "...", "source": "Bloomberg", "url": "...", "timestamp": "10m ago", "summary": "...", "impact": "Critical" } ],
       "picks": [ 
          { "symbol": "T", "name": "AT&T Inc.", "price": "$18.50", "sector": "Telecom", "metrics": { "peRatio": "6.2", "marketCap": "130B", "dividendYield": "6.1%", "pegRatio": "0.9", "earningsDate": "...", "range52w": "...", "rsi": 40, "shortFloat": "1%", "beta": "0.6", "relativeVolume": "0.9" }, "technicalLevels": { "support": "18.00", "resistance": "19.50", "stopLoss": "17.80" }, "catalyst": "Free Cash Flow Beat", "analysis": "...", "conviction": "Strong Buy" },
-         { "symbol": "INTC", "name": "Intel Corp", "price": "...", "sector": "Tech", "metrics": {...}, "technicalLevels": {...}, "catalyst": "...", "analysis": "...", "conviction": "Buy" },
-         { "symbol": "PFE", "name": "Pfizer", "price": "...", "sector": "Healthcare", "metrics": {...}, "technicalLevels": {...}, "catalyst": "...", "analysis": "...", "conviction": "Buy" }
+         { "symbol": "GM", "name": "General Motors", "price": "...", "sector": "Auto", "metrics": {...}, "technicalLevels": {...}, "catalyst": "...", "analysis": "...", "conviction": "Buy" },
+         { "symbol": "C", "name": "Citigroup", "price": "...", "sector": "Finance", "metrics": {...}, "technicalLevels": {...}, "catalyst": "...", "analysis": "...", "conviction": "Buy" }
       ]
     }
   `;
@@ -110,7 +99,7 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
-        temperature: 0.1, // Low temperature for factual accuracy
+        temperature: 0.4, 
       },
     });
 
@@ -138,10 +127,10 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
  * Performs a Deep Dive Financial X-Ray on a specific ticker.
  */
 export const analyzeStock = async (symbol: string): Promise<StockAnalysis> => {
-  const apiKey = getApiKey();
+  const apiKey = process.env.API_KEY;
   
   if (!apiKey) {
-    throw new Error("KEY_MISSING");
+     throw new Error("API Key is missing on Server");
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -204,4 +193,4 @@ export const analyzeStock = async (symbol: string): Promise<StockAnalysis> => {
     console.error("Deep Dive Error:", error);
     throw error;
   }
-};  
+};

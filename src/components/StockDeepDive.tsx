@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from 'react';
 import { IconSearch, IconX, IconBrain, IconZap, IconActivity } from './Icons';
 import { analyzeStock } from '../services/geminiService';
