@@ -39,10 +39,20 @@ function extractJSON(text: string): any {
 
 export const fetchMarketDashboard = async (): Promise<DashboardData> => {
   // Client-side check for API key
-  if (!process.env.API_KEY) {
-    console.error("CONFIG ERROR: process.env.API_KEY is missing.");
+
+  const apiKey = process.env.API_KEY || process.env.NEXT_PUBLIC_API_KEY;
+
+  if (!apiKey) {
+    console.error("CONFIG ERROR: API Key is missing.");
     throw new Error("API Key is missing. Please connect your account.");
   }
+
+
+
+  /*if (!process.env.API_KEY) {
+    console.error("CONFIG ERROR: process.env.API_KEY is missing.");
+    throw new Error("API Key is missing. Please connect your account.");
+  }*/
 
   console.log("Available env vars:", Object.keys(process.env));
   console.log("API_KEY exists:", !!process.env.API_KEY);
@@ -131,9 +141,16 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
  * Performs a Deep Dive Financial X-Ray on a specific ticker.
  */
 export const analyzeStock = async (symbol: string): Promise<StockAnalysis> => {
-  if (!process.env.API_KEY) {
+
+  const apiKey = process.env.API_KEY || process.env.NEXT_PUBLIC_API_KEY;
+  
+  if (!apiKey) {
      throw new Error("API Key is missing. Please connect your account.");
   }
+
+/*  if (!process.env.API_KEY) {
+     throw new Error("API Key is missing. Please connect your account.");
+  }*/
 
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const model = 'gemini-2.5-flash';
