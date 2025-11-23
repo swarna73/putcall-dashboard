@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { IconSearch, IconX, IconBrain, IconZap, IconActivity } from './Icons';
 import { analyzeStock } from '../services/geminiService';
@@ -21,8 +20,17 @@ const StockDeepDive: React.FC = () => {
     try {
       const result = await analyzeStock(query.toUpperCase());
       setData(result);
-    } catch (err) {
-      setError("Analysis failed. Try again.");
+    } catch (err: any) {
+      console.error(err);
+      const msg = err?.message || "Analysis failed. Please try again.";
+      // User friendly error mapping
+      if (msg.includes("API Key is missing")) {
+        setError("System Config Error: API Key missing.");
+      } else if (msg.includes("extract valid JSON")) {
+        setError("Data Parsing Error: Search results were unstructured. Please retry.");
+      } else {
+        setError(msg);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -111,7 +119,7 @@ const StockDeepDive: React.FC = () => {
       {isLoading && (
         <div className="p-12 text-center border-t border-slate-800/50">
            <div className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent mb-3"></div>
-           <p className="text-[10px] text-indigo-400 animate-pulse font-mono">CALCULATING INTRINSIC VALUE...</p>
+           <p className="text-[10px] text-indigo-400 animate-pulse font-mono">SEARCHING LIVE MARKET DATA...</p>
         </div>
       )}
 

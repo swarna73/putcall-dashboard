@@ -37,239 +37,11 @@ function extractJSON(text: string): any {
   }
 }
 
-// --- DYNAMIC MOCK DATA GENERATOR ---
-const getMockData = (): DashboardData => {
-  const randomTime = (min: number, max: number) => `${Math.floor(Math.random() * (max - min + 1) + min)}m ago`;
-  
-  return {
-    marketIndices: [
-      { name: "S&P 500", value: "5,240.12", change: "+0.8%", trend: "Up" },
-      { name: "NASDAQ", value: "16,420.50", change: "+1.2%", trend: "Up" },
-      { name: "VIX", value: "12.50", change: "-4.1%", trend: "Down" },
-      { name: "Bitcoin", value: "$96,400", change: "+2.3%", trend: "Up" },
-      { name: "Gold", value: "$2,150", change: "+0.1%", trend: "Flat" }
-    ],
-    marketSentiment: {
-      score: 75,
-      label: "Greed",
-      primaryDriver: "AI Rally & Rate Cut Hopes"
-    },
-    sectorRotation: [
-      { name: "Tech", performance: "Bullish", change: "+1.8%" },
-      { name: "Energy", performance: "Bearish", change: "-0.5%" },
-      { name: "Financials", performance: "Neutral", change: "+0.2%" }
-    ],
-    redditTrends: [
-      { 
-        symbol: "NVDA", 
-        name: "NVIDIA Corp", 
-        mentions: 15420, 
-        sentiment: "Bullish", 
-        sentimentScore: 94, 
-        discussionSummary: "Hype exploding around Blackwell chip benchmarks crushing expectations.",
-        volumeChange: "+45%",
-        keywords: ["AI Supercycle", "Blackwell", "Moat", "Guidance Beat", "FOMO", "Semis", "H100"]
-      },
-      { 
-        symbol: "PLTR", 
-        name: "Palantir", 
-        mentions: 8200, 
-        sentiment: "Bullish", 
-        sentimentScore: 88, 
-        discussionSummary: "New government defense contracts driving massive retail volume.",
-        volumeChange: "+12%",
-        keywords: ["Defense", "AIP", "S&P500", "Contract Wins", "Bootcamp"]
-      },
-      { 
-        symbol: "TSLA", 
-        name: "Tesla Inc", 
-        mentions: 6100, 
-        sentiment: "Bearish", 
-        sentimentScore: 35, 
-        discussionSummary: "Concerns over margin compression and slowing delivery growth.",
-        volumeChange: "-5%",
-        keywords: ["Margins", "Competition", "Price Cuts", "Inventory", "Robotaxi"]
-      },
-      { 
-        symbol: "AMD", 
-        name: "Advanced Micro Devices", 
-        mentions: 4300, 
-        sentiment: "Bullish", 
-        sentimentScore: 72, 
-        discussionSummary: "Gaining market share in data center CPU space against competitors.",
-        volumeChange: "+8%",
-        keywords: ["MI300", "Data Center", "Catch-up", "Lisa Su"]
-      },
-      { 
-        symbol: "GME", 
-        name: "GameStop", 
-        mentions: 3800, 
-        sentiment: "Neutral", 
-        sentimentScore: 50, 
-        discussionSummary: "Low volume consolidation awaiting next major catalyst.",
-        volumeChange: "0%",
-        keywords: ["DRS", "Cohen", "Illiquid", "Swap Cycles"]
-      }
-    ],
-    news: [
-      { 
-        title: "Fed Signals Potential Rate Cut in Q3 as Inflation Cools", 
-        source: "Bloomberg", 
-        url: "https://www.bloomberg.com/markets", 
-        timestamp: randomTime(5, 20), 
-        summary: "Federal Reserve officials indicated that recent data supports a shift in policy stance, sparking a rally in small-cap stocks...", 
-        impact: "Critical",
-        tags: ["Macro", "Fed"]
-      },
-      { 
-        title: "Oil Surge: Brent Crude Tops $90 on Geopolitical Tensions", 
-        source: "Reuters", 
-        url: "https://www.reuters.com/business/energy/", 
-        timestamp: randomTime(25, 45), 
-        summary: "Supply chain disruptions in the Middle East have triggered a sharp rally in energy markets, pressuring transport stocks...", 
-        impact: "High",
-        tags: ["Energy", "Geopolitics"]
-      },
-      { 
-        title: "Tech Sector Earnings: Big Tech Continues to Outperform", 
-        source: "CNBC", 
-        url: "https://www.cnbc.com/technology/", 
-        timestamp: "2h ago", 
-        summary: "AI-driven CAPEX spending continues to lead the market higher despite broader economic concerns...", 
-        impact: "Medium",
-        tags: ["Earnings", "Tech"]
-      }
-    ],
-    picks: [
-      { 
-        symbol: "INTC", 
-        name: "Intel Corp", 
-        price: "$30.50", 
-        sector: "Technology", 
-        metrics: { 
-          peRatio: "12.5x", 
-          marketCap: "$130B", 
-          dividendYield: "3.1%", 
-          pegRatio: "0.9", 
-          earningsDate: "Apr 25", 
-          range52w: "Near Low",
-          rsi: 32,
-          shortFloat: "4.5%",
-          beta: "1.1",
-          relativeVolume: "1.2x"
-        },
-        technicalLevels: {
-          support: "$29.80",
-          resistance: "$32.50",
-          stopLoss: "$28.50"
-        }, 
-        catalyst: "Upcoming Foundry Event",
-        analysis: "Trading at near-historic low multiples. Heavy oversold RSI suggests bounce.", 
-        conviction: "Strong Buy" 
-      },
-      { 
-        symbol: "PFE", 
-        name: "Pfizer", 
-        price: "$28.10", 
-        sector: "Healthcare", 
-        metrics: { 
-          peRatio: "9.2x", 
-          marketCap: "$158B", 
-          dividendYield: "5.8%", 
-          pegRatio: "1.1", 
-          earningsDate: "May 02", 
-          range52w: "52w Low",
-          rsi: 28,
-          shortFloat: "1.2%",
-          beta: "0.6",
-          relativeVolume: "0.9x"
-        },
-        technicalLevels: {
-          support: "$27.50",
-          resistance: "$29.50",
-          stopLoss: "$27.00"
-        },
-        catalyst: "New Oncology drug pipeline data",
-        analysis: "Oversold territory (RSI < 30) with robust dividend support.", 
-        conviction: "Buy" 
-      },
-      { 
-        symbol: "F", 
-        name: "Ford Motor Co", 
-        price: "$12.15", 
-        sector: "Consumer Cyclical", 
-        metrics: { 
-          peRatio: "6.8x", 
-          marketCap: "$48B", 
-          dividendYield: "4.9%", 
-          pegRatio: "0.7", 
-          earningsDate: "Apr 28", 
-          range52w: "Mid Range",
-          rsi: 45,
-          shortFloat: "3.1%",
-          beta: "1.4",
-          relativeVolume: "1.5x"
-        },
-        technicalLevels: {
-          support: "$11.80",
-          resistance: "$13.00",
-          stopLoss: "$11.50"
-        },
-        catalyst: "EV sales guidance update next week",
-        analysis: "EV division losses narrowing while legacy truck sales generate massive FCF.", 
-        conviction: "Strong Buy" 
-      }
-    ],
-    lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  };
-};
-
-// Mock data specifically for the Deep Dive analysis
-const getMockStockAnalysis = (symbol: string): StockAnalysis => {
-  // Generate consistent pseudo-random numbers based on symbol
-  const hash = symbol.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const getVal = (base: number, variance: number) => (base + (hash % variance) - variance/2).toFixed(2);
-  const isGood = hash % 2 === 0;
-
-  return {
-    symbol: symbol.toUpperCase(),
-    name: `${symbol.toUpperCase()} Corp (Simulated)`,
-    currentPrice: `$${getVal(150, 40)}`,
-    fairValue: `$${getVal(170, 50)}`,
-    upside: isGood ? "+18.5%" : "-5.2%",
-    valuation: {
-      evEbitda: `${(10 + (hash % 15)).toFixed(1)}x`,
-      peFwd: `${(15 + (hash % 25)).toFixed(1)}x`,
-      priceToBook: `${(2 + (hash % 6)).toFixed(1)}x`,
-      rating: isGood ? "Undervalued" : "Overvalued"
-    },
-    health: {
-      roic: `${(10 + (hash % 20)).toFixed(1)}%`,
-      debtToEquity: (hash % 100 / 60).toFixed(1),
-      currentRatio: (1 + hash % 100 / 50).toFixed(1),
-      rating: hash % 3 === 0 ? "Strong" : "Stable"
-    },
-    growth: {
-      revenueGrowth: `${(5 + (hash % 15)).toFixed(1)}%`,
-      earningsGrowth: `${(8 + (hash % 20)).toFixed(1)}%`
-    },
-    institutional: {
-      instOwnership: `${50 + (hash % 40)}%`,
-      recentTrends: isGood ? "Net Buying" : "Selling"
-    },
-    verdict: isGood 
-      ? "Strong balance sheet with consistent free cash flow generation. Trading at a discount to historical multiples."
-      : "Valuation appears stretched relative to near-term growth prospects. Suggest waiting for a pullback."
-  };
-};
-
 export const fetchMarketDashboard = async (): Promise<DashboardData> => {
   const apiKey = process.env.API_KEY;
 
   if (!apiKey) {
-    console.warn("Gemini API Key missing - Returning Simulation Data for preview.");
-    await new Promise(resolve => setTimeout(resolve, 800));
-    return getMockData();
+    throw new Error("Gemini API Key is missing. Please configure process.env.API_KEY.");
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -279,38 +51,38 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
 
   const prompt = `
     Act as a Senior Hedge Fund Trader. The current time in New York is: ${currentTime}.
-    Generate a comprehensive JSON market intelligence report.
+    Generate a comprehensive JSON market intelligence report using REAL-TIME data from Google Search.
     
-    **Part 0: MARKET PULSE & SENTIMENT**
-    - Get real-time values for: S&P 500, NASDAQ, VIX, Bitcoin, Gold.
-    - **Fear & Greed**: Estimate the current market sentiment score (0-100) and label (e.g. Extreme Greed) based on recent price action.
-    - **Sector Rotation**: Identify 3 key sectors (e.g. "Tech", "Energy") and their current trend.
+    **Part 0: MARKET PULSE & SENTIMENT (LIVE DATA)**
+    - Use Google Search to get current live values for: S&P 500, NASDAQ, VIX, Bitcoin, Gold.
+    - **Fear & Greed**: Search for "CNN Fear and Greed Index current score" and use that exact value.
+    - **Sector Rotation**: Identify 3 key sectors (e.g. "Tech", "Energy") and their performance TODAY.
 
-    **Part 1: REDDIT "KING OF THE HILL"**
-    - Search r/wallstreetbets, r/stocks, and r/investing for the #1 most discussed stock RIGHT NOW.
+    **Part 1: REDDIT "KING OF THE HILL" (LIVE TRENDS)**
+    - Search r/wallstreetbets, r/stocks, and r/investing for the #1 most discussed stock *in the last 12 hours*.
     - Identify 4 runners-up.
-    - 'keywords': Extract 6-8 distinct, one-word "Matrix Rain" keywords.
+    - 'keywords': Extract 6-8 distinct, one-word "Matrix Rain" keywords related to the *current* discussion.
 
     **Part 2: DAY TRADER "ALPHA SCAN" (3 Stocks)**
     - Search for 3 stocks with strong technical/fundamental setups TODAY.
-    - **Trader Metrics Required**:
-        - 'rsi': Estimate 14-day RSI.
-        - 'shortFloat': Estimate Short Interest %.
-        - 'relativeVolume': Estimate RVOL (e.g. "2.5x").
+    - **Trader Metrics Required** (Use search to estimate):
+        - 'rsi': 14-day RSI.
+        - 'shortFloat': Short Interest %.
+        - 'relativeVolume': RVOL.
         - 'beta': Volatility.
         - 'pegRatio': PEG Ratio.
         - 'earningsDate': Next earnings date.
         - 'catalyst': What is the immediate driver? (e.g. "Earnings Tomorrow", "FDA Approval").
-        - 'technicalLevels': Estimate immediate Support and Resistance.
+        - 'technicalLevels': Immediate Support and Resistance.
 
     **Part 3: NEWS WIRE**
-    - Search for 3-4 Critical Hard News stories from the last 6 hours.
+    - Search for 3-4 Critical Hard News stories from the *last 6 hours*.
     - **URL RULE**: If you cannot find a direct link, construct a google search link: "https://www.google.com/search?q=Headline+Here".
     - **TIMESTAMP**: Relative time (e.g. "12m ago").
 
     **Output JSON Format**:
     {
-      "marketIndices": [ ... ],
+      "marketIndices": [ { "name": "S&P 500", "value": "5,200.00", "change": "+0.5%", "trend": "Up" } ],
       "marketSentiment": {
         "score": 75,
         "label": "Greed",
@@ -340,7 +112,7 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
 
     return {
       marketIndices: rawData.marketIndices || [],
-      marketSentiment: rawData.marketSentiment || { score: 50, label: "Neutral", primaryDriver: "Consolidation" },
+      marketSentiment: rawData.marketSentiment || { score: 50, label: "Neutral", primaryDriver: "Data Unavailable" },
       sectorRotation: rawData.sectorRotation || [],
       redditTrends: rawData.redditTrends || [],
       news: rawData.news || [],
@@ -350,7 +122,7 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
 
   } catch (error: any) {
     console.error("Gemini API Error:", error);
-    return { ...getMockData(), lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+    throw error;
   }
 };
 
@@ -360,11 +132,8 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
 export const analyzeStock = async (symbol: string): Promise<StockAnalysis> => {
   const apiKey = process.env.API_KEY;
   
-  // Robust Fallback: If no API key is present, return simulated data so UI doesn't break.
   if (!apiKey) {
-    console.warn("API Key missing for Deep Dive - Returning Simulation.");
-    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network latency
-    return getMockStockAnalysis(symbol);
+    throw new Error("Gemini API Key is missing. Cannot perform deep dive analysis.");
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -372,13 +141,19 @@ export const analyzeStock = async (symbol: string): Promise<StockAnalysis> => {
 
   const prompt = `
     Act as a CFA (Chartered Financial Analyst). I need a deep "Financial X-Ray" on: ${symbol}.
-    Search for the latest live data.
+    You MUST use Google Search to find the LATEST available financial data and analyst estimates.
+    
+    **Instructions**:
+    1. Search for "current share price ${symbol}".
+    2. Search for "Analyst Price Target ${symbol}" or "Fair Value Estimate ${symbol}" (Morningstar/CFRA).
+    3. Search for "${symbol} financial ratios": EV/EBITDA, Forward P/E, Price to Book, ROIC, Debt-to-Equity, Current Ratio.
+    4. Search for "${symbol} institutional ownership".
 
     **Required Metrics**:
-    1. **Valuation**: Current EV/EBITDA, Forward P/E, Price to Book.
-    2. **Fair Value**: Estimate the "Intrinsic Value" (Fair Value) based on Analyst Consensus or Discounted Cash Flow models found in search.
-    3. **Quality/Health**: ROIC (Return on Invested Capital), Debt-to-Equity, Current Ratio.
-    4. **Institutional**: What are big money managers doing? (Buying/Selling/Holding).
+    - **Valuation**: Current EV/EBITDA, Forward P/E, Price to Book.
+    - **Fair Value**: A specific dollar figure estimate based on consensus.
+    - **Quality/Health**: ROIC, Debt-to-Equity, Current Ratio.
+    - **Institutional**: What are big money managers doing? (Buying/Selling/Holding).
 
     **Output Format (Strict JSON)**:
     {
@@ -425,7 +200,6 @@ export const analyzeStock = async (symbol: string): Promise<StockAnalysis> => {
     return extractJSON(text);
   } catch (error) {
     console.error("Deep Dive Error:", error);
-    // Even on API error, return simulation to keep the app usable
-    return getMockStockAnalysis(symbol);
+    throw error;
   }
 };
