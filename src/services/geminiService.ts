@@ -1,215 +1,35 @@
-import { GoogleGenAI } from "@google/genai";
 import { DashboardData, StockAnalysis } from "../types";
 
 /**
- * Robustly extracts JSON from a string, handling markdown code blocks
- * and potential trailing text by counting braces.
+ * Fetches market dashboard data from the server-side API route
  */
-function extractJSON(text: string): any {
-  try {
-    // 1. Fast path: Try to parse the cleaned text directly
-    const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    return JSON.parse(clean);
-  } catch (e) {
-    // 2. Fallback: Find the first valid outer JSON object
-    const startIndex = text.indexOf('{');
-    if (startIndex === -1) throw new Error("No JSON start found in response");
-
-    let braceCount = 0;
-    let endIndex = -1;
-
-    for (let i = startIndex; i < text.length; i++) {
-      if (text[i] === '{') braceCount++;
-      else if (text[i] === '}') braceCount--;
-
-      if (braceCount === 0) {
-        endIndex = i;
-        break;
-      }
-    }
-
-    if (endIndex !== -1) {
-      const jsonStr = text.substring(startIndex, endIndex + 1);
-      return JSON.parse(jsonStr);
-    }
-    
-    throw new Error("Could not extract valid JSON object from response");
-  }
-}
-
 export const fetchMarketDashboard = async (): Promise<DashboardData> => {
-  // Client-side check for API key
-
-  const apiKey = process.env.API_KEY || process.env.NEXT_PUBLIC_API_KEY;
-
-  if (!apiKey) {
-    console.error("CONFIG ERROR: API Key is missing.");
-    throw new Error("API Key is missing. Please connect your account.");
-  }
-
-
-
-  /*if (!process.env.API_KEY) {
-    console.error("CONFIG ERROR: process.env.API_KEY is missing.");
-    throw new Error("API Key is missing. Please connect your account.");
-  }*/
-
-  console.log("Available env vars:", Object.keys(process.env));
-  console.log("API_KEY exists:", !!process.env.API_KEY);
-
-
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const model = 'gemini-2.5-flash';
+  const response = await fetch('/api/dashboard');
   
-  const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
-
-  const prompt = `
-    Act as a Senior Wall Street Analyst. The current time in New York is: ${currentTime}.
-    Generate a JSON market report using **REAL-TIME** data from Google Search.
-    
-    **CRITICAL INSTRUCTION**: You must use the 'googleSearch' tool to find the absolute latest data from the last 24 hours.
-
-    **Part 1: REDDIT & SOCIAL MOMENTUM ("The Hype")**
-    - Search r/wallstreetbets, r/investing, r/stocks for the **#1 most discussed stock ticker** right now.
-    - Focus on tickers with "Explosive" volume or sentiment shifts.
-    - Identify the specific catalyst (Earnings, FDA approval, Short Squeeze, CEO scandal).
-    - 'keywords': 5 slang words or specific themes driving the chat.
-
-    **Part 2: CRITICAL NEWS WIRE ("The Truth")**
-    - Search for **Major Breaking Financial News** specifically from: **Bloomberg, Reuters, Financial Times, CNBC, Wall Street Journal**.
-    - **Timeframe**: Last 12 hours.
-    - **STRICT FILTER**: Do NOT include "Top 5 stocks to buy", "Motley Fool", or "Opinion" articles. I want HARD NEWS (Central Banks, M&A, Earnings Reports, Geopolitics, Regulatory Action).
-    - 'impact': Mark as 'Critical' only if it affects the broader market or major large-cap stocks.
-
-    **Part 3: SUGGESTED STOCKS - FINANCIALS + FUNDAMENTALS ("The Value")**
-    - Search for **3 DISTINCT** companies that are "Strong Buys" based purely on **Fundamentals** (Valuation, Cash Flow, Growth).
-    - **Criteria**: Solid Balance Sheets (Low Debt), High Free Cash Flow, Low P/E relative to growth.
-    - **EXCLUDE**: Hype stocks, Meme stocks, Unprofitable tech. Stick to quality companies (e.g. Berkshire style picks).
-    - **Metrics**: You must find the ACTUAL current:
-       - 'peRatio'
-       - 'roe' (Return on Equity)
-       - 'debtToEquity'
-       - 'freeCashFlow'
-    - **Analysis**: Explain the fundamental thesis in one sentence (e.g. "Generates $5B FCF with 20% ROE, trading at 8x earnings").
-
-    **Output JSON Structure (No Markdown)**:
-    {
-      "marketIndices": [ { "name": "S&P 500", "value": "...", "change": "...", "trend": "Up" } ],
-      "marketSentiment": { "score": 75, "label": "Greed", "primaryDriver": "..." },
-      "sectorRotation": [ { "name": "Energy", "performance": "Bullish", "change": "+1.5%" } ],
-      "redditTrends": [ 
-         { "symbol": "NVDA", "name": "NVIDIA", "mentions": 5000, "sentiment": "Bullish", "sentimentScore": 90, "discussionSummary": "...", "volumeChange": "+20% vs Avg", "keywords": ["AI", "Blackwell", "Calls"] } 
-      ],
-      "news": [ { "title": "...", "source": "Bloomberg", "url": "...", "timestamp": "10m ago", "summary": "...", "impact": "Critical" } ],
-      "picks": [ 
-         { "symbol": "T", "name": "AT&T Inc.", "price": "$18.50", "sector": "Telecom", "metrics": { "peRatio": "6.2", "roe": "12%", "debtToEquity": "0.9", "freeCashFlow": "$16B", "marketCap": "130B", "dividendYield": "6.1%" }, "technicalLevels": { "support": "18.00", "resistance": "19.50", "stopLoss": "17.80" }, "catalyst": "Free Cash Flow Beat", "analysis": "Trading below book value with massive FCF generation.", "conviction": "Strong Buy" }
-      ]
-    }
-  `;
-
-  try {
-    const response = await ai.models.generateContent({
-      model: model,
-      contents: prompt,
-      config: {
-        tools: [{ googleSearch: {} }],
-        temperature: 0.2, // Lower temp for more factual reporting
-      },
-    });
-
-    const text = response.text || "";
-    const rawData = extractJSON(text);
-
-    return {
-      marketIndices: rawData.marketIndices || [],
-      marketSentiment: rawData.marketSentiment || { score: 50, label: "Neutral", primaryDriver: "Data Unavailable" },
-      sectorRotation: rawData.sectorRotation || [],
-      redditTrends: rawData.redditTrends || [],
-      news: rawData.news || [],
-      picks: rawData.picks || [],
-      lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      groundingMetadata: response.candidates?.[0]?.groundingMetadata
-    };
-
-  } catch (error: any) {
-    console.error("Gemini API Error:", error);
-    throw error;
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to fetch dashboard data");
   }
+  
+  return response.json();
 };
 
 /**
- * Performs a Deep Dive Financial X-Ray on a specific ticker.
+ * Performs a Deep Dive Financial X-Ray on a specific ticker via server-side API route
  */
 export const analyzeStock = async (symbol: string): Promise<StockAnalysis> => {
+  const response = await fetch('/api/analyze', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ symbol }),
+  });
 
-  const apiKey = process.env.API_KEY || process.env.NEXT_PUBLIC_API_KEY;
-  
-  if (!apiKey) {
-     throw new Error("API Key is missing. Please connect your account.");
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to analyze stock");
   }
 
-/*  if (!process.env.API_KEY) {
-     throw new Error("API Key is missing. Please connect your account.");
-  }*/
-
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const model = 'gemini-2.5-flash';
-
-  const prompt = `
-    Act as a CFA (Chartered Financial Analyst). I need a deep "Financial X-Ray" on: ${symbol}.
-    You MUST use Google Search to find the LATEST available financial data and analyst estimates.
-    
-    **Instructions**:
-    1. Search for "current share price ${symbol}".
-    2. Search for "Analyst Price Target ${symbol}" or "Fair Value Estimate ${symbol}".
-    3. Search for "${symbol} financial ratios": EV/EBITDA, Forward P/E, Price to Book, ROIC, Debt-to-Equity.
-    4. Search for "${symbol} institutional ownership".
-
-    **Output Format (Strict JSON)**:
-    {
-      "symbol": "${symbol}",
-      "name": "Full Company Name",
-      "currentPrice": "$...",
-      "fairValue": "$...",
-      "upside": "...",
-      "valuation": {
-        "evEbitda": "...",
-        "peFwd": "...",
-        "priceToBook": "...",
-        "rating": "Undervalued" | "Fair" | "Overvalued"
-      },
-      "health": {
-        "roic": "...",
-        "debtToEquity": "...",
-        "currentRatio": "...",
-        "rating": "Strong" | "Stable" | "Weak"
-      },
-      "growth": {
-        "revenueGrowth": "...",
-        "earningsGrowth": "..."
-      },
-      "institutional": {
-        "instOwnership": "...",
-        "recentTrends": "..."
-      },
-      "verdict": "Two sentence professional summary."
-    }
-  `;
-
-  try {
-    const response = await ai.models.generateContent({
-      model: model,
-      contents: prompt,
-      config: {
-        tools: [{ googleSearch: {} }],
-        temperature: 0.1,
-      },
-    });
-
-    const text = response.text || "";
-    return extractJSON(text);
-  } catch (error) {
-    console.error("Deep Dive Error:", error);
-    throw error;
-  }
+  return response.json();
 };
