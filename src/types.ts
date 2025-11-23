@@ -44,12 +44,14 @@ export interface FundamentalPick {
     rsi: number;          // Relative Strength Index (0-100)
     shortFloat: string;   // e.g., "12%"
     beta: string;         // Volatility relative to market
+    relativeVolume: string; // e.g., "2.5x" (RVOL)
   };
   technicalLevels: {
     support: string;      // e.g., "$120.50"
     resistance: string;   // e.g., "$135.00"
     stopLoss: string;     // Suggested stop
   };
+  catalyst: string;       // e.g. "Earnings in 3 days"
   analysis: string;
   conviction: 'Strong Buy' | 'Buy' | 'Hold';
 }

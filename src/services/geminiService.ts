@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { DashboardData } from "../types";
 
@@ -146,13 +147,15 @@ const getMockData = (): DashboardData => {
           range52w: "Near Low",
           rsi: 32,
           shortFloat: "4.5%",
-          beta: "1.1"
+          beta: "1.1",
+          relativeVolume: "1.2x"
         },
         technicalLevels: {
           support: "$29.80",
           resistance: "$32.50",
           stopLoss: "$28.50"
         }, 
+        catalyst: "Upcoming Foundry Event",
         analysis: "Trading at near-historic low multiples. Heavy oversold RSI suggests bounce.", 
         conviction: "Strong Buy" 
       },
@@ -170,13 +173,15 @@ const getMockData = (): DashboardData => {
           range52w: "52w Low",
           rsi: 28,
           shortFloat: "1.2%",
-          beta: "0.6"
+          beta: "0.6",
+          relativeVolume: "0.9x"
         },
         technicalLevels: {
           support: "$27.50",
           resistance: "$29.50",
           stopLoss: "$27.00"
         },
+        catalyst: "New Oncology drug pipeline data",
         analysis: "Oversold territory (RSI < 30) with robust dividend support.", 
         conviction: "Buy" 
       },
@@ -194,13 +199,15 @@ const getMockData = (): DashboardData => {
           range52w: "Mid Range",
           rsi: 45,
           shortFloat: "3.1%",
-          beta: "1.4"
+          beta: "1.4",
+          relativeVolume: "1.5x"
         },
         technicalLevels: {
           support: "$11.80",
           resistance: "$13.00",
           stopLoss: "$11.50"
         },
+        catalyst: "EV sales guidance update next week",
         analysis: "EV division losses narrowing while legacy truck sales generate massive FCF.", 
         conviction: "Strong Buy" 
       }
@@ -242,13 +249,16 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
     - **Trader Metrics Required**:
         - 'rsi': Estimate 14-day RSI (e.g., 30-70).
         - 'shortFloat': Estimate Short Interest % (e.g., "12%").
+        - 'relativeVolume': Estimate RVOL (e.g. "2.5x").
         - 'beta': Volatility measure.
+        - 'catalyst': What is the immediate driver? (e.g. "Earnings Tomorrow", "FDA Approval", "Oversold Bounce").
         - 'technicalLevels': Estimate immediate Support and Resistance based on recent charts/news.
     
     **Part 3: NEWS WIRE**
     - Search for 3-4 Critical Hard News stories from the last 6 hours.
-    - **CRITICAL**: You MUST find the DIRECT URL to the specific article (e.g., https://www.bloomberg.com/news/articles/...).
-    - **URL RULE**: ABSOLUTELY NO generic homepages (like bloomberg.com or reuters.com). NO relative links. NO '#'.
+    - **CRITICAL**: You MUST find the DIRECT URL to the specific article.
+    - **URL RULE**: If you cannot find a direct link, construct a google search link: "https://www.google.com/search?q=Headline+Here".
+    - **NEVER** return a relative link like "/news/..." or just "#".
     - **TIMESTAMP**: Calculate relative time from NOW (${currentTime}). E.g. "12m ago", "1h ago".
 
     **Output JSON Format**:
@@ -282,13 +292,14 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
              "shortFloat": "5%",
              "beta": "1.2",
              "peRatio": "10x",
-             ...
+             "relativeVolume": "1.5x"
           }, 
           "technicalLevels": {
              "support": "$100",
              "resistance": "$110",
              "stopLoss": "$98"
           },
+          "catalyst": "Earnings in 2 days",
           ...
         }
       ]
