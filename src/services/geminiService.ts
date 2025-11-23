@@ -1,4 +1,3 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { DashboardData, StockAnalysis } from "../types";
 
@@ -225,6 +224,45 @@ const getMockData = (): DashboardData => {
   };
 };
 
+// Mock data specifically for the Deep Dive analysis
+const getMockStockAnalysis = (symbol: string): StockAnalysis => {
+  // Generate consistent pseudo-random numbers based on symbol
+  const hash = symbol.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const getVal = (base: number, variance: number) => (base + (hash % variance) - variance/2).toFixed(2);
+  const isGood = hash % 2 === 0;
+
+  return {
+    symbol: symbol.toUpperCase(),
+    name: `${symbol.toUpperCase()} Corp (Simulated)`,
+    currentPrice: `$${getVal(150, 40)}`,
+    fairValue: `$${getVal(170, 50)}`,
+    upside: isGood ? "+18.5%" : "-5.2%",
+    valuation: {
+      evEbitda: `${(10 + (hash % 15)).toFixed(1)}x`,
+      peFwd: `${(15 + (hash % 25)).toFixed(1)}x`,
+      priceToBook: `${(2 + (hash % 6)).toFixed(1)}x`,
+      rating: isGood ? "Undervalued" : "Overvalued"
+    },
+    health: {
+      roic: `${(10 + (hash % 20)).toFixed(1)}%`,
+      debtToEquity: (hash % 100 / 60).toFixed(1),
+      currentRatio: (1 + hash % 100 / 50).toFixed(1),
+      rating: hash % 3 === 0 ? "Strong" : "Stable"
+    },
+    growth: {
+      revenueGrowth: `${(5 + (hash % 15)).toFixed(1)}%`,
+      earningsGrowth: `${(8 + (hash % 20)).toFixed(1)}%`
+    },
+    institutional: {
+      instOwnership: `${50 + (hash % 40)}%`,
+      recentTrends: isGood ? "Net Buying" : "Selling"
+    },
+    verdict: isGood 
+      ? "Strong balance sheet with consistent free cash flow generation. Trading at a discount to historical multiples."
+      : "Valuation appears stretched relative to near-term growth prospects. Suggest waiting for a pullback."
+  };
+};
+
 export const fetchMarketDashboard = async (): Promise<DashboardData> => {
   const apiKey = process.env.API_KEY;
 
@@ -321,7 +359,13 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
  */
 export const analyzeStock = async (symbol: string): Promise<StockAnalysis> => {
   const apiKey = process.env.API_KEY;
-  if (!apiKey) throw new Error("API Key Missing");
+  
+  // Robust Fallback: If no API key is present, return simulated data so UI doesn't break.
+  if (!apiKey) {
+    console.warn("API Key missing for Deep Dive - Returning Simulation.");
+    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network latency
+    return getMockStockAnalysis(symbol);
+  }
 
   const ai = new GoogleGenAI({ apiKey });
   const model = 'gemini-2.5-flash';
@@ -381,6 +425,7 @@ export const analyzeStock = async (symbol: string): Promise<StockAnalysis> => {
     return extractJSON(text);
   } catch (error) {
     console.error("Deep Dive Error:", error);
-    throw error;
+    // Even on API error, return simulation to keep the app usable
+    return getMockStockAnalysis(symbol);
   }
 };
