@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { NewsItem } from '../types';
-import { IconNews, IconExternalLink, IconAlert, IconActivity } from './Icons';
+import { IconNews, IconExternalLink, IconAlert } from './Icons';
 
 interface NewsFeedProps {
   news: NewsItem[];
@@ -17,66 +16,85 @@ const NewsFeed: React.FC<NewsFeedProps> = ({ news }) => {
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      {news.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 rounded-xl bg-slate-900/20 border border-slate-800 border-dashed">
-           <IconNews className="h-8 w-8 text-slate-600 mb-3 opacity-50" />
-           <p className="text-sm text-slate-500 font-medium">Waiting for wire feed...</p>
+    <div className="flex flex-col h-full bg-[#0b1221] border border-slate-800 rounded-xl overflow-hidden shadow-lg shadow-black/20">
+      {/* Terminal Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-[#0f172a]">
+        <div className="flex items-center gap-2">
+          <div className="p-1 rounded bg-blue-500/10 text-blue-400">
+             <IconNews className="h-4 w-4" />
+          </div>
+          <div>
+             <h2 className="text-xs font-bold text-white uppercase tracking-wider">Major Wire Feed</h2>
+             <p className="text-[9px] text-slate-500 font-mono">BLOOMBERG • REUTERS • WSJ</p>
+          </div>
         </div>
-      ) : (
-        news.map((item, index) => {
-          const safeUrl = getSafeUrl(item);
-          return (
-            <a 
-              key={index} 
-              href={safeUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="group relative flex flex-col gap-2 rounded-lg border border-slate-800 bg-[#0b1221] p-5 transition-all hover:border-blue-500/30 hover:bg-[#0f192d] hover:shadow-lg hover:shadow-blue-900/5"
-            >
-              {/* Critical Indicator */}
-              {item.impact === 'Critical' && (
-                 <div className="absolute -left-[1px] top-4 bottom-4 w-1 rounded-r bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.4)]"></div>
-              )}
+        <div className="flex items-center gap-1.5">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+          </span>
+          <span className="text-[9px] font-bold text-green-500 uppercase tracking-widest">Live</span>
+        </div>
+      </div>
 
-              <div className="flex items-center justify-between">
-                 <div className="flex items-center gap-2">
-                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
-                       item.source.includes('Bloomberg') ? 'bg-blue-950 text-blue-400 border border-blue-900' :
-                       item.source.includes('Reuters') ? 'bg-orange-950 text-orange-400 border border-orange-900' :
-                       'bg-slate-800 text-slate-400'
-                    }`}>
-                       {item.source}
-                    </span>
-                    <span className="text-[10px] font-mono text-slate-500">{item.timestamp}</span>
-                 </div>
-                 {item.impact === 'Critical' && (
-                    <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-red-500 animate-pulse">
-                       <IconAlert className="h-3 w-3" /> CRITICAL
-                    </span>
-                 )}
-              </div>
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2 max-h-[600px] xl:max-h-none">
+        {news.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-48 text-center opacity-50">
+             <div className="mb-2 h-6 w-6 animate-spin rounded-full border-2 border-slate-600 border-t-transparent"></div>
+             <p className="text-[10px] font-mono text-slate-500">CONNECTING TO WIRE...</p>
+          </div>
+        ) : (
+          news.map((item, index) => {
+            const safeUrl = getSafeUrl(item);
+            const isCritical = item.impact === 'Critical';
+            
+            return (
+              <a 
+                key={index} 
+                href={safeUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className={`group block relative p-3 rounded border transition-all hover:translate-x-1 ${
+                  isCritical 
+                    ? 'bg-red-950/10 border-red-900/30 hover:bg-red-950/20 hover:border-red-500/30' 
+                    : 'bg-[#131c2e] border-slate-800 hover:bg-[#1a253a] hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                   <div className="flex items-center gap-2">
+                      <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                         item.source.toLowerCase().includes('bloomberg') ? 'bg-[#26004d] text-[#e8b3ff] border border-[#5200a6]' :
+                         item.source.toLowerCase().includes('reuters') ? 'bg-[#331a00] text-[#ffcc80] border border-[#663300]' :
+                         'bg-slate-800 text-slate-400 border border-slate-700'
+                      }`}>
+                         {item.source}
+                      </span>
+                      <span className="text-[9px] font-mono text-slate-500">{item.timestamp}</span>
+                   </div>
+                   {isCritical && (
+                      <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-red-500 animate-pulse">
+                         <IconAlert className="h-3 w-3" /> CRITICAL
+                      </span>
+                   )}
+                </div>
 
-              <div className="pl-2">
-                 <h3 className={`text-base font-bold leading-tight mb-2 group-hover:text-blue-200 transition-colors ${
-                    item.impact === 'Critical' ? 'text-white' : 'text-slate-200'
-                 }`}>
-                    {item.title}
-                 </h3>
-                 <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">
-                    {item.summary}
-                 </p>
-              </div>
-              
-              <div className="mt-2 flex justify-end opacity-0 transition-opacity group-hover:opacity-100">
-                 <span className="flex items-center gap-1 text-[10px] font-bold text-blue-400 uppercase tracking-wide">
-                    Read Source <IconExternalLink className="h-3 w-3" />
-                 </span>
-              </div>
-            </a>
-          );
-        })
-      )}
+                <h3 className={`text-sm font-bold leading-snug mb-1 group-hover:underline decoration-slate-600 underline-offset-4 ${
+                   isCritical ? 'text-white' : 'text-slate-200'
+                }`}>
+                   {item.title}
+                </h3>
+                
+                <div className="flex items-center justify-between mt-2">
+                   <p className="text-[10px] text-slate-400 line-clamp-1 flex-1 mr-2 opacity-80">
+                      {item.summary}
+                   </p>
+                   <IconExternalLink className="h-3 w-3 text-slate-600 group-hover:text-blue-400 transition-colors" />
+                </div>
+              </a>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 };

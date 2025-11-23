@@ -39,7 +39,6 @@ function extractJSON(text: string): any {
 
 export const fetchMarketDashboard = async (): Promise<DashboardData> => {
   // Client-side check for API key
-  // In the preview environment, this is injected into process.env
   if (!process.env.API_KEY) {
     console.error("CONFIG ERROR: process.env.API_KEY is missing.");
     throw new Error("API Key is missing. Please connect your account.");
@@ -58,19 +57,20 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
 
     **Part 1: REDDIT & SOCIAL MOMENTUM ("The Hype")**
     - Search r/wallstreetbets, r/investing, r/stocks for the **#1 most discussed stock ticker** right now.
+    - Focus on tickers with "Explosive" volume or sentiment shifts.
     - Identify the specific catalyst (Earnings, FDA approval, Short Squeeze, CEO scandal).
     - 'keywords': 5 slang words or specific themes driving the chat.
 
     **Part 2: CRITICAL NEWS WIRE ("The Truth")**
-    - Search for **Breaking Financial News** from: Bloomberg, Reuters, Financial Times, CNBC.
-    - **Timeframe**: Last 6 hours only.
-    - **STRICT FILTER**: Do NOT include "Top 5 stocks to buy" or "Opinion" articles. I want HARD NEWS (Central Banks, M&A, Earnings Reports, Geopolitics).
-    - 'impact': Mark as 'Critical' only if it affects the broader market.
+    - Search for **Major Breaking Financial News** specifically from: **Bloomberg, Reuters, Financial Times, CNBC, Wall Street Journal**.
+    - **Timeframe**: Last 12 hours.
+    - **STRICT FILTER**: Do NOT include "Top 5 stocks to buy", "Motley Fool", or "Opinion" articles. I want HARD NEWS (Central Banks, M&A, Earnings Reports, Geopolitics, Regulatory Action).
+    - 'impact': Mark as 'Critical' only if it affects the broader market or major large-cap stocks.
 
     **Part 3: SUGGESTED STOCKS - FINANCIALS + FUNDAMENTALS ("The Value")**
-    - Search for **3 DISTINCT** companies that are "Strong Buys" based purely on **Fundamentals**.
+    - Search for **3 DISTINCT** companies that are "Strong Buys" based purely on **Fundamentals** (Valuation, Cash Flow, Growth).
     - **Criteria**: Solid Balance Sheets (Low Debt), High Free Cash Flow, Low P/E relative to growth.
-    - **EXCLUDE**: Hype stocks, Meme stocks, Unprofitable tech. Stick to quality companies.
+    - **EXCLUDE**: Hype stocks, Meme stocks, Unprofitable tech. Stick to quality companies (e.g. Berkshire style picks).
     - **Metrics**: You must find the ACTUAL current:
        - 'peRatio'
        - 'roe' (Return on Equity)
@@ -99,7 +99,7 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
-        temperature: 0.3, // Low temp for factual financial data
+        temperature: 0.2, // Lower temp for more factual reporting
       },
     });
 
