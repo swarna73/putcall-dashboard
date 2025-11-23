@@ -13,6 +13,8 @@ import { IconAlert, IconBrain, IconActivity } from './Icons';
 
 const PREVIEW_DATA: DashboardData = {
   marketIndices: [],
+  marketSentiment: { score: 50, label: 'Neutral', primaryDriver: 'Loading...' },
+  sectorRotation: [],
   redditTrends: [], 
   news: [],
   picks: [],
@@ -52,8 +54,12 @@ const Dashboard: React.FC = () => {
         lastUpdated={data.lastUpdated}
       />
 
-      {/* Market Pulse Bar */}
-      <MarketOverview indices={data.marketIndices} />
+      {/* Market Pulse Bar - Updated with Sentiment & Sectors */}
+      <MarketOverview 
+        indices={data.marketIndices} 
+        sentiment={data.marketSentiment} 
+        sectors={data.sectorRotation}
+      />
 
       {/* Main Content */}
       <main className="container mx-auto px-4 lg:px-8 py-8 max-w-7xl space-y-8 transition-all duration-500 flex-1 opacity-100 blur-0">

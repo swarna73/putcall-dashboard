@@ -39,7 +39,6 @@ function extractJSON(text: string): any {
 }
 
 // --- DYNAMIC MOCK DATA GENERATOR ---
-// Generates fresh-looking timestamps so the UI doesn't look broken if API fails
 const getMockData = (): DashboardData => {
   const randomTime = (min: number, max: number) => `${Math.floor(Math.random() * (max - min + 1) + min)}m ago`;
   
@@ -50,6 +49,16 @@ const getMockData = (): DashboardData => {
       { name: "VIX", value: "12.50", change: "-4.1%", trend: "Down" },
       { name: "Bitcoin", value: "$96,400", change: "+2.3%", trend: "Up" },
       { name: "Gold", value: "$2,150", change: "+0.1%", trend: "Flat" }
+    ],
+    marketSentiment: {
+      score: 75,
+      label: "Greed",
+      primaryDriver: "AI Rally & Rate Cut Hopes"
+    },
+    sectorRotation: [
+      { name: "Tech", performance: "Bullish", change: "+1.8%" },
+      { name: "Energy", performance: "Bearish", change: "-0.5%" },
+      { name: "Financials", performance: "Neutral", change: "+0.2%" }
     ],
     redditTrends: [
       { 
@@ -219,7 +228,6 @@ const getMockData = (): DashboardData => {
 export const fetchMarketDashboard = async (): Promise<DashboardData> => {
   const apiKey = process.env.API_KEY;
 
-  // 1. Check for API Key. If missing, return Mock Data (Simulation Mode).
   if (!apiKey) {
     console.warn("Gemini API Key missing - Returning Simulation Data for preview.");
     await new Promise(resolve => setTimeout(resolve, 800));
@@ -233,76 +241,49 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
 
   const prompt = `
     Act as a Senior Hedge Fund Trader. The current time in New York is: ${currentTime}.
-    Generate a comprehensive JSON market intelligence report for "PutCall.nl".
+    Generate a comprehensive JSON market intelligence report.
     
-    **Part 0: MARKET PULSE**
+    **Part 0: MARKET PULSE & SENTIMENT**
     - Get real-time values for: S&P 500, NASDAQ, VIX, Bitcoin, Gold.
-    
+    - **Fear & Greed**: Estimate the current market sentiment score (0-100) and label (e.g. Extreme Greed) based on recent price action.
+    - **Sector Rotation**: Identify 3 key sectors (e.g. "Tech", "Energy") and their current trend.
+
     **Part 1: REDDIT "KING OF THE HILL"**
     - Search r/wallstreetbets, r/stocks, and r/investing for the #1 most discussed stock RIGHT NOW.
     - Identify 4 runners-up.
-    - 'keywords': Extract 6-8 distinct, one-word "Matrix Rain" keywords related to the sentiment (e.g. "SQUEEZE", "GAMMA", "BEAT", "HODL").
-    - 'sentimentScore': 0-100.
+    - 'keywords': Extract 6-8 distinct, one-word "Matrix Rain" keywords.
 
     **Part 2: DAY TRADER "ALPHA SCAN" (3 Stocks)**
     - Search for 3 stocks with strong technical/fundamental setups TODAY.
     - **Trader Metrics Required**:
-        - 'rsi': Estimate 14-day RSI (e.g., 30-70).
-        - 'shortFloat': Estimate Short Interest % (e.g., "12%").
+        - 'rsi': Estimate 14-day RSI.
+        - 'shortFloat': Estimate Short Interest %.
         - 'relativeVolume': Estimate RVOL (e.g. "2.5x").
-        - 'beta': Volatility measure.
-        - 'catalyst': What is the immediate driver? (e.g. "Earnings Tomorrow", "FDA Approval", "Oversold Bounce").
-        - 'technicalLevels': Estimate immediate Support and Resistance based on recent charts/news.
-    
+        - 'beta': Volatility.
+        - 'pegRatio': PEG Ratio.
+        - 'earningsDate': Next earnings date.
+        - 'catalyst': What is the immediate driver? (e.g. "Earnings Tomorrow", "FDA Approval").
+        - 'technicalLevels': Estimate immediate Support and Resistance.
+
     **Part 3: NEWS WIRE**
     - Search for 3-4 Critical Hard News stories from the last 6 hours.
-    - **CRITICAL**: You MUST find the DIRECT URL to the specific article.
     - **URL RULE**: If you cannot find a direct link, construct a google search link: "https://www.google.com/search?q=Headline+Here".
-    - **NEVER** return a relative link like "/news/..." or just "#".
-    - **TIMESTAMP**: Calculate relative time from NOW (${currentTime}). E.g. "12m ago", "1h ago".
+    - **TIMESTAMP**: Relative time (e.g. "12m ago").
 
     **Output JSON Format**:
     {
-      "marketIndices": [
-        { "name": "S&P 500", "value": "5100.20", "change": "+0.5%", "trend": "Up" },
-        ...
+      "marketIndices": [ ... ],
+      "marketSentiment": {
+        "score": 75,
+        "label": "Greed",
+        "primaryDriver": "AI Optimism"
+      },
+      "sectorRotation": [
+        { "name": "Tech", "performance": "Bullish", "change": "+1.2%" }
       ],
-      "redditTrends": [
-        { 
-          "symbol": "NVDA", 
-          "keywords": ["AI", "CHIPS", "H100", "JENSEN", "BEAT"], 
-          ...
-        }
-      ],
-      "news": [
-        {
-          "title": "Headlines here",
-          "source": "Bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2024-03-20/some-article-slug",
-          "timestamp": "14m ago",
-          "impact": "Critical",
-          "summary": "..."
-        }
-      ],
-      "picks": [
-        { 
-          "symbol": "XYZ", 
-          "metrics": { 
-             "rsi": 45, 
-             "shortFloat": "5%",
-             "beta": "1.2",
-             "peRatio": "10x",
-             "relativeVolume": "1.5x"
-          }, 
-          "technicalLevels": {
-             "support": "$100",
-             "resistance": "$110",
-             "stopLoss": "$98"
-          },
-          "catalyst": "Earnings in 2 days",
-          ...
-        }
-      ]
+      "redditTrends": [ ... ],
+      "news": [ ... ],
+      "picks": [ ... ]
     }
   `;
 
@@ -321,6 +302,8 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
 
     return {
       marketIndices: rawData.marketIndices || [],
+      marketSentiment: rawData.marketSentiment || { score: 50, label: "Neutral", primaryDriver: "Consolidation" },
+      sectorRotation: rawData.sectorRotation || [],
       redditTrends: rawData.redditTrends || [],
       news: rawData.news || [],
       picks: rawData.picks || [],
@@ -329,7 +312,6 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
 
   } catch (error: any) {
     console.error("Gemini API Error:", error);
-    // Return mock data on error so the app doesn't crash, but log the issue
     return { ...getMockData(), lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
   }
 };

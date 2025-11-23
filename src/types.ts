@@ -6,6 +6,18 @@ export interface MarketIndex {
   trend: 'Up' | 'Down' | 'Flat';
 }
 
+export interface MarketSentiment {
+  score: number; // 0-100
+  label: 'Extreme Fear' | 'Fear' | 'Neutral' | 'Greed' | 'Extreme Greed';
+  primaryDriver: string; // e.g., "Inflation Data"
+}
+
+export interface SectorPerformance {
+  name: string; // e.g. "Tech"
+  performance: 'Bullish' | 'Bearish' | 'Neutral';
+  change: string; // e.g. "+2.1%"
+}
+
 export interface RedditTicker {
   symbol: string;
   name: string;
@@ -58,6 +70,8 @@ export interface FundamentalPick {
 
 export interface DashboardData {
   marketIndices: MarketIndex[]; 
+  marketSentiment: MarketSentiment;
+  sectorRotation: SectorPerformance[];
   redditTrends: RedditTicker[];
   news: NewsItem[];
   picks: FundamentalPick[];
