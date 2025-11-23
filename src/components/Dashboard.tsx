@@ -9,7 +9,7 @@ import MarketOverview from './MarketOverview';
 import StockDeepDive from './StockDeepDive';
 import { fetchMarketDashboard } from '../services/geminiService';
 import { DashboardData, LoadingState } from '../types';
-import { IconShield, IconRefresh } from './Icons';
+import { IconShield, IconRefresh, IconLock } from './Icons';
 
 const Dashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData>({
@@ -23,14 +23,30 @@ const Dashboard: React.FC = () => {
   });
   const [status, setStatus] = useState<LoadingState>(LoadingState.LOADING);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isApiKeyMissing, setIsApiKeyMissing] = useState(false);
 
   useEffect(() => {
     loadData();
   }, []);
 
+  const handleConnectApiKey = async () => {
+    try {
+      if (window.aistudio) {
+        await window.aistudio.openSelectKey();
+        // Force a reload to pick up the new key environment variable
+        window.location.reload();
+      } else {
+        alert("API Key selection is not supported in this environment.");
+      }
+    } catch (e) {
+      console.error("Failed to select key:", e);
+    }
+  };
+
   const loadData = async () => {
     setStatus(LoadingState.LOADING);
     setErrorMsg(null);
+    setIsApiKeyMissing(false);
 
     try {
       const dashboardData = await fetchMarketDashboard();
@@ -43,7 +59,8 @@ const Dashboard: React.FC = () => {
       const msg = err?.message || "Unknown Error";
       
       if (msg.includes("API Key is missing")) {
-        setErrorMsg("Server Configuration Error: API Key Missing");
+        setErrorMsg("API Key Connection Required");
+        setIsApiKeyMissing(true);
       } else if (msg.includes("403")) {
         setErrorMsg("API Access Denied (Quota/Billing)");
       } else {
@@ -80,24 +97,36 @@ const Dashboard: React.FC = () => {
             
             <div className="flex items-center gap-4 relative z-10">
               <div className="p-3 bg-red-500/20 rounded-full ring-1 ring-red-500/50">
-                 <IconShield className="h-6 w-6 text-red-500" />
+                 {isApiKeyMissing ? <IconLock className="h-6 w-6 text-red-400" /> : <IconShield className="h-6 w-6 text-red-500" />}
               </div>
               <div>
                  <h3 className="text-lg font-bold text-white tracking-tight">{errorMsg}</h3>
                  <p className="text-sm text-red-200/70">
-                   The AI analysis encountered an interruption. Usually a temporary glitch.
+                   {isApiKeyMissing 
+                     ? "Please connect your Google Gemini API key to access live market data." 
+                     : "The AI analysis encountered an interruption. Usually a temporary glitch."}
                  </p>
               </div>
             </div>
             
             <div className="flex items-center gap-3 relative z-10">
-              <button 
-                onClick={loadData} 
-                className="flex items-center gap-2 whitespace-nowrap text-xs bg-slate-800 hover:bg-slate-700 text-white px-5 py-2.5 rounded-lg border border-slate-600 font-bold tracking-wide transition-colors"
-              >
-                 <IconRefresh className="h-3.5 w-3.5" />
-                 RETRY
-              </button>
+              {isApiKeyMissing ? (
+                <button 
+                  onClick={handleConnectApiKey}
+                  className="flex items-center gap-2 whitespace-nowrap text-xs bg-red-600 hover:bg-red-500 text-white px-5 py-2.5 rounded-lg font-bold tracking-wide transition-colors shadow-lg shadow-red-900/20"
+                >
+                   <IconLock className="h-3.5 w-3.5" />
+                   CONNECT API KEY
+                </button>
+              ) : (
+                <button 
+                  onClick={loadData} 
+                  className="flex items-center gap-2 whitespace-nowrap text-xs bg-slate-800 hover:bg-slate-700 text-white px-5 py-2.5 rounded-lg border border-slate-600 font-bold tracking-wide transition-colors"
+                >
+                   <IconRefresh className="h-3.5 w-3.5" />
+                   RETRY
+                </button>
+              )}
             </div>
           </div>
         )}

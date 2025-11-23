@@ -1,5 +1,3 @@
-"use server";
-
 import { GoogleGenAI } from "@google/genai";
 import { DashboardData, StockAnalysis } from "../types";
 
@@ -40,10 +38,11 @@ function extractJSON(text: string): any {
 }
 
 export const fetchMarketDashboard = async (): Promise<DashboardData> => {
-  // Now running on the server, so process.env.API_KEY is available
+  // Client-side check for API key
+  // In the preview environment, this is injected into process.env
   if (!process.env.API_KEY) {
-    console.error("CONFIG ERROR: process.env.API_KEY is missing on server.");
-    throw new Error("API Key is missing from server environment.");
+    console.error("CONFIG ERROR: process.env.API_KEY is missing.");
+    throw new Error("API Key is missing. Please connect your account.");
   }
 
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -100,16 +99,12 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
-        temperature: 0.3,
+        temperature: 0.3, // Low temp for factual financial data
       },
     });
 
     const text = response.text || "";
     const rawData = extractJSON(text);
-
-    // Sanitize metadata to ensure it's serializable for the client
-    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
-    const cleanGrounding = groundingChunks ? { groundingChunks: JSON.parse(JSON.stringify(groundingChunks)) } : undefined;
 
     return {
       marketIndices: rawData.marketIndices || [],
@@ -119,12 +114,12 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
       news: rawData.news || [],
       picks: rawData.picks || [],
       lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      groundingMetadata: cleanGrounding
+      groundingMetadata: response.candidates?.[0]?.groundingMetadata
     };
 
   } catch (error: any) {
     console.error("Gemini API Error:", error);
-    throw new Error(error.message || "Failed to fetch market data");
+    throw error;
   }
 };
 
@@ -133,7 +128,7 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
  */
 export const analyzeStock = async (symbol: string): Promise<StockAnalysis> => {
   if (!process.env.API_KEY) {
-     throw new Error("API Key is missing from server environment.");
+     throw new Error("API Key is missing. Please connect your account.");
   }
 
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -192,8 +187,8 @@ export const analyzeStock = async (symbol: string): Promise<StockAnalysis> => {
 
     const text = response.text || "";
     return extractJSON(text);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Deep Dive Error:", error);
-    throw new Error(error.message || "Failed to analyze stock");
+    throw error;
   }
 };
