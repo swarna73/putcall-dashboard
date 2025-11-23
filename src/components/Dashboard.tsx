@@ -34,7 +34,7 @@ const Dashboard: React.FC = () => {
     setStatus(LoadingState.LOADING);
     setErrorMsg(null);
     try {
-      // Call Server Action
+      // Call Service (Client-side execution)
       const dashboardData = await fetchMarketDashboard();
       setData(dashboardData);
       setStatus(LoadingState.SUCCESS);
@@ -43,12 +43,15 @@ const Dashboard: React.FC = () => {
       setStatus(LoadingState.ERROR);
       
       const msg = err?.message || "Unknown Error";
+      // Improved Error Mapping
       if (msg.includes("API Key is missing")) {
-        setErrorMsg("Server Configuration Error: API Key missing.");
-      } else if (msg.includes("Requested entity was not found") || msg.includes("403")) {
-        setErrorMsg("API Access Error: Please check server quotas.");
+        setErrorMsg("Configuration Error: API Key not found in environment.");
+      } else if (msg.includes("403")) {
+        setErrorMsg("API Access Denied: Please check quota or billing.");
+      } else if (msg.includes("fetch")) {
+        setErrorMsg("Network Error: Could not connect to Gemini API.");
       } else {
-        setErrorMsg("Connection failed. Retrying...");
+        setErrorMsg(`System Error: ${msg.substring(0, 50)}...`);
       }
     }
   };

@@ -1,5 +1,3 @@
-"use server";
-
 import { GoogleGenAI } from "@google/genai";
 import { DashboardData, StockAnalysis } from "../types";
 
@@ -40,11 +38,12 @@ function extractJSON(text: string): any {
 }
 
 export const fetchMarketDashboard = async (): Promise<DashboardData> => {
+  // Access API Key from environment (injected by bundler)
   const apiKey = process.env.API_KEY;
 
   if (!apiKey) {
-    console.error("SERVER ERROR: API_KEY is missing in process.env");
-    throw new Error("API Key is missing on Server");
+    console.error("CONFIG ERROR: API_KEY is missing in process.env");
+    throw new Error("API Key is missing. Please check your environment variables.");
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -130,7 +129,7 @@ export const analyzeStock = async (symbol: string): Promise<StockAnalysis> => {
   const apiKey = process.env.API_KEY;
   
   if (!apiKey) {
-     throw new Error("API Key is missing on Server");
+     throw new Error("API Key is missing. Please check your environment variables.");
   }
 
   const ai = new GoogleGenAI({ apiKey });
