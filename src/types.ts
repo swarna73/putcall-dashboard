@@ -68,6 +68,41 @@ export interface FundamentalPick {
   conviction: 'Strong Buy' | 'Buy' | 'Hold';
 }
 
+// NEW: Deep Dive Analysis Data
+export interface StockAnalysis {
+  symbol: string;
+  name: string;
+  currentPrice: string;
+  fairValue: string; // Estimated Intrinsic Value
+  upside: string; // e.g. "+15%"
+  
+  valuation: {
+    evEbitda: string;
+    peFwd: string;
+    priceToBook: string;
+    rating: 'Undervalued' | 'Fair' | 'Overvalued';
+  };
+  
+  health: {
+    roic: string; // Return on Invested Capital (Quality metric)
+    debtToEquity: string;
+    currentRatio: string; // Liquidity
+    rating: 'Strong' | 'Stable' | 'Weak';
+  };
+  
+  growth: {
+    revenueGrowth: string; // YoY
+    earningsGrowth: string; // YoY
+  };
+
+  institutional: {
+    instOwnership: string;
+    recentTrends: string; // e.g. "Hedge Funds Buying"
+  };
+
+  verdict: string; // 1-2 sentence CFA summary
+}
+
 export interface DashboardData {
   marketIndices: MarketIndex[]; 
   marketSentiment: MarketSentiment;

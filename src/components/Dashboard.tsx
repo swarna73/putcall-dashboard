@@ -7,6 +7,7 @@ import RedditSentiment from './RedditSentiment';
 import NewsFeed from './NewsFeed';
 import SmartStockBox from './SmartStockBox';
 import MarketOverview from './MarketOverview';
+import StockDeepDive from './StockDeepDive';
 import { fetchMarketDashboard } from '../services/geminiService';
 import { DashboardData, LoadingState } from '../types';
 import { IconAlert, IconBrain, IconActivity } from './Icons';
@@ -54,7 +55,7 @@ const Dashboard: React.FC = () => {
         lastUpdated={data.lastUpdated}
       />
 
-      {/* Market Pulse Bar - Updated with Sentiment & Sectors */}
+      {/* Market Pulse Bar */}
       <MarketOverview 
         indices={data.marketIndices} 
         sentiment={data.marketSentiment} 
@@ -64,6 +65,7 @@ const Dashboard: React.FC = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 lg:px-8 py-8 max-w-7xl space-y-8 transition-all duration-500 flex-1 opacity-100 blur-0">
         
+        {/* Error State */}
         {status === LoadingState.ERROR && (
           <div className="flex items-center justify-between gap-3 rounded-lg border border-red-900/50 bg-red-950/20 p-4 text-red-200 animate-in fade-in slide-in-from-top-4">
             <div className="flex items-center gap-3">
@@ -75,6 +77,11 @@ const Dashboard: React.FC = () => {
             </button>
           </div>
         )}
+
+        {/* NEW SECTION: Deep Dive Search Tool */}
+        <section className="max-w-4xl mx-auto">
+           <StockDeepDive />
+        </section>
 
         {/* SECTION 1: THE HERO (REDDIT MOST TALKED ABOUT) */}
         <section>

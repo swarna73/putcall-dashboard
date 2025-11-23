@@ -1,6 +1,6 @@
 
 import { GoogleGenAI } from "@google/genai";
-import { DashboardData } from "../types";
+import { DashboardData, StockAnalysis } from "../types";
 
 /**
  * Robustly extracts JSON from a string, handling markdown code blocks
@@ -313,5 +313,74 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
   } catch (error: any) {
     console.error("Gemini API Error:", error);
     return { ...getMockData(), lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+  }
+};
+
+/**
+ * Performs a Deep Dive Financial X-Ray on a specific ticker.
+ */
+export const analyzeStock = async (symbol: string): Promise<StockAnalysis> => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) throw new Error("API Key Missing");
+
+  const ai = new GoogleGenAI({ apiKey });
+  const model = 'gemini-2.5-flash';
+
+  const prompt = `
+    Act as a CFA (Chartered Financial Analyst). I need a deep "Financial X-Ray" on: ${symbol}.
+    Search for the latest live data.
+
+    **Required Metrics**:
+    1. **Valuation**: Current EV/EBITDA, Forward P/E, Price to Book.
+    2. **Fair Value**: Estimate the "Intrinsic Value" (Fair Value) based on Analyst Consensus or Discounted Cash Flow models found in search.
+    3. **Quality/Health**: ROIC (Return on Invested Capital), Debt-to-Equity, Current Ratio.
+    4. **Institutional**: What are big money managers doing? (Buying/Selling/Holding).
+
+    **Output Format (Strict JSON)**:
+    {
+      "symbol": "${symbol}",
+      "name": "Full Company Name",
+      "currentPrice": "$150.00",
+      "fairValue": "$175.00",
+      "upside": "+16%",
+      "valuation": {
+        "evEbitda": "14.2x",
+        "peFwd": "22.5x",
+        "priceToBook": "5.1x",
+        "rating": "Undervalued" | "Fair" | "Overvalued"
+      },
+      "health": {
+        "roic": "24.5%",
+        "debtToEquity": "1.2",
+        "currentRatio": "1.5",
+        "rating": "Strong" | "Stable" | "Weak"
+      },
+      "growth": {
+        "revenueGrowth": "12%",
+        "earningsGrowth": "15%"
+      },
+      "institutional": {
+        "instOwnership": "72%",
+        "recentTrends": "Net Buying"
+      },
+      "verdict": "A concise 2 sentence professional summary of why this is a buy/sell/hold based on the numbers."
+    }
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: model,
+      contents: prompt,
+      config: {
+        tools: [{ googleSearch: {} }],
+        temperature: 0.1,
+      },
+    });
+
+    const text = response.text || "";
+    return extractJSON(text);
+  } catch (error) {
+    console.error("Deep Dive Error:", error);
+    throw error;
   }
 };

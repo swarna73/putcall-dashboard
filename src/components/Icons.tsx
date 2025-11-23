@@ -11,7 +11,9 @@ import {
   ExternalLink,
   BrainCircuit,
   DollarSign,
-  Activity
+  Activity,
+  Search,
+  X
 } from 'lucide-react';
 
 export const IconTrendingUp = ({ className }: { className?: string }) => <TrendingUp className={className} />;
@@ -25,3 +27,5 @@ export const IconExternalLink = ({ className }: { className?: string }) => <Exte
 export const IconBrain = ({ className }: { className?: string }) => <BrainCircuit className={className} />;
 export const IconDollar = ({ className }: { className?: string }) => <DollarSign className={className} />;
 export const IconActivity = ({ className }: { className?: string }) => <Activity className={className} />;
+export const IconSearch = ({ className }: { className?: string }) => <Search className={className} />;
+export const IconX = ({ className }: { className?: string }) => <X className={className} />;
