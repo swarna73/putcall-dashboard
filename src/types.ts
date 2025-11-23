@@ -28,7 +28,7 @@ export interface FundamentalPick {
     peRatio: string;
     marketCap: string;
     dividendYield: string;
-    roe?: string;           // Return on Equity (Optional to prevent build breaks if data missing)
+    roe?: string;           // Return on Equity
     debtToEquity?: string;  // Balance Sheet Health
     freeCashFlow?: string;  // Cash Generation
   };
@@ -111,15 +111,4 @@ export enum LoadingState {
   LOADING,
   SUCCESS,
   ERROR
-}
-
-declare global {
-  interface AIStudio {
-    hasSelectedApiKey: () => Promise<boolean>;
-    openSelectKey: () => Promise<void>;
-  }
-
-  interface Window {
-    aistudio?: AIStudio;
-  }
 }

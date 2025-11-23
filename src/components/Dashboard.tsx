@@ -9,7 +9,7 @@ import MarketOverview from './MarketOverview';
 import StockDeepDive from './StockDeepDive';
 import { fetchMarketDashboard } from '../services/geminiService';
 import { DashboardData, LoadingState } from '../types';
-import { IconShield } from './Icons';
+import { IconShield, IconRefresh } from './Icons';
 
 const Dashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData>({
@@ -31,6 +31,7 @@ const Dashboard: React.FC = () => {
   const loadData = async () => {
     setStatus(LoadingState.LOADING);
     setErrorMsg(null);
+
     try {
       const dashboardData = await fetchMarketDashboard();
       setData(dashboardData);
@@ -40,13 +41,13 @@ const Dashboard: React.FC = () => {
       setStatus(LoadingState.ERROR);
       
       const msg = err?.message || "Unknown Error";
-      // Improved Error Mapping
+      
       if (msg.includes("API Key is missing")) {
-        setErrorMsg("API Key Missing. Please check your environment variables.");
+        setErrorMsg("Server Configuration Error: API Key Missing");
       } else if (msg.includes("403")) {
-        setErrorMsg("API Access Denied. Quota exceeded or billing issue.");
+        setErrorMsg("API Access Denied (Quota/Billing)");
       } else {
-        setErrorMsg("Connection interrupted. The AI is analyzing too much data. Retrying often fixes this.");
+        setErrorMsg("Analysis Interrupted. Please Retry.");
       }
     }
   };
@@ -71,16 +72,33 @@ const Dashboard: React.FC = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 lg:px-8 py-8 max-w-7xl space-y-8 flex-1">
         
-        {/* Error State - No Lock Screen, just a polite banner */}
+        {/* Error State Banner */}
         {status === LoadingState.ERROR && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-lg border border-red-900/50 bg-red-950/20 p-4 text-red-200 animate-in fade-in slide-in-from-top-4">
-            <div className="flex items-center gap-3">
-              <IconShield className="h-5 w-5 text-red-500 shrink-0" />
-              <p className="text-sm font-medium">{errorMsg}</p>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-red-500/30 bg-red-950/40 p-6 text-red-100 animate-in fade-in slide-in-from-top-4 shadow-2xl shadow-red-900/20 backdrop-blur-md relative overflow-hidden">
+            {/* Background pattern */}
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+            
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="p-3 bg-red-500/20 rounded-full ring-1 ring-red-500/50">
+                 <IconShield className="h-6 w-6 text-red-500" />
+              </div>
+              <div>
+                 <h3 className="text-lg font-bold text-white tracking-tight">{errorMsg}</h3>
+                 <p className="text-sm text-red-200/70">
+                   The AI analysis encountered an interruption. Usually a temporary glitch.
+                 </p>
+              </div>
             </div>
-            <button onClick={loadData} className="whitespace-nowrap text-[10px] bg-red-500/20 px-3 py-1.5 rounded border border-red-500/30 hover:bg-red-500/40 transition-colors uppercase font-bold tracking-wide">
-               Retry Connection
-            </button>
+            
+            <div className="flex items-center gap-3 relative z-10">
+              <button 
+                onClick={loadData} 
+                className="flex items-center gap-2 whitespace-nowrap text-xs bg-slate-800 hover:bg-slate-700 text-white px-5 py-2.5 rounded-lg border border-slate-600 font-bold tracking-wide transition-colors"
+              >
+                 <IconRefresh className="h-3.5 w-3.5" />
+                 RETRY
+              </button>
+            </div>
           </div>
         )}
 

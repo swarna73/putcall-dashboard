@@ -1,8 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  env: {
-    API_KEY: process.env.API_KEY,
-  },
+  // We rely on the system's process.env.API_KEY injection at runtime.
+  // Explicitly defining it here can sometimes freeze it as 'undefined' during build.
 };
 
 export default nextConfig;
