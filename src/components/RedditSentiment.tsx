@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { RedditTicker } from '../types';
-import { IconMessage, IconTrendingUp, IconTrendingDown, IconZap, IconActivity } from './Icons';
+import { IconMessage, IconZap, IconActivity } from './Icons';
 
 interface RedditSentimentProps {
   trends: RedditTicker[];
@@ -11,18 +10,15 @@ const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends }) => {
   const topTicker = trends.length > 0 ? trends[0] : null;
   const runnersUp = trends.slice(1, 5); 
 
-  // Helper to generate random-looking but deterministic styles for word cloud
-  const getCloudStyle = (index: number) => {
-    const positions = [
-      { top: '10%', right: '10%', fontSize: '0.8rem', opacity: 0.6, rotate: '12deg' },
-      { bottom: '20%', right: '5%', fontSize: '1.5rem', opacity: 0.3, rotate: '-5deg' },
-      { top: '40%', right: '25%', fontSize: '1.1rem', opacity: 0.5, rotate: '0deg' },
-      { top: '15%', right: '35%', fontSize: '0.9rem', opacity: 0.4, rotate: '-10deg' },
-      { bottom: '35%', right: '40%', fontSize: '1.2rem', opacity: 0.3, rotate: '5deg' },
-      { bottom: '10%', right: '20%', fontSize: '1rem', opacity: 0.5, rotate: '0deg' },
-    ];
-    return positions[index % positions.length];
-  };
+  // Matrix Rain Column Component
+  const MatrixColumn = ({ words, speed, offset }: { words: string[], speed: string, offset: string }) => (
+    <div className={`flex flex-col gap-8 opacity-10 font-mono text-sm font-bold uppercase tracking-widest text-orange-400 select-none ${speed}`} style={{ marginTop: offset }}>
+      {/* Repeat words to create infinite scroll illusion */}
+      {[...words, ...words, ...words].map((word, i) => (
+        <span key={i} className="whitespace-nowrap">{word}</span>
+      ))}
+    </div>
+  );
 
   return (
     <div className="w-full">
@@ -34,17 +30,20 @@ const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends }) => {
            <div className="absolute inset-0 bg-gradient-to-r from-[#1a1008] via-[#0f172a] to-[#0f172a] z-0"></div>
            <div className="absolute -left-20 -top-20 h-[400px] w-[400px] rounded-full bg-orange-600/5 blur-[100px] z-0"></div>
 
-           {/* WORD CLOUD - ABSOLUTE POSITIONED IN BACKGROUND */}
-           <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 hidden lg:block">
-             {topTicker.keywords?.map((word, i) => (
-               <span 
-                 key={i} 
-                 className="absolute font-black text-orange-500 uppercase tracking-tighter whitespace-nowrap"
-                 style={getCloudStyle(i)}
-               >
-                 {word}
-               </span>
-             ))}
+           {/* MATRIX RAIN BACKGROUND */}
+           <div className="absolute inset-0 z-0 flex justify-between px-10 overflow-hidden pointer-events-none">
+              {topTicker.keywords && topTicker.keywords.length > 0 ? (
+                <>
+                  <MatrixColumn words={topTicker.keywords} speed="animate-matrix-slow" offset="-20%" />
+                  <MatrixColumn words={topTicker.keywords.slice().reverse()} speed="animate-matrix" offset="-50%" />
+                  <MatrixColumn words={topTicker.keywords} speed="animate-matrix-fast" offset="-10%" />
+                  <div className="hidden lg:flex flex-col gap-8 opacity-10 font-mono text-sm font-bold uppercase tracking-widest text-orange-400 select-none animate-matrix-slow" style={{ marginTop: '-30%' }}>
+                     {[...topTicker.keywords, ...topTicker.keywords, ...topTicker.keywords].reverse().map((word, i) => (
+                        <span key={i} className="whitespace-nowrap">{word}</span>
+                     ))}
+                  </div>
+                </>
+              ) : null}
            </div>
 
            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-0 lg:divide-x lg:divide-slate-800/50">
@@ -74,16 +73,19 @@ const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends }) => {
                         </div>
                     </div>
 
-                    {/* SENTIMENT SCORE BOX */}
-                    <div className="flex flex-col items-center justify-center rounded-xl bg-slate-900/80 border border-slate-800 p-3 backdrop-blur-md min-w-[100px]">
-                        <span className="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Sentiment</span>
-                        <div className={`text-4xl font-black ${
+                    {/* SENTIMENT SCORE BOX (Redesigned) */}
+                    <div className="flex flex-col items-center justify-center rounded-lg bg-slate-900/90 border border-slate-800 px-4 py-2 backdrop-blur-md shadow-lg">
+                        <span className="text-[9px] text-slate-500 uppercase font-bold tracking-widest mb-1">Sentiment</span>
+                        <div className={`text-3xl font-black tabular-nums tracking-tight ${
                             topTicker.sentimentScore > 60 ? 'text-emerald-400' : 
                             topTicker.sentimentScore < 40 ? 'text-red-400' : 'text-slate-200'
                         }`}>
                             {topTicker.sentimentScore}
                         </div>
-                        <span className="text-[9px] font-medium text-slate-400">{topTicker.sentiment}</span>
+                        <span className={`text-[9px] font-bold uppercase tracking-wide mt-1 px-1.5 rounded-full ${
+                             topTicker.sentiment === 'Bullish' ? 'bg-emerald-500/10 text-emerald-400' : 
+                             topTicker.sentiment === 'Bearish' ? 'bg-red-500/10 text-red-400' : 'text-slate-400'
+                        }`}>{topTicker.sentiment}</span>
                     </div>
                  </div>
                  

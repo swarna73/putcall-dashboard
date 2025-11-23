@@ -17,3 +17,35 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #334155; 
 }
+
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Matrix / Digital Rain Animation */
+@keyframes matrix-rain {
+  0% {
+    transform: translateY(-50%);
+  }
+  100% {
+    transform: translateY(0%);
+  }
+}
+
+.animate-matrix {
+  animation: matrix-rain 30s linear infinite;
+}
+
+.animate-matrix-slow {
+  animation: matrix-rain 45s linear infinite;
+}
+
+.animate-matrix-fast {
+  animation: matrix-rain 20s linear infinite;
+}
