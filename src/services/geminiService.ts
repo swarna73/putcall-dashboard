@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { DashboardData, StockAnalysis } from "../types";
 
@@ -50,50 +51,47 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
   const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
 
   const prompt = `
-    Act as a Senior Hedge Fund Trader. The current time in New York is: ${currentTime}.
+    Act as a Senior Wall Street Quantitative Analyst. The current time in New York is: ${currentTime}.
     Generate a comprehensive JSON market intelligence report using REAL-TIME data from Google Search.
     
-    **Part 0: MARKET PULSE & SENTIMENT (LIVE DATA)**
-    - Use Google Search to get current live values for: S&P 500, NASDAQ, VIX, Bitcoin, Gold.
-    - **Fear & Greed**: Search for "CNN Fear and Greed Index current score" and use that exact value.
-    - **Sector Rotation**: Identify 3 key sectors (e.g. "Tech", "Energy") and their performance TODAY.
+    **Instructions**:
+    1. **NO MARDEKOWN**: Return raw JSON only. Do not wrap in \`\`\`json.
+    2. **REAL-TIME ONLY**: Use the "googleSearch" tool to find data from the last 24 hours.
 
-    **Part 1: REDDIT "KING OF THE HILL" (LIVE TRENDS)**
-    - Search r/wallstreetbets, r/stocks, and r/investing for the #1 most discussed stock *in the last 12 hours*.
-    - Identify 4 runners-up.
-    - 'keywords': Extract 6-8 distinct, one-word "Matrix Rain" keywords related to the *current* discussion.
+    **Part 0: MARKET PULSE (LIVE)**
+    - Get current values for: S&P 500, NASDAQ, VIX.
+    - Search for "CNN Fear and Greed Index current score".
+    - Identify 3 key sectors and their % change today.
 
-    **Part 2: DAY TRADER "ALPHA SCAN" (3 Stocks)**
-    - Search for 3 stocks with strong technical/fundamental setups TODAY.
-    - **Trader Metrics Required** (Use search to estimate):
-        - 'rsi': 14-day RSI.
-        - 'shortFloat': Short Interest %.
-        - 'relativeVolume': RVOL.
-        - 'beta': Volatility.
-        - 'pegRatio': PEG Ratio.
-        - 'earningsDate': Next earnings date.
-        - 'catalyst': What is the immediate driver? (e.g. "Earnings Tomorrow", "FDA Approval").
-        - 'technicalLevels': Immediate Support and Resistance.
+    **Part 1: REDDIT MOMENTUM (MOST TALKED ABOUT)**
+    - Search r/wallstreetbets, r/stocks, and r/options for the **#1 most discussed ticker** right now.
+    - Identify 4 runner-up tickers.
+    - 'sentiment': Must be 'Bullish', 'Bearish', or 'Neutral'.
+    - 'keywords': 5-6 one-word buzzwords associated with the current discussion (e.g. "YOLO", "Squeeze", "Earnings").
 
-    **Part 3: NEWS WIRE**
-    - Search for 3-4 Critical Hard News stories from the *last 6 hours*.
-    - **URL RULE**: If you cannot find a direct link, construct a google search link: "https://www.google.com/search?q=Headline+Here".
-    - **TIMESTAMP**: Relative time (e.g. "12m ago").
+    **Part 2: CRITICAL NEWS WIRE**
+    - Search for BREAKING financial news from **Reuters, Bloomberg, CNBC, Financial Times** (Last 6 hours).
+    - **Filter**: Only Hard News (Macro, Earnings, M&A). No Opinion pieces.
+    - **URL**: Provide the direct link found in search.
 
-    **Output JSON Format**:
+    **Part 3: DEEP VALUE PICKS (Suggested Stocks)**
+    - Search for "undervalued stocks with strong fundamentals today".
+    - Select 3 distinct companies.
+    - **Metrics**: Find actual P/E, PEG, and Analyst Ratings.
+    - **Conviction**: 'Strong Buy' or 'Buy'.
+
+    **Output JSON Structure**:
     {
       "marketIndices": [ { "name": "S&P 500", "value": "5,200.00", "change": "+0.5%", "trend": "Up" } ],
-      "marketSentiment": {
-        "score": 75,
-        "label": "Greed",
-        "primaryDriver": "AI Optimism"
-      },
-      "sectorRotation": [
-        { "name": "Tech", "performance": "Bullish", "change": "+1.2%" }
+      "marketSentiment": { "score": 75, "label": "Greed", "primaryDriver": "Fed Rate Cuts" },
+      "sectorRotation": [ { "name": "Tech", "performance": "Bullish", "change": "+1.2%" } ],
+      "redditTrends": [ 
+         { "symbol": "NVDA", "name": "NVIDIA", "mentions": 5000, "sentiment": "Bullish", "sentimentScore": 90, "discussionSummary": "Blackwell chip delay rumors debunked", "keywords": ["Blackwell", "Jensen", "AI", "Calls"] } 
       ],
-      "redditTrends": [ ... ],
-      "news": [ ... ],
-      "picks": [ ... ]
+      "news": [ { "title": "...", "source": "Reuters", "url": "...", "timestamp": "10m ago", "summary": "...", "impact": "Critical" } ],
+      "picks": [ 
+         { "symbol": "VALE", "name": "Vale S.A.", "price": "$10.50", "sector": "Mining", "metrics": { "peRatio": "5.2", "marketCap": "45B", "dividendYield": "9%", "pegRatio": "0.8", "earningsDate": "Oct 25", "range52w": "10-15", "rsi": 35, "shortFloat": "2%", "beta": "0.8", "relativeVolume": "1.2x" }, "technicalLevels": { "support": "10.00", "resistance": "11.50", "stopLoss": "9.80" }, "catalyst": "Iron Ore Rebound", "analysis": "...", "conviction": "Strong Buy" } 
+      ]
     }
   `;
 
@@ -118,6 +116,7 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
       news: rawData.news || [],
       picks: rawData.picks || [],
       lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      groundingMetadata: response.candidates?.[0]?.groundingMetadata
     };
 
   } catch (error: any) {

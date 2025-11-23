@@ -111,6 +111,7 @@ export interface DashboardData {
   news: NewsItem[];
   picks: FundamentalPick[];
   lastUpdated: string;
+  groundingMetadata?: any; // Contains source URLs from Google Search
 }
 
 export enum LoadingState {
@@ -118,4 +119,13 @@ export enum LoadingState {
   LOADING,
   SUCCESS,
   ERROR
+}
+
+// Global Window Interface for AI Studio
+declare global {
+  // We augment the AIStudio interface which is used by window.aistudio
+  interface AIStudio {
+    hasSelectedApiKey: () => Promise<boolean>;
+    openSelectKey: () => Promise<void>;
+  }
 }
