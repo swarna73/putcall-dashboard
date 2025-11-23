@@ -38,7 +38,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // Auto-load data on mount (No lock screen)
+  // Auto-load data on mount
   useEffect(() => {
     loadData();
   }, []);
@@ -104,7 +104,7 @@ const Dashboard: React.FC = () => {
                    <h2 className="text-lg font-bold text-white">Alpha Scan</h2>
                 </div>
                 <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                   Fundamentals
+                   Fundamentals + Technicals
                 </div>
               </div>
               <SmartStockBox picks={data.picks} />

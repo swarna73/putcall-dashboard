@@ -125,3 +125,4 @@ const SmartStockBox: React.FC<SmartStockBoxProps> = ({ picks }) => {
 };
 
 export default SmartStockBox;
+  
