@@ -1,6 +1,20 @@
 import { GoogleGenAI } from "@google/genai";
 import { DashboardData, StockAnalysis } from "../types";
 
+// --- KEY MANAGEMENT HELPER ---
+const getApiKey = (): string | null => {
+  // 1. Check System Environment (Best practice)
+  if (process.env.API_KEY) return process.env.API_KEY;
+  if (process.env.NEXT_PUBLIC_API_KEY) return process.env.NEXT_PUBLIC_API_KEY;
+  
+  // 2. Check Browser Storage (Fallback for manual entry)
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('gemini_api_key');
+  }
+  
+  return null;
+};
+
 /**
  * Robustly extracts JSON from a string, handling markdown code blocks
  * and potential trailing text by counting braces.
@@ -38,11 +52,10 @@ function extractJSON(text: string): any {
 }
 
 export const fetchMarketDashboard = async (): Promise<DashboardData> => {
-  // Access key via process.env - ensured by next.config.mjs
-  const apiKey = process.env.API_KEY;
+  const apiKey = getApiKey();
 
   if (!apiKey) {
-    throw new Error("Gemini API Key is missing. Please configure process.env.API_KEY.");
+    throw new Error("KEY_MISSING");
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -51,27 +64,25 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
   const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
 
   const prompt = `
-    Act as a Senior Hedge Fund Analyst. The current time in New York is: ${currentTime}.
+    Act as a Senior Wall Street Analyst. The current time in New York is: ${currentTime}.
     Generate a JSON market report using **REAL-TIME** data from Google Search.
     
     **CRITICAL INSTRUCTION**: You must use the 'googleSearch' tool to find the absolute latest data from the last 24 hours.
 
-    **Part 1: REDDIT MOMENTUM ("The Hype")**
-    - Search r/wallstreetbets, r/investing, and Twitter/X for the **single most discussed stock ticker** right now.
-    - Focus on **VOLUME** of discussion, not just price.
-    - Return the Top 1 "King" ticker and 4 "Runner Ups".
+    **Part 1: REDDIT & SOCIAL MOMENTUM ("The Hype")**
+    - Search r/wallstreetbets, r/investing, r/stocks, and Twitter for the **single most discussed stock ticker** right now.
+    - Identify the specific catalyst (Earnings, FDA approval, Short Squeeze, CEO scandal).
     - 'sentiment': 'Bullish', 'Bearish', or 'Neutral'.
-    - 'keywords': 5 slang words or themes driving the chat (e.g. "YOLO", "Gamma Squeeze", "Earnings Miss").
+    - 'keywords': 5 slang words or specific themes driving the chat (e.g. "YOLO", "Gamma", "Guidance Cut").
 
     **Part 2: CRITICAL NEWS WIRE ("The Truth")**
     - Search for **Breaking Financial News** from: Bloomberg, Reuters, Financial Times, CNBC.
     - **Timeframe**: Last 6 hours only.
-    - **STRICT FILTER**: Do NOT include "Top 5 stocks to buy" or "Opinion" articles. I want HARD NEWS (Central Banks, M&A, Earnings, Geopolitics).
-    - 'impact': Mark as 'Critical' only if it affects the broader market (S&P 500 movement).
+    - **STRICT FILTER**: Do NOT include "Top 5 stocks to buy" or "Opinion" articles. I want HARD NEWS (Central Banks, M&A, Earnings Reports, Geopolitics).
+    - 'impact': Mark as 'Critical' only if it affects the broader market (S&P 500 movement) or is a major constituent move >5%.
 
     **Part 3: DEEP VALUE PICKS ("The Alpha")**
-    - Search for companies with **strong fundamentals** (Low P/E, High FCF) that are currently trading at a discount.
-    - **Avoid**: Meme stocks in this section.
+    - Search for companies with **strong fundamentals** (Low P/E, High FCF) that are currently trading at a discount or have a specific catalyst today.
     - **Metrics**: You must find the ACTUAL current P/E ratio and Dividend Yield.
     - 'analysis': A concise, professional reason why this is a buy.
 
@@ -81,7 +92,7 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
       "marketSentiment": { "score": 75, "label": "Greed", "primaryDriver": "..." },
       "sectorRotation": [ { "name": "Energy", "performance": "Bullish", "change": "+1.5%" } ],
       "redditTrends": [ 
-         { "symbol": "NVDA", "name": "NVIDIA", "mentions": 5000, "sentiment": "Bullish", "sentimentScore": 90, "discussionSummary": "...", "keywords": ["AI", "Blackwell", "Calls"] } 
+         { "symbol": "NVDA", "name": "NVIDIA", "mentions": 5000, "sentiment": "Bullish", "sentimentScore": 90, "discussionSummary": "...", "volumeChange": "+20% vs Avg", "keywords": ["AI", "Blackwell", "Calls"] } 
       ],
       "news": [ { "title": "...", "source": "Bloomberg", "url": "...", "timestamp": "10m ago", "summary": "...", "impact": "Critical" } ],
       "picks": [ 
@@ -124,10 +135,10 @@ export const fetchMarketDashboard = async (): Promise<DashboardData> => {
  * Performs a Deep Dive Financial X-Ray on a specific ticker.
  */
 export const analyzeStock = async (symbol: string): Promise<StockAnalysis> => {
-  const apiKey = process.env.API_KEY;
+  const apiKey = getApiKey();
   
   if (!apiKey) {
-    throw new Error("Gemini API Key is missing. Cannot perform deep dive analysis.");
+    throw new Error("KEY_MISSING");
   }
 
   const ai = new GoogleGenAI({ apiKey });
