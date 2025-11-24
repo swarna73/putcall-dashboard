@@ -67,12 +67,25 @@ export async function GET() {
     - Search for **3 DISTINCT** companies that are "Strong Buys" based purely on **Fundamentals**.
     - **Criteria**: Solid Balance Sheets (Low Debt), High Free Cash Flow, Low P/E relative to growth.
     - **EXCLUDE**: Hype stocks, Meme stocks, Unprofitable tech. Stick to quality companies.
-    - **Metrics**: You must find the ACTUAL current:
-       - 'peRatio'
-       - 'roe' (Return on Equity)
-       - 'debtToEquity'
-       - 'freeCashFlow'
-    - **Analysis**: Explain the fundamental thesis in one sentence (e.g. "Generates $5B FCF with 20% ROE, trading at 8x earnings").
+    
+    **CRITICAL FOR PART 3**: You MUST search and find the ACTUAL REAL NUMBERS for these metrics. DO NOT use "N/A" or placeholders.
+    For EACH stock in the picks array, you must:
+    1. Search "TICKER current stock price" - get the actual price
+    2. Search "TICKER P/E ratio" - get the actual P/E ratio number
+    3. Search "TICKER ROE return on equity" - get the actual ROE percentage
+    4. Search "TICKER debt to equity ratio" - get the actual debt/equity ratio
+    5. Search "TICKER free cash flow" - get the actual FCF in billions
+    6. Search "TICKER market cap" - get the actual market cap
+    7. Search "TICKER dividend yield" - get the actual dividend yield percentage
+
+    **Metrics Requirements - YOU MUST FILL ALL OF THESE WITH REAL NUMBERS**:
+       - 'peRatio': MUST be actual number like "8.2" or "15.4" (search for it, don't use N/A)
+       - 'roe': MUST be actual percentage like "12%" or "18%" (search for it, don't use N/A)
+       - 'debtToEquity': MUST be actual ratio like "0.9" or "1.2" (search for it, don't use N/A)
+       - 'freeCashFlow': MUST be actual amount like "$16B" or "$5.2B" (search for it, don't use N/A)
+       - 'marketCap': MUST be actual amount like "130B" or "45B" (search for it, don't use N/A)
+       - 'dividendYield': MUST be actual percentage like "6.1%" or "3.2%" (search for it, don't use N/A)
+    - **Analysis**: Explain the fundamental thesis in one sentence using the REAL numbers you found (e.g. "Generates $5B FCF with 20% ROE, trading at 8x earnings").
 
     **Output JSON Structure (No Markdown)**:
     {
@@ -84,9 +97,32 @@ export async function GET() {
       ],
       "news": [ { "title": "...", "source": "Bloomberg", "url": "...", "timestamp": "10m ago", "summary": "...", "impact": "Critical" } ],
       "picks": [ 
-         { "symbol": "T", "name": "AT&T Inc.", "price": "$18.50", "sector": "Telecom", "metrics": { "peRatio": "6.2", "roe": "12%", "debtToEquity": "0.9", "freeCashFlow": "$16B", "marketCap": "130B", "dividendYield": "6.1%" }, "technicalLevels": { "support": "18.00", "resistance": "19.50", "stopLoss": "17.80" }, "catalyst": "Free Cash Flow Beat", "analysis": "Trading below book value with massive FCF generation.", "conviction": "Strong Buy" }
+         { 
+           "symbol": "T", 
+           "name": "AT&T Inc.", 
+           "price": "$18.50", 
+           "sector": "Telecom", 
+           "metrics": { 
+             "peRatio": "6.2", 
+             "roe": "12%", 
+             "debtToEquity": "0.9", 
+             "freeCashFlow": "$16B", 
+             "marketCap": "130B", 
+             "dividendYield": "6.1%" 
+           }, 
+           "technicalLevels": { 
+             "support": "18.00", 
+             "resistance": "19.50", 
+             "stopLoss": "17.80" 
+           }, 
+           "catalyst": "Free Cash Flow Beat", 
+           "analysis": "Trading below book value with massive FCF generation.", 
+           "conviction": "Strong Buy" 
+         }
       ]
     }
+
+    **REMEMBER**: Every metric in the "picks" array MUST have REAL DATA from your search. No "N/A" values allowed!
   `;
 
   try {
