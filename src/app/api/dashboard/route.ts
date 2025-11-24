@@ -88,6 +88,27 @@ export async function GET() {
        - 'dividendYield': Dividend Yield percentage (e.g., "6.1%", "3.2%")
     - **Analysis**: One sentence explaining why it's a good value play using the metrics
 
+    **Part 4: INSIDER TRADING ALERT ("Smart Money Moves")**
+    - Search for "recent insider trading buys SEC Form 4" and "openinsider.com large purchases"
+    - Find the **TOP 5 most significant insider PURCHASES** from the last 30 days
+    - **Focus on BUYS ONLY** - ignore sales unless extremely unusual (CEO buying $10M+)
+    - **Prioritize**: 
+      * Large dollar amounts (>$1M)
+      * C-level executives (CEO, COO, CFO, President)
+      * Clustered buying (multiple insiders buying same stock)
+    
+    **For each insider trade, provide:**
+    - symbol: Stock ticker
+    - companyName: Full company name
+    - insiderName: Person's name
+    - title: Their position (CEO, COO, CFO, Director, etc.)
+    - transactionType: "Buy" (focus on buys)
+    - shares: Number of shares (formatted like "50,000")
+    - value: Total transaction value (formatted like "$7.5M" or "$250K")
+    - pricePerShare: Price per share if available (e.g., "$150.00")
+    - filingDate: When filed with SEC (format: "Nov 22, 2025")
+    - significance: Short descriptor like "Large Buy", "Clustered Buying", "CEO Purchase"
+
     **Output JSON Structure (No Markdown)**:
     {
       "marketIndices": [ 
@@ -178,12 +199,39 @@ export async function GET() {
            "analysis": "Energy major with exceptional balance sheet, massive FCF, and steady dividend in transition phase.", 
            "conviction": "Strong Buy" 
          }
+      ],
+      "insiderTrades": [
+        {
+          "symbol": "AAPL",
+          "companyName": "Apple Inc.",
+          "insiderName": "Tim Cook",
+          "title": "CEO",
+          "transactionType": "Buy",
+          "shares": "100,000",
+          "value": "$18.5M",
+          "pricePerShare": "$185.00",
+          "filingDate": "Nov 20, 2025",
+          "significance": "CEO Purchase"
+        },
+        {
+          "symbol": "MSFT",
+          "companyName": "Microsoft Corporation",
+          "insiderName": "Satya Nadella",
+          "title": "CEO",
+          "transactionType": "Buy",
+          "shares": "50,000",
+          "value": "$21.5M",
+          "pricePerShare": "$430.00",
+          "filingDate": "Nov 18, 2025",
+          "significance": "Large Buy"
+        }
       ]
     }
 
     **IMPORTANT REMINDERS**:
     - redditTrends MUST have exactly 5 stocks
     - picks MUST have exactly 3 stocks with all metrics filled
+    - insiderTrades MUST have exactly 5 trades (BUYS only, ignore sales)
     - Use efficient search queries to get data quickly
     - Provide actual numbers, not placeholders
   `;
@@ -208,6 +256,7 @@ export async function GET() {
       redditTrends: rawData.redditTrends || [],
       news: rawData.news || [],
       picks: rawData.picks || [],
+      insiderTrades: rawData.insiderTrades || [],
       lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       groundingMetadata: response.candidates?.[0]?.groundingMetadata
     };

@@ -42,6 +42,26 @@ export interface FundamentalPick {
   conviction: 'Strong Buy' | 'Buy' | 'Hold';
 }
 
+export interface InsiderTrade {
+  symbol: string;
+  companyName: string;
+  insiderName: string;
+  title: string; // CEO, COO, CFO, Director, etc.
+  transactionType: 'Buy' | 'Sale';
+  shares: string; // e.g., "50,000"
+  value: string; // e.g., "$7.5M"
+  pricePerShare?: string; // e.g., "$150.00"
+  filingDate: string; // e.g., "Nov 22, 2025"
+  significance: string; // e.g., "Large Buy", "Clustered Buying"
+}
+
+export interface InsiderAnalysis {
+  symbol: string;
+  companyName: string;
+  recentTrades: InsiderTrade[];
+  analysis: string; // Summary of insider activity and sentiment
+}
+
 export interface StockAnalysis {
   symbol: string;
   name: string;
@@ -102,6 +122,7 @@ export interface DashboardData {
   redditTrends: RedditTicker[];
   news: NewsItem[];
   picks: FundamentalPick[];
+  insiderTrades: InsiderTrade[]; // NEW: Top 5 insider trades
   lastUpdated: string;
   groundingMetadata?: any; 
 }

@@ -57,6 +57,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // MAIN DASHBOARD
   return (
     <div className="min-h-screen bg-[#020617] text-slate-100 selection:bg-indigo-500/30 pb-20 relative flex flex-col">
       
@@ -66,14 +67,17 @@ const Dashboard: React.FC = () => {
         lastUpdated={data.lastUpdated}
       />
 
+      {/* Market Pulse Bar */}
       <MarketOverview 
         indices={data.marketIndices} 
         sentiment={data.marketSentiment} 
         sectors={data.sectorRotation}
       />
 
+      {/* Main Content */}
       <main className="container mx-auto px-4 lg:px-8 py-8 max-w-7xl space-y-8 flex-1">
         
+        {/* Error State Banner */}
         {status === LoadingState.ERROR && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-red-500/30 bg-red-950/40 p-6 text-red-100 animate-in fade-in slide-in-from-top-4 shadow-2xl shadow-red-900/20 backdrop-blur-md relative overflow-hidden">
             <div className="absolute inset-0 opacity-10"></div>
@@ -106,27 +110,36 @@ const Dashboard: React.FC = () => {
           </div>
         )}
 
+        {/* SECTION 1: REDDIT SENTIMENT (HERO) */}
         <section>
            <RedditSentiment trends={data.redditTrends} />
         </section>
 
+        {/* SECTION 2: FINANCIAL X-RAY */}
         <section>
            <StockDeepDive />
         </section>
 
+        {/* SECTION 3: SIDE-BY-SIDE (FUNDAMENTALS | INSIDER TRADING) */}
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+           
+           {/* LEFT: FUNDAMENTALS SCREENER */}
            <div className="col-span-1">
               <SmartStockBox picks={data.picks} />
            </div>
+
+           {/* RIGHT: INSIDER TRADING ALERT */}
            <div className="col-span-1">
               <InsiderTrading topTrades={data.insiderTrades} />
            </div>
         </section>
 
+        {/* SECTION 4: NEWS FEED (FULL WIDTH) */}
         <section>
            <NewsFeed news={data.news} />
         </section>
 
+        {/* FOOTER: GROUNDING SOURCES */}
         {data.groundingMetadata?.groundingChunks && (
            <section className="pt-6 mt-8 opacity-60 hover:opacity-100 transition-opacity">
              <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Verified Sources</h4>
