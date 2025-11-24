@@ -14,7 +14,7 @@ import { IconShield, IconRefresh } from './Icons';
 const Dashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData>({
     marketIndices: [],
-    marketSentiment: { score: 50, label: 'Neutral', primaryDriver: 'Loading...' },
+    marketSentiment: { score: 50, label: 'Neutral', primaryDriver: '' }, // Changed from 'Loading...'
     sectorRotation: [],
     redditTrends: [], 
     news: [],
@@ -78,8 +78,8 @@ const Dashboard: React.FC = () => {
         {/* Error State Banner */}
         {status === LoadingState.ERROR && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-red-500/30 bg-red-950/40 p-6 text-red-100 animate-in fade-in slide-in-from-top-4 shadow-2xl shadow-red-900/20 backdrop-blur-md relative overflow-hidden">
-            {/* Background pattern */}
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+            {/* Background pattern - removed external URL dependency */}
+            <div className="absolute inset-0 opacity-10"></div>
             
             <div className="flex items-center gap-4 relative z-10">
               <div className="p-3 bg-red-500/20 rounded-full ring-1 ring-red-500/50">
@@ -114,7 +114,7 @@ const Dashboard: React.FC = () => {
            <RedditSentiment trends={data.redditTrends} />
         </section>
 
-        {/* SECTION 2: FINANCIAL X-RAY (MOVED TO TOP) */}
+        {/* SECTION 2: FINANCIAL X-RAY */}
         <section>
            <StockDeepDive />
         </section>
