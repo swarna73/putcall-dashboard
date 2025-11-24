@@ -1,180 +1,155 @@
-import { NextResponse } from 'next/server';
-import { GoogleGenAI } from "@google/genai";
+"use client";
 
-function extractJSON(text: string): any {
-  try {
-    const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    return JSON.parse(clean);
-  } catch (e) {
-    const startIndex = text.indexOf('{');
-    if (startIndex === -1) throw new Error("No JSON start found in response");
+import React, { useEffect, useState } from 'react';
+import Header from './Header';
+import RedditSentiment from './RedditSentiment';
+import NewsFeed from './NewsFeed';
+import SmartStockBox from './SmartStockBox';
+import InsiderTrading from './InsiderTrading';
+import MarketOverview from './MarketOverview';
+import StockDeepDive from './StockDeepDive';
+import { fetchMarketDashboard } from '../services/geminiService';
+import { DashboardData, LoadingState } from '../types';
+import { IconShield, IconRefresh } from './Icons';
 
-    let braceCount = 0;
-    let endIndex = -1;
+const Dashboard: React.FC = () => {
+  const [data, setData] = useState<DashboardData>({
+    marketIndices: [],
+    marketSentiment: { score: 50, label: 'Neutral', primaryDriver: '' },
+    sectorRotation: [],
+    redditTrends: [], 
+    news: [],
+    picks: [],
+    insiderTrades: [],
+    lastUpdated: ''
+  });
+  const [status, setStatus] = useState<LoadingState>(LoadingState.LOADING);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isApiKeyMissing, setIsApiKeyMissing] = useState(false);
 
-    for (let i = startIndex; i < text.length; i++) {
-      if (text[i] === '{') braceCount++;
-      else if (text[i] === '}') braceCount--;
+  useEffect(() => {
+    loadData();
+  }, []);
 
-      if (braceCount === 0) {
-        endIndex = i;
-        break;
+  const loadData = async () => {
+    setStatus(LoadingState.LOADING);
+    setErrorMsg(null);
+    setIsApiKeyMissing(false);
+
+    try {
+      const dashboardData = await fetchMarketDashboard();
+      setData(dashboardData);
+      setStatus(LoadingState.SUCCESS);
+    } catch (err: any) {
+      console.error("Dashboard Error:", err);
+      setStatus(LoadingState.ERROR);
+      
+      const msg = err?.message || "Unknown Error";
+      
+      if (msg.includes("API Key is missing")) {
+        setErrorMsg("Server Configuration Error");
+        setIsApiKeyMissing(true);
+      } else if (msg.includes("403")) {
+        setErrorMsg("API Access Denied (Quota/Billing)");
+      } else {
+        setErrorMsg("Analysis Interrupted. Please Retry.");
       }
     }
+  };
 
-    if (endIndex !== -1) {
-      const jsonStr = text.substring(startIndex, endIndex + 1);
-      return JSON.parse(jsonStr);
-    }
-    
-    throw new Error("Could not extract valid JSON object from response");
-  }
-}
+  return (
+    <div className="min-h-screen bg-[#020617] text-slate-100 selection:bg-indigo-500/30 pb-20 relative flex flex-col">
+      
+      <Header 
+        onRefresh={loadData} 
+        isLoading={status === LoadingState.LOADING}
+        lastUpdated={data.lastUpdated}
+      />
 
-// IMPORTANT: Disable caching for this route
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+      <MarketOverview 
+        indices={data.marketIndices} 
+        sentiment={data.marketSentiment} 
+        sectors={data.sectorRotation}
+      />
 
-export async function GET() {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
-  
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "API Key is missing. Please configure GEMINI_API_KEY in your environment." },
-      { status: 500 }
-    );
-  }
+      <main className="container mx-auto px-4 lg:px-8 py-8 max-w-7xl space-y-8 flex-1">
+        
+        {status === LoadingState.ERROR && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-red-500/30 bg-red-950/40 p-6 text-red-100 animate-in fade-in slide-in-from-top-4 shadow-2xl shadow-red-900/20 backdrop-blur-md relative overflow-hidden">
+            <div className="absolute inset-0 opacity-10"></div>
+            
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="p-3 bg-red-500/20 rounded-full ring-1 ring-red-500/50">
+                 <IconShield className="h-6 w-6 text-red-500" />
+              </div>
+              <div>
+                 <h3 className="text-lg font-bold text-white tracking-tight">{errorMsg}</h3>
+                 <p className="text-sm text-red-200/70">
+                   {isApiKeyMissing 
+                     ? "The API key needs to be configured on the server. Please contact the administrator." 
+                     : "The AI analysis encountered an interruption. Usually a temporary glitch."}
+                 </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 relative z-10">
+              {!isApiKeyMissing && (
+                <button 
+                  onClick={loadData} 
+                  className="flex items-center gap-2 whitespace-nowrap text-xs bg-slate-800 hover:bg-slate-700 text-white px-5 py-2.5 rounded-lg border border-slate-600 font-bold tracking-wide transition-colors"
+                >
+                   <IconRefresh className="h-3.5 w-3.5" />
+                   RETRY
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
-  const ai = new GoogleGenAI({ apiKey });
-  const model = 'gemini-2.5-flash';
-  
-  const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+        <section>
+           <RedditSentiment trends={data.redditTrends} />
+        </section>
 
-  const prompt = `
-    Act as a Senior Wall Street Analyst. The current time in New York is: ${currentTime}.
-    Generate a JSON market report using **REAL-TIME** data from Google Search.
-    
-    **CRITICAL INSTRUCTION**: You must use the 'googleSearch' tool to find the absolute latest data from the last 24 hours.
+        <section>
+           <StockDeepDive />
+        </section>
 
-    **Part 1: REDDIT & SOCIAL MOMENTUM ("The Hype")**
-    - Search r/wallstreetbets, r/investing, r/stocks for the **TOP 5 most discussed stock tickers** right now.
-    - IMPORTANT: You MUST return exactly 5 stocks in the redditTrends array, ranked by mentions/discussion volume.
-    - For EACH of the 5 stocks, identify:
-      * The specific catalyst (Earnings, FDA approval, Short Squeeze, CEO scandal, etc.)
-      * 'keywords': 5 slang words or specific themes driving the chat for that stock
-      * 'mentions': Estimated number of mentions/posts
-      * 'sentiment': Bullish, Bearish, or Neutral
-      * 'sentimentScore': 0-100 score
-      * 'volumeChange': Compare to average (e.g., "+20% vs Avg")
-      * 'discussionSummary': One sentence capturing what people are saying
-    
-    **Part 2: CRITICAL NEWS WIRE ("The Truth")**
-    - Search for **Breaking Financial News** from: Bloomberg, Reuters, Financial Times, CNBC.
-    - **Timeframe**: Last 6 hours only.
-    - **STRICT FILTER**: Do NOT include "Top 5 stocks to buy" or "Opinion" articles. I want HARD NEWS (Central Banks, M&A, Earnings Reports, Geopolitics).
-    - 'impact': Mark as 'Critical' only if it affects the broader market.
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+           <div className="col-span-1">
+              <SmartStockBox picks={data.picks} />
+           </div>
+           <div className="col-span-1">
+              <InsiderTrading topTrades={data.insiderTrades} />
+           </div>
+        </section>
 
-    **Part 3: SUGGESTED STOCKS - FINANCIALS + FUNDAMENTALS ("The Value")**
-    - Search for **3 DISTINCT value stocks** with strong fundamentals.
-    - **Strategy**: Search for "best value stocks strong fundamentals low PE high FCF" to find candidates
-    - Then for each stock, search "TICKER financial metrics" to get all data in one search
-    - **Criteria**: Solid Balance Sheets (Low Debt), High Free Cash Flow, Low P/E relative to growth.
-    - **EXCLUDE**: Hype stocks, Meme stocks, Unprofitable tech. Focus on established companies.
-    
-    **FOR PART 3 - IMPORTANT**: Fill in the metrics with real numbers. If you cannot find exact data for a metric, use reasonable estimates based on the company's sector and size, but prioritize real data.
-    
-    Required metrics for each stock:
-       - 'peRatio': Actual P/E ratio (e.g., "8.2", "15.4")
-       - 'roe': Return on Equity percentage (e.g., "12%", "18%")
-       - 'debtToEquity': Debt-to-Equity ratio (e.g., "0.9", "1.2")
-       - 'freeCashFlow': Free Cash Flow (e.g., "$16B", "$5.2B")
-       - 'marketCap': Market Capitalization (e.g., "130B", "45B")
-       - 'dividendYield': Dividend Yield percentage (e.g., "6.1%", "3.2%")
-    - **Analysis**: One sentence explaining why it's a good value play using the metrics
+        <section>
+           <NewsFeed news={data.news} />
+        </section>
 
-    **Part 4: INSIDER TRADING ALERT ("Smart Money Moves")**
-    - Search "recent insider buying openinsider" to find the most significant purchases
-    - Find **TOP 5 insider PURCHASES** (BUYS only) from the last 30 days
-    - **Prioritize**: Large amounts (>$500K), C-level executives, clustered buying
-    
-    **For each insider trade:**
-    - symbol, companyName, insiderName, title (CEO/COO/CFO/etc)
-    - transactionType: "Buy" 
-    - shares: "50,000", value: "$7.5M", pricePerShare: "$150.00"
-    - filingDate: "Nov 22, 2025", significance: "Large Buy"
+        {data.groundingMetadata?.groundingChunks && (
+           <section className="pt-6 mt-8 opacity-60 hover:opacity-100 transition-opacity">
+             <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Verified Sources</h4>
+             <div className="flex flex-wrap gap-2">
+               {data.groundingMetadata.groundingChunks.map((chunk: any, i: number) => (
+                 chunk.web?.uri ? (
+                   <a 
+                     key={i} 
+                     href={chunk.web.uri} 
+                     target="_blank" 
+                     rel="noreferrer"
+                     className="text-[9px] text-indigo-400 bg-indigo-950/30 border border-indigo-900/50 px-2 py-1 rounded hover:bg-indigo-900/50 truncate max-w-[200px]"
+                   >
+                     {chunk.web.title || new URL(chunk.web.uri).hostname}
+                   </a>
+                 ) : null
+               ))}
+             </div>
+           </section>
+        )}
+      </main>
+    </div>
+  );
+};
 
-    **Output JSON Structure (No Markdown)**:
-    {
-      "marketIndices": [ 
-        { "name": "S&P 500", "value": "...", "change": "...", "trend": "Up" },
-        { "name": "Dow Jones Industrial Average", "value": "...", "change": "...", "trend": "Up" },
-        { "name": "Nasdaq Composite", "value": "...", "change": "...", "trend": "Up" }
-      ],
-      "marketSentiment": { "score": 75, "label": "Greed", "primaryDriver": "..." },
-      "sectorRotation": [ 
-        { "name": "Technology", "performance": "Bullish", "change": "+1.5%" }
-      ],
-      "redditTrends": [ 
-         { "symbol": "NVDA", "name": "NVIDIA", "mentions": 5000, "sentiment": "Bullish", "sentimentScore": 90, "discussionSummary": "AI hype continues", "volumeChange": "+20% vs Avg", "keywords": ["AI", "Blackwell", "Calls", "Moon", "Jensen"] }
-      ],
-      "news": [ 
-        { "title": "...", "source": "Bloomberg", "url": "...", "timestamp": "2h ago", "summary": "...", "impact": "Critical" }
-      ],
-      "picks": [ 
-         { "symbol": "VZ", "name": "Verizon", "price": "$42.15", "sector": "Telecom", "metrics": { "peRatio": "8.5", "roe": "15%", "debtToEquity": "1.8", "freeCashFlow": "$18B", "marketCap": "177B", "dividendYield": "6.5%" }, "technicalLevels": { "support": "41.00", "resistance": "44.00", "stopLoss": "40.50" }, "catalyst": "5G Expansion", "analysis": "Solid FCF with high yield", "conviction": "Strong Buy" }
-      ],
-      "insiderTrades": [
-        { "symbol": "AAPL", "companyName": "Apple Inc.", "insiderName": "John Doe", "title": "CEO", "transactionType": "Buy", "shares": "100,000", "value": "$18.5M", "pricePerShare": "$185.00", "filingDate": "Nov 20, 2025", "significance": "CEO Purchase" }
-      ]
-    }
-
-    **REMINDERS**: 5 reddit stocks, 3 fundamental picks, 5 insider trades (buys only)
-  `;
-
-  try {
-    const response = await ai.models.generateContent({
-      model: model,
-      contents: prompt,
-      config: {
-        tools: [{ googleSearch: {} }],
-        temperature: 0.3,
-      },
-    });
-
-    const text = response.text || "";
-    const rawData = extractJSON(text);
-
-    const dashboardData = {
-      marketIndices: rawData.marketIndices || [],
-      marketSentiment: rawData.marketSentiment || { score: 50, label: "Neutral", primaryDriver: "Data Unavailable" },
-      sectorRotation: rawData.sectorRotation || [],
-      redditTrends: rawData.redditTrends || [],
-      news: rawData.news || [],
-      picks: rawData.picks || [],
-      insiderTrades: rawData.insiderTrades || [],
-      lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      groundingMetadata: response.candidates?.[0]?.groundingMetadata
-    };
-
-    // Return with no-cache headers
-    return NextResponse.json(dashboardData, {
-      headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-      },
-    });
-
-  } catch (error: any) {
-    console.error("Gemini API Error:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to fetch dashboard data" },
-      { status: 500 },
-      {
-        headers: {
-          'Cache-Control': 'no-store',
-        },
-      }
-    );
-  }
-}
+export default Dashboard;
