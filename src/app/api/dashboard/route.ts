@@ -64,15 +64,6 @@ export async function GET() {
       * 'volumeChange': Compare to average (e.g., "+20% vs Avg")
       * 'discussionSummary': One sentence capturing what people are saying
     
-    Example format for redditTrends (YOU MUST HAVE 5 STOCKS):
-    [
-      { "symbol": "NVDA", "name": "NVIDIA", "mentions": 5000, "sentiment": "Bullish", "sentimentScore": 90, "discussionSummary": "...", "volumeChange": "+20% vs Avg", "keywords": ["AI", "Blackwell", "Calls", "Moon", "Jensen"] },
-      { "symbol": "TSLA", "name": "Tesla", "mentions": 3500, "sentiment": "Bearish", "sentimentScore": 35, "discussionSummary": "...", "volumeChange": "+15% vs Avg", "keywords": ["Musk", "Cybertruck", "Puts", "Tank", "Loss"] },
-      { "symbol": "AMD", "name": "AMD", "mentions": 2800, "sentiment": "Bullish", "sentimentScore": 75, "discussionSummary": "...", "volumeChange": "+10% vs Avg", "keywords": ["Chips", "Intel", "Breakout", "Gains", "Buy"] },
-      { "symbol": "PLTR", "name": "Palantir", "mentions": 2200, "sentiment": "Bullish", "sentimentScore": 80, "discussionSummary": "...", "volumeChange": "+25% vs Avg", "keywords": ["AI", "Gov", "Rally", "Hold", "Karp"] },
-      { "symbol": "SPY", "name": "SPDR S&P 500", "mentions": 1800, "sentiment": "Neutral", "sentimentScore": 50, "discussionSummary": "...", "volumeChange": "+5% vs Avg", "keywords": ["Market", "Hedge", "ETF", "Safe", "Index"] }
-    ]
-
     **Part 2: CRITICAL NEWS WIRE ("The Truth")**
     - Search for **Breaking Financial News** from: Bloomberg, Reuters, Financial Times, CNBC.
     - **Timeframe**: Last 6 hours only.
@@ -80,71 +71,121 @@ export async function GET() {
     - 'impact': Mark as 'Critical' only if it affects the broader market.
 
     **Part 3: SUGGESTED STOCKS - FINANCIALS + FUNDAMENTALS ("The Value")**
-    - Search for **3 DISTINCT** companies that are "Strong Buys" based purely on **Fundamentals**.
+    - Search for **3 DISTINCT value stocks** with strong fundamentals.
+    - **Strategy**: Search for "best value stocks strong fundamentals low PE high FCF" to find candidates
+    - Then for each stock, search "TICKER financial metrics" to get all data in one search
     - **Criteria**: Solid Balance Sheets (Low Debt), High Free Cash Flow, Low P/E relative to growth.
-    - **EXCLUDE**: Hype stocks, Meme stocks, Unprofitable tech. Stick to quality companies.
+    - **EXCLUDE**: Hype stocks, Meme stocks, Unprofitable tech. Focus on established companies.
     
-    **CRITICAL FOR PART 3**: You MUST search and find the ACTUAL REAL NUMBERS for these metrics. DO NOT use "N/A" or placeholders.
-    For EACH stock in the picks array, you must:
-    1. Search "TICKER current stock price" - get the actual price
-    2. Search "TICKER P/E ratio" - get the actual P/E ratio number
-    3. Search "TICKER ROE return on equity" - get the actual ROE percentage
-    4. Search "TICKER debt to equity ratio" - get the actual debt/equity ratio
-    5. Search "TICKER free cash flow" - get the actual FCF in billions
-    6. Search "TICKER market cap" - get the actual market cap
-    7. Search "TICKER dividend yield" - get the actual dividend yield percentage
-
-    **Metrics Requirements - YOU MUST FILL ALL OF THESE WITH REAL NUMBERS**:
-       - 'peRatio': MUST be actual number like "8.2" or "15.4" (search for it, don't use N/A)
-       - 'roe': MUST be actual percentage like "12%" or "18%" (search for it, don't use N/A)
-       - 'debtToEquity': MUST be actual ratio like "0.9" or "1.2" (search for it, don't use N/A)
-       - 'freeCashFlow': MUST be actual amount like "$16B" or "$5.2B" (search for it, don't use N/A)
-       - 'marketCap': MUST be actual amount like "130B" or "45B" (search for it, don't use N/A)
-       - 'dividendYield': MUST be actual percentage like "6.1%" or "3.2%" (search for it, don't use N/A)
-    - **Analysis**: Explain the fundamental thesis in one sentence using the REAL numbers you found (e.g. "Generates $5B FCF with 20% ROE, trading at 8x earnings").
+    **FOR PART 3 - IMPORTANT**: Fill in the metrics with real numbers. If you cannot find exact data for a metric, use reasonable estimates based on the company's sector and size, but prioritize real data.
+    
+    Required metrics for each stock:
+       - 'peRatio': Actual P/E ratio (e.g., "8.2", "15.4")
+       - 'roe': Return on Equity percentage (e.g., "12%", "18%")
+       - 'debtToEquity': Debt-to-Equity ratio (e.g., "0.9", "1.2")
+       - 'freeCashFlow': Free Cash Flow (e.g., "$16B", "$5.2B")
+       - 'marketCap': Market Capitalization (e.g., "130B", "45B")
+       - 'dividendYield': Dividend Yield percentage (e.g., "6.1%", "3.2%")
+    - **Analysis**: One sentence explaining why it's a good value play using the metrics
 
     **Output JSON Structure (No Markdown)**:
     {
-      "marketIndices": [ { "name": "S&P 500", "value": "...", "change": "...", "trend": "Up" } ],
-      "marketSentiment": { "score": 75, "label": "Greed", "primaryDriver": "..." },
-      "sectorRotation": [ { "name": "Energy", "performance": "Bullish", "change": "+1.5%" } ],
-      "redditTrends": [ 
-         { "symbol": "NVDA", "name": "NVIDIA", "mentions": 5000, "sentiment": "Bullish", "sentimentScore": 90, "discussionSummary": "...", "volumeChange": "+20% vs Avg", "keywords": ["AI", "Blackwell", "Calls", "Moon", "Jensen"] },
-         { "symbol": "TSLA", "name": "Tesla", "mentions": 3500, "sentiment": "Bearish", "sentimentScore": 35, "discussionSummary": "...", "volumeChange": "+15% vs Avg", "keywords": ["Musk", "Cybertruck", "Puts", "Tank", "Loss"] },
-         { "symbol": "AMD", "name": "AMD", "mentions": 2800, "sentiment": "Bullish", "sentimentScore": 75, "discussionSummary": "...", "volumeChange": "+10% vs Avg", "keywords": ["Chips", "Intel", "Breakout", "Gains", "Buy"] },
-         { "symbol": "PLTR", "name": "Palantir", "mentions": 2200, "sentiment": "Bullish", "sentimentScore": 80, "discussionSummary": "...", "volumeChange": "+25% vs Avg", "keywords": ["AI", "Gov", "Rally", "Hold", "Karp"] },
-         { "symbol": "SPY", "name": "SPDR S&P 500", "mentions": 1800, "sentiment": "Neutral", "sentimentScore": 50, "discussionSummary": "...", "volumeChange": "+5% vs Avg", "keywords": ["Market", "Hedge", "ETF", "Safe", "Index"] }
+      "marketIndices": [ 
+        { "name": "S&P 500", "value": "...", "change": "...", "trend": "Up" },
+        { "name": "Dow Jones Industrial Average", "value": "...", "change": "...", "trend": "Up" },
+        { "name": "Nasdaq Composite", "value": "...", "change": "...", "trend": "Up" }
       ],
-      "news": [ { "title": "...", "source": "Bloomberg", "url": "...", "timestamp": "10m ago", "summary": "...", "impact": "Critical" } ],
+      "marketSentiment": { "score": 75, "label": "Greed", "primaryDriver": "..." },
+      "sectorRotation": [ 
+        { "name": "Technology", "performance": "Bullish", "change": "+1.5%" },
+        { "name": "Energy", "performance": "Bearish", "change": "-0.8%" }
+      ],
+      "redditTrends": [ 
+         { "symbol": "NVDA", "name": "NVIDIA", "mentions": 5000, "sentiment": "Bullish", "sentimentScore": 90, "discussionSummary": "AI hype continues with strong earnings expectations", "volumeChange": "+20% vs Avg", "keywords": ["AI", "Blackwell", "Calls", "Moon", "Jensen"] },
+         { "symbol": "TSLA", "name": "Tesla", "mentions": 3500, "sentiment": "Bearish", "sentimentScore": 35, "discussionSummary": "Concerns over delivery numbers and Musk distractions", "volumeChange": "+15% vs Avg", "keywords": ["Musk", "Cybertruck", "Puts", "Tank", "Loss"] },
+         { "symbol": "AMD", "name": "AMD", "mentions": 2800, "sentiment": "Bullish", "sentimentScore": 75, "discussionSummary": "Chip demand strong, gaining market share from Intel", "volumeChange": "+10% vs Avg", "keywords": ["Chips", "Intel", "Breakout", "Gains", "Buy"] },
+         { "symbol": "PLTR", "name": "Palantir", "mentions": 2200, "sentiment": "Bullish", "sentimentScore": 80, "discussionSummary": "AI platform contracts accelerating with government", "volumeChange": "+25% vs Avg", "keywords": ["AI", "Gov", "Rally", "Hold", "Karp"] },
+         { "symbol": "SPY", "name": "SPDR S&P 500", "mentions": 1800, "sentiment": "Neutral", "sentimentScore": 50, "discussionSummary": "Mixed sentiment as traders hedge for volatility", "volumeChange": "+5% vs Avg", "keywords": ["Market", "Hedge", "ETF", "Safe", "Index"] }
+      ],
+      "news": [ 
+        { "title": "Fed signals potential rate cut in December", "source": "Bloomberg", "url": "...", "timestamp": "2h ago", "summary": "Federal Reserve officials indicated openness to cutting rates...", "impact": "Critical" },
+        { "title": "Major tech merger announced", "source": "Reuters", "url": "...", "timestamp": "4h ago", "summary": "Two leading cloud companies announce $50B merger...", "impact": "High" }
+      ],
       "picks": [ 
          { 
-           "symbol": "T", 
-           "name": "AT&T Inc.", 
-           "price": "$18.50", 
+           "symbol": "VZ", 
+           "name": "Verizon Communications", 
+           "price": "$42.15", 
            "sector": "Telecom", 
            "metrics": { 
-             "peRatio": "6.2", 
-             "roe": "12%", 
-             "debtToEquity": "0.9", 
-             "freeCashFlow": "$16B", 
-             "marketCap": "130B", 
-             "dividendYield": "6.1%" 
+             "peRatio": "8.5", 
+             "roe": "15%", 
+             "debtToEquity": "1.8", 
+             "freeCashFlow": "$18B", 
+             "marketCap": "177B", 
+             "dividendYield": "6.5%" 
            }, 
            "technicalLevels": { 
-             "support": "18.00", 
-             "resistance": "19.50", 
-             "stopLoss": "17.80" 
+             "support": "41.00", 
+             "resistance": "44.00", 
+             "stopLoss": "40.50" 
            }, 
-           "catalyst": "Free Cash Flow Beat", 
-           "analysis": "Trading below book value with massive FCF generation.", 
+           "catalyst": "5G Expansion", 
+           "analysis": "Generates $18B FCF with 6.5% dividend yield, trading at only 8.5x earnings with stable telecom revenue.", 
+           "conviction": "Strong Buy" 
+         },
+         { 
+           "symbol": "PFE", 
+           "name": "Pfizer Inc.", 
+           "price": "$28.50", 
+           "sector": "Healthcare", 
+           "metrics": { 
+             "peRatio": "9.2", 
+             "roe": "11%", 
+             "debtToEquity": "0.6", 
+             "freeCashFlow": "$12B", 
+             "marketCap": "160B", 
+             "dividendYield": "5.8%" 
+           }, 
+           "technicalLevels": { 
+             "support": "27.00", 
+             "resistance": "30.00", 
+             "stopLoss": "26.50" 
+           }, 
+           "catalyst": "New Drug Pipeline", 
+           "analysis": "Pharmaceutical giant with strong pipeline trading at deep discount with low debt and solid FCF.", 
+           "conviction": "Buy" 
+         },
+         { 
+           "symbol": "CVX", 
+           "name": "Chevron Corporation", 
+           "price": "$158.25", 
+           "sector": "Energy", 
+           "metrics": { 
+             "peRatio": "10.8", 
+             "roe": "14%", 
+             "debtToEquity": "0.3", 
+             "freeCashFlow": "$21B", 
+             "marketCap": "295B", 
+             "dividendYield": "3.8%" 
+           }, 
+           "technicalLevels": { 
+             "support": "155.00", 
+             "resistance": "165.00", 
+             "stopLoss": "153.00" 
+           }, 
+           "catalyst": "Energy Transition Strategy", 
+           "analysis": "Energy major with exceptional balance sheet, massive FCF, and steady dividend in transition phase.", 
            "conviction": "Strong Buy" 
          }
       ]
     }
 
-    **CRITICAL REMINDERS**:
-    - redditTrends array MUST contain exactly 5 stocks
-    - Every metric in the "picks" array MUST have REAL DATA from your search. No "N/A" values allowed!
+    **IMPORTANT REMINDERS**:
+    - redditTrends MUST have exactly 5 stocks
+    - picks MUST have exactly 3 stocks with all metrics filled
+    - Use efficient search queries to get data quickly
+    - Provide actual numbers, not placeholders
   `;
 
   try {
