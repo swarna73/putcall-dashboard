@@ -114,7 +114,12 @@ const Dashboard: React.FC = () => {
            <RedditSentiment trends={data.redditTrends} />
         </section>
 
-        {/* SECTION 2: THE GRID (NEWS & VALUE) */}
+        {/* SECTION 2: FINANCIAL X-RAY (MOVED TO TOP) */}
+        <section>
+           <StockDeepDive />
+        </section>
+
+        {/* SECTION 3: THE GRID (NEWS & VALUE) */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
            
            {/* LEFT: CRITICAL NEWS WIRE (2/3 Width) */}
@@ -126,11 +131,6 @@ const Dashboard: React.FC = () => {
            <div className="col-span-1">
               <SmartStockBox picks={data.picks} />
            </div>
-        </section>
-
-        {/* SECTION: Deep Dive Search Tool */}
-        <section className="max-w-4xl mx-auto pt-8 border-t border-slate-800">
-           <StockDeepDive />
         </section>
 
         {/* FOOTER: GROUNDING SOURCES */}
