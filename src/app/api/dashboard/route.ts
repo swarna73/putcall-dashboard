@@ -31,6 +31,9 @@ function extractJSON(text: string): any {
   }
 }
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET() {
   const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
   
@@ -77,8 +80,6 @@ export async function GET() {
     - **Criteria**: Solid Balance Sheets (Low Debt), High Free Cash Flow, Low P/E relative to growth.
     - **EXCLUDE**: Hype stocks, Meme stocks, Unprofitable tech. Focus on established companies.
     
-    **FOR PART 3 - IMPORTANT**: Fill in the metrics with real numbers. If you cannot find exact data for a metric, use reasonable estimates based on the company's sector and size, but prioritize real data.
-    
     Required metrics for each stock:
        - 'peRatio': Actual P/E ratio (e.g., "8.2", "15.4")
        - 'roe': Return on Equity percentage (e.g., "12%", "18%")
@@ -86,154 +87,45 @@ export async function GET() {
        - 'freeCashFlow': Free Cash Flow (e.g., "$16B", "$5.2B")
        - 'marketCap': Market Capitalization (e.g., "130B", "45B")
        - 'dividendYield': Dividend Yield percentage (e.g., "6.1%", "3.2%")
-    - **Analysis**: One sentence explaining why it's a good value play using the metrics
 
-    **Part 4: INSIDER TRADING ALERT ("Smart Money Moves")**
-    - Search for "recent insider trading buys SEC Form 4" and "openinsider.com large purchases"
-    - Find the **TOP 5 most significant insider PURCHASES** from the last 30 days
-    - **Focus on BUYS ONLY** - ignore sales unless extremely unusual (CEO buying $10M+)
-    - **Prioritize**: 
-      * Large dollar amounts (>$1M)
-      * C-level executives (CEO, COO, CFO, President)
-      * Clustered buying (multiple insiders buying same stock)
-    
-    **For each insider trade, provide:**
-    - symbol: Stock ticker
-    - companyName: Full company name
-    - insiderName: Person's name
-    - title: Their position (CEO, COO, CFO, Director, etc.)
-    - transactionType: "Buy" (focus on buys)
-    - shares: Number of shares (formatted like "50,000")
-    - value: Total transaction value (formatted like "$7.5M" or "$250K")
-    - pricePerShare: Price per share if available (e.g., "$150.00")
-    - filingDate: When filed with SEC (format: "Nov 22, 2025")
-    - significance: Short descriptor like "Large Buy", "Clustered Buying", "CEO Purchase"
+    **Part 4: INSIDER TRADING - REMOVED FROM DASHBOARD**
+    - Return EMPTY ARRAY for insiderTrades: []
+    - Insider data will be loaded separately on-demand only
+    - This is to prevent fake data generation
+
+    **CRITICAL ANTI-FABRICATION RULES:**
+    1. NEVER invent or fabricate data
+    2. If you cannot find real data from your search, return empty arrays or say "Data Unavailable"
+    3. DO NOT use well-known CEO names unless you found them in actual search results
+    4. DO NOT create plausible-looking fake transactions
+    5. Only return data you actually found through Google Search
 
     **Output JSON Structure (No Markdown)**:
     {
       "marketIndices": [ 
-        { "name": "S&P 500", "value": "...", "change": "...", "trend": "Up" },
-        { "name": "Dow Jones Industrial Average", "value": "...", "change": "...", "trend": "Up" },
-        { "name": "Nasdaq Composite", "value": "...", "change": "...", "trend": "Up" }
+        { "name": "S&P 500", "value": "...", "change": "...", "trend": "Up" }
       ],
       "marketSentiment": { "score": 75, "label": "Greed", "primaryDriver": "..." },
       "sectorRotation": [ 
-        { "name": "Technology", "performance": "Bullish", "change": "+1.5%" },
-        { "name": "Energy", "performance": "Bearish", "change": "-0.8%" }
+        { "name": "Technology", "performance": "Bullish", "change": "+1.5%" }
       ],
       "redditTrends": [ 
-         { "symbol": "NVDA", "name": "NVIDIA", "mentions": 5000, "sentiment": "Bullish", "sentimentScore": 90, "discussionSummary": "AI hype continues with strong earnings expectations", "volumeChange": "+20% vs Avg", "keywords": ["AI", "Blackwell", "Calls", "Moon", "Jensen"] },
-         { "symbol": "TSLA", "name": "Tesla", "mentions": 3500, "sentiment": "Bearish", "sentimentScore": 35, "discussionSummary": "Concerns over delivery numbers and Musk distractions", "volumeChange": "+15% vs Avg", "keywords": ["Musk", "Cybertruck", "Puts", "Tank", "Loss"] },
-         { "symbol": "AMD", "name": "AMD", "mentions": 2800, "sentiment": "Bullish", "sentimentScore": 75, "discussionSummary": "Chip demand strong, gaining market share from Intel", "volumeChange": "+10% vs Avg", "keywords": ["Chips", "Intel", "Breakout", "Gains", "Buy"] },
-         { "symbol": "PLTR", "name": "Palantir", "mentions": 2200, "sentiment": "Bullish", "sentimentScore": 80, "discussionSummary": "AI platform contracts accelerating with government", "volumeChange": "+25% vs Avg", "keywords": ["AI", "Gov", "Rally", "Hold", "Karp"] },
-         { "symbol": "SPY", "name": "SPDR S&P 500", "mentions": 1800, "sentiment": "Neutral", "sentimentScore": 50, "discussionSummary": "Mixed sentiment as traders hedge for volatility", "volumeChange": "+5% vs Avg", "keywords": ["Market", "Hedge", "ETF", "Safe", "Index"] }
+         { "symbol": "NVDA", "name": "NVIDIA", "mentions": 5000, "sentiment": "Bullish", "sentimentScore": 90, "discussionSummary": "AI hype continues", "volumeChange": "+20% vs Avg", "keywords": ["AI", "Blackwell", "Calls", "Moon", "Jensen"] }
       ],
       "news": [ 
-        { "title": "Fed signals potential rate cut in December", "source": "Bloomberg", "url": "...", "timestamp": "2h ago", "summary": "Federal Reserve officials indicated openness to cutting rates...", "impact": "Critical" },
-        { "title": "Major tech merger announced", "source": "Reuters", "url": "...", "timestamp": "4h ago", "summary": "Two leading cloud companies announce $50B merger...", "impact": "High" }
+        { "title": "...", "source": "Bloomberg", "url": "...", "timestamp": "2h ago", "summary": "...", "impact": "Critical" }
       ],
       "picks": [ 
-         { 
-           "symbol": "VZ", 
-           "name": "Verizon Communications", 
-           "price": "$42.15", 
-           "sector": "Telecom", 
-           "metrics": { 
-             "peRatio": "8.5", 
-             "roe": "15%", 
-             "debtToEquity": "1.8", 
-             "freeCashFlow": "$18B", 
-             "marketCap": "177B", 
-             "dividendYield": "6.5%" 
-           }, 
-           "technicalLevels": { 
-             "support": "41.00", 
-             "resistance": "44.00", 
-             "stopLoss": "40.50" 
-           }, 
-           "catalyst": "5G Expansion", 
-           "analysis": "Generates $18B FCF with 6.5% dividend yield, trading at only 8.5x earnings with stable telecom revenue.", 
-           "conviction": "Strong Buy" 
-         },
-         { 
-           "symbol": "PFE", 
-           "name": "Pfizer Inc.", 
-           "price": "$28.50", 
-           "sector": "Healthcare", 
-           "metrics": { 
-             "peRatio": "9.2", 
-             "roe": "11%", 
-             "debtToEquity": "0.6", 
-             "freeCashFlow": "$12B", 
-             "marketCap": "160B", 
-             "dividendYield": "5.8%" 
-           }, 
-           "technicalLevels": { 
-             "support": "27.00", 
-             "resistance": "30.00", 
-             "stopLoss": "26.50" 
-           }, 
-           "catalyst": "New Drug Pipeline", 
-           "analysis": "Pharmaceutical giant with strong pipeline trading at deep discount with low debt and solid FCF.", 
-           "conviction": "Buy" 
-         },
-         { 
-           "symbol": "CVX", 
-           "name": "Chevron Corporation", 
-           "price": "$158.25", 
-           "sector": "Energy", 
-           "metrics": { 
-             "peRatio": "10.8", 
-             "roe": "14%", 
-             "debtToEquity": "0.3", 
-             "freeCashFlow": "$21B", 
-             "marketCap": "295B", 
-             "dividendYield": "3.8%" 
-           }, 
-           "technicalLevels": { 
-             "support": "155.00", 
-             "resistance": "165.00", 
-             "stopLoss": "153.00" 
-           }, 
-           "catalyst": "Energy Transition Strategy", 
-           "analysis": "Energy major with exceptional balance sheet, massive FCF, and steady dividend in transition phase.", 
-           "conviction": "Strong Buy" 
-         }
+         { "symbol": "VZ", "name": "Verizon", "price": "$42.15", "sector": "Telecom", "metrics": { "peRatio": "8.5", "roe": "15%", "debtToEquity": "1.8", "freeCashFlow": "$18B", "marketCap": "177B", "dividendYield": "6.5%" }, "technicalLevels": { "support": "41.00", "resistance": "44.00", "stopLoss": "40.50" }, "catalyst": "5G Expansion", "analysis": "Solid FCF with high yield", "conviction": "Strong Buy" }
       ],
-      "insiderTrades": [
-        {
-          "symbol": "AAPL",
-          "companyName": "Apple Inc.",
-          "insiderName": "Tim Cook",
-          "title": "CEO",
-          "transactionType": "Buy",
-          "shares": "100,000",
-          "value": "$18.5M",
-          "pricePerShare": "$185.00",
-          "filingDate": "Nov 20, 2025",
-          "significance": "CEO Purchase"
-        },
-        {
-          "symbol": "MSFT",
-          "companyName": "Microsoft Corporation",
-          "insiderName": "Satya Nadella",
-          "title": "CEO",
-          "transactionType": "Buy",
-          "shares": "50,000",
-          "value": "$21.5M",
-          "pricePerShare": "$430.00",
-          "filingDate": "Nov 18, 2025",
-          "significance": "Large Buy"
-        }
-      ]
+      "insiderTrades": []
     }
 
-    **IMPORTANT REMINDERS**:
-    - redditTrends MUST have exactly 5 stocks
-    - picks MUST have exactly 3 stocks with all metrics filled
-    - insiderTrades MUST have exactly 5 trades (BUYS only, ignore sales)
-    - Use efficient search queries to get data quickly
-    - Provide actual numbers, not placeholders
+    **REMINDERS**: 
+    - 5 reddit stocks (REAL from search)
+    - 3 fundamental picks (REAL from search)
+    - insiderTrades: EMPTY ARRAY (will load separately)
+    - NO FAKE DATA ALLOWED
   `;
 
   try {
@@ -256,12 +148,18 @@ export async function GET() {
       redditTrends: rawData.redditTrends || [],
       news: rawData.news || [],
       picks: rawData.picks || [],
-      insiderTrades: rawData.insiderTrades || [],
+      insiderTrades: [], // Always empty - will load separately
       lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       groundingMetadata: response.candidates?.[0]?.groundingMetadata
     };
 
-    return NextResponse.json(dashboardData);
+    return NextResponse.json(dashboardData, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    });
 
   } catch (error: any) {
     console.error("Gemini API Error:", error);
