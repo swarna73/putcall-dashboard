@@ -53,9 +53,25 @@ export async function GET() {
     **CRITICAL INSTRUCTION**: You must use the 'googleSearch' tool to find the absolute latest data from the last 24 hours.
 
     **Part 1: REDDIT & SOCIAL MOMENTUM ("The Hype")**
-    - Search r/wallstreetbets, r/investing, r/stocks for the **#1 most discussed stock ticker** right now.
-    - Identify the specific catalyst (Earnings, FDA approval, Short Squeeze, CEO scandal).
-    - 'keywords': 5 slang words or specific themes driving the chat.
+    - Search r/wallstreetbets, r/investing, r/stocks for the **TOP 5 most discussed stock tickers** right now.
+    - IMPORTANT: You MUST return exactly 5 stocks in the redditTrends array, ranked by mentions/discussion volume.
+    - For EACH of the 5 stocks, identify:
+      * The specific catalyst (Earnings, FDA approval, Short Squeeze, CEO scandal, etc.)
+      * 'keywords': 5 slang words or specific themes driving the chat for that stock
+      * 'mentions': Estimated number of mentions/posts
+      * 'sentiment': Bullish, Bearish, or Neutral
+      * 'sentimentScore': 0-100 score
+      * 'volumeChange': Compare to average (e.g., "+20% vs Avg")
+      * 'discussionSummary': One sentence capturing what people are saying
+    
+    Example format for redditTrends (YOU MUST HAVE 5 STOCKS):
+    [
+      { "symbol": "NVDA", "name": "NVIDIA", "mentions": 5000, "sentiment": "Bullish", "sentimentScore": 90, "discussionSummary": "...", "volumeChange": "+20% vs Avg", "keywords": ["AI", "Blackwell", "Calls", "Moon", "Jensen"] },
+      { "symbol": "TSLA", "name": "Tesla", "mentions": 3500, "sentiment": "Bearish", "sentimentScore": 35, "discussionSummary": "...", "volumeChange": "+15% vs Avg", "keywords": ["Musk", "Cybertruck", "Puts", "Tank", "Loss"] },
+      { "symbol": "AMD", "name": "AMD", "mentions": 2800, "sentiment": "Bullish", "sentimentScore": 75, "discussionSummary": "...", "volumeChange": "+10% vs Avg", "keywords": ["Chips", "Intel", "Breakout", "Gains", "Buy"] },
+      { "symbol": "PLTR", "name": "Palantir", "mentions": 2200, "sentiment": "Bullish", "sentimentScore": 80, "discussionSummary": "...", "volumeChange": "+25% vs Avg", "keywords": ["AI", "Gov", "Rally", "Hold", "Karp"] },
+      { "symbol": "SPY", "name": "SPDR S&P 500", "mentions": 1800, "sentiment": "Neutral", "sentimentScore": 50, "discussionSummary": "...", "volumeChange": "+5% vs Avg", "keywords": ["Market", "Hedge", "ETF", "Safe", "Index"] }
+    ]
 
     **Part 2: CRITICAL NEWS WIRE ("The Truth")**
     - Search for **Breaking Financial News** from: Bloomberg, Reuters, Financial Times, CNBC.
@@ -93,7 +109,11 @@ export async function GET() {
       "marketSentiment": { "score": 75, "label": "Greed", "primaryDriver": "..." },
       "sectorRotation": [ { "name": "Energy", "performance": "Bullish", "change": "+1.5%" } ],
       "redditTrends": [ 
-         { "symbol": "NVDA", "name": "NVIDIA", "mentions": 5000, "sentiment": "Bullish", "sentimentScore": 90, "discussionSummary": "...", "volumeChange": "+20% vs Avg", "keywords": ["AI", "Blackwell", "Calls"] } 
+         { "symbol": "NVDA", "name": "NVIDIA", "mentions": 5000, "sentiment": "Bullish", "sentimentScore": 90, "discussionSummary": "...", "volumeChange": "+20% vs Avg", "keywords": ["AI", "Blackwell", "Calls", "Moon", "Jensen"] },
+         { "symbol": "TSLA", "name": "Tesla", "mentions": 3500, "sentiment": "Bearish", "sentimentScore": 35, "discussionSummary": "...", "volumeChange": "+15% vs Avg", "keywords": ["Musk", "Cybertruck", "Puts", "Tank", "Loss"] },
+         { "symbol": "AMD", "name": "AMD", "mentions": 2800, "sentiment": "Bullish", "sentimentScore": 75, "discussionSummary": "...", "volumeChange": "+10% vs Avg", "keywords": ["Chips", "Intel", "Breakout", "Gains", "Buy"] },
+         { "symbol": "PLTR", "name": "Palantir", "mentions": 2200, "sentiment": "Bullish", "sentimentScore": 80, "discussionSummary": "...", "volumeChange": "+25% vs Avg", "keywords": ["AI", "Gov", "Rally", "Hold", "Karp"] },
+         { "symbol": "SPY", "name": "SPDR S&P 500", "mentions": 1800, "sentiment": "Neutral", "sentimentScore": 50, "discussionSummary": "...", "volumeChange": "+5% vs Avg", "keywords": ["Market", "Hedge", "ETF", "Safe", "Index"] }
       ],
       "news": [ { "title": "...", "source": "Bloomberg", "url": "...", "timestamp": "10m ago", "summary": "...", "impact": "Critical" } ],
       "picks": [ 
@@ -122,7 +142,9 @@ export async function GET() {
       ]
     }
 
-    **REMEMBER**: Every metric in the "picks" array MUST have REAL DATA from your search. No "N/A" values allowed!
+    **CRITICAL REMINDERS**:
+    - redditTrends array MUST contain exactly 5 stocks
+    - Every metric in the "picks" array MUST have REAL DATA from your search. No "N/A" values allowed!
   `;
 
   try {
