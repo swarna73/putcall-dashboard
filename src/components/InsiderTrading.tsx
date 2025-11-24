@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { IconSearch, IconX, IconAlertTriangle, IconTrendingUp } from './Icons';
+import { IconSearch, IconX, IconActivity, IconTrendingUp } from './Icons';
 import { analyzeInsiderTrading } from '../services/geminiService';
 import { InsiderTrade, InsiderAnalysis } from '../types';
 
@@ -46,7 +46,7 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades }) => {
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2 pb-3 border-b border-slate-800">
           <div className="p-1 rounded bg-orange-500/10 text-orange-400">
-             <IconAlertTriangle className="h-4 w-4" />
+             <IconActivity className="h-4 w-4" />
           </div>
           <div className="flex-1">
              <h2 className="text-xs font-bold text-white uppercase tracking-wider">Insider Trading Alert</h2>
