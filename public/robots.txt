@@ -1,0 +1,15 @@
+# robots.txt for putcall.nl
+
+# Allow all search engines to crawl everything
+User-agent: *
+Allow: /
+
+# Crawl delay (optional - be nice to the server)
+Crawl-delay: 1
+
+# Sitemap location
+Sitemap: https://putcall.nl/sitemap.xml
+
+# Block specific paths (if any - currently none)
+# Disallow: /api/
+# Disallow: /private/
