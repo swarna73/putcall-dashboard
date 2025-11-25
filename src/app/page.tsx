@@ -1,13 +1,4 @@
-import type { Metadata } from "next";
 import Dashboard from "@/components/Dashboard";
-
-export const metadata: Metadata = {
-  title: "PutCall.nl - AI-Powered Stock Market Intelligence Dashboard",
-  description: "Real-time financial dashboard tracking Reddit sentiment, insider trading, fundamentals, and breaking news. Get smart money insights before the market moves.",
-  alternates: {
-    canonical: "https://putcall.nl",
-  },
-};
 
 export default function Home() {
   return (
@@ -39,4 +30,4 @@ export default function Home() {
       <Dashboard />
     </>
   );
-}}
+}
