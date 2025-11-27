@@ -140,7 +140,7 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades }) => {
                   </div>
                   <div className="text-[10px] text-slate-400">{trade.value}</div>
                   <a 
-                    href={`https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=&type=4&dateb=&owner=only&count=100&search_text=${searchResult.symbol}`}
+		    href={`https://www.sec.gov/cgi-bin/browse-edgar?company=${trade.symbol}&owner=only&action=getcompany&type=4`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[9px] text-indigo-400 hover:text-indigo-300 underline"
@@ -229,7 +229,7 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades }) => {
                      <div className="flex items-center gap-2">
                        <span>Filed: {trade.filingDate}</span>
                        <a 
-                         href={`https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=&type=4&dateb=&owner=only&count=100&search_text=${trade.symbol}`}
+		         href={`https://www.sec.gov/cgi-bin/browse-edgar?company=${trade.symbol}&owner=only&action=getcompany&type=4`}
                          target="_blank"
                          rel="noopener noreferrer"
                          className="text-indigo-400 hover:text-indigo-300 underline text-[8px]"
