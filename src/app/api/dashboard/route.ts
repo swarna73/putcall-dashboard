@@ -1,5 +1,12 @@
+// Simple In-Memory Cache Solution (No External Dependencies)
+// File: /src/app/api/dashboard/route.ts
+
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from "@google/genai";
+
+// In-memory cache (works on Vercel serverless)
+const cache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 function extractJSON(text: string): any {
   try {
@@ -35,6 +42,27 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function GET() {
+  const cacheKey = 'dashboard-data';
+  
+  // Check cache first
+  const cached = cache.get(cacheKey);
+  if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+    console.log('✅ Serving from cache');
+    return NextResponse.json({
+      ...cached.data,
+      fromCache: true,
+      cacheAge: Math.floor((Date.now() - cached.timestamp) / 1000), // seconds
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        'X-Cache-Status': 'HIT',
+      },
+    });
+  }
+
+  // Cache miss - fetch fresh data
+  console.log('❌ Cache miss - fetching fresh data');
+  
   const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
   
   if (!apiKey) {
@@ -91,7 +119,6 @@ export async function GET() {
     **Part 4: INSIDER TRADING - REMOVED FROM DASHBOARD**
     - Return EMPTY ARRAY for insiderTrades: []
     - Insider data will be loaded separately on-demand only
-    - This is to prevent fake data generation
 
     **CRITICAL ANTI-FABRICATION RULES:**
     1. NEVER invent or fabricate data
@@ -148,16 +175,24 @@ export async function GET() {
       redditTrends: rawData.redditTrends || [],
       news: rawData.news || [],
       picks: rawData.picks || [],
-      insiderTrades: [], // Always empty - will load separately
+      insiderTrades: [],
       lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       groundingMetadata: response.candidates?.[0]?.groundingMetadata
     };
 
-    return NextResponse.json(dashboardData, {
+    // Store in cache
+    cache.set(cacheKey, {
+      data: dashboardData,
+      timestamp: Date.now(),
+    });
+
+    return NextResponse.json({
+      ...dashboardData,
+      fromCache: false,
+    }, {
       headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        'X-Cache-Status': 'MISS',
       },
     });
 
