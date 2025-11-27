@@ -177,9 +177,19 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades }) => {
                      </div>
                   </div>
 
-                  {/* Row 3: Date */}
+                  {/* Row 3: Date & Source */}
                   <div className="flex items-center justify-between text-[9px] text-slate-500 border-t border-slate-800/50 pt-2">
-                     <span>Filed: {trade.filingDate}</span>
+                     <div className="flex items-center gap-2">
+                       <span>Filed: {trade.filingDate}</span>
+                       <a 
+                         href={`https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=&type=4&dateb=&owner=only&count=100&search_text=${trade.symbol}`}
+                         target="_blank"
+                         rel="noopener noreferrer"
+                         className="text-indigo-400 hover:text-indigo-300 underline"
+                       >
+                         View SEC Filings →
+                       </a>
+                     </div>
                      <span className="text-orange-400/70">{trade.significance}</span>
                   </div>
                 </div>
