@@ -109,7 +109,7 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades }) => {
         <div className="rounded-lg border border-orange-500/30 bg-orange-950/20 p-6 text-center">
           <div className="mb-3 h-6 w-6 mx-auto animate-spin rounded-full border-2 border-orange-600 border-t-transparent"></div>
           <p className="text-xs text-slate-400">Scanning SEC filings for {query.toUpperCase()}...</p>
-          <p className="text-[10px] text-slate-500 mt-1">This may take up to 20 seconds</p>
+          <p className="text-[10px] text-slate-500 mt-1">This may take up to 40 seconds</p>
         </div>
       )}
 
@@ -140,7 +140,7 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades }) => {
                   </div>
                   <div className="text-[10px] text-slate-400">{trade.value}</div>
                   <a 
-		    href={`https://www.sec.gov/cgi-bin/browse-edgar?company=${trade.symbol}&owner=only&action=getcompany&type=4`}
+		    href={`https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=${encodeURIComponent(searchResult.companyName)}&type=4&owner=only&count=40`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[9px] text-indigo-400 hover:text-indigo-300 underline"
@@ -228,8 +228,8 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades }) => {
                   <div className="flex items-center justify-between text-[9px] text-slate-500 border-t border-slate-800/50 pt-2">
                      <div className="flex items-center gap-2">
                        <span>Filed: {trade.filingDate}</span>
-                       <a 
-		         href={`https://www.sec.gov/cgi-bin/browse-edgar?company=${trade.symbol}&owner=only&action=getcompany&type=4`}
+                       <a
+			 href={`https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=${encodeURIComponent(searchResult.companyName)}&type=4&owner=only&count=40`}
                          target="_blank"
                          rel="noopener noreferrer"
                          className="text-indigo-400 hover:text-indigo-300 underline text-[8px]"
