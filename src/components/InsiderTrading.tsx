@@ -24,11 +24,29 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades }) => {
     setSearchResult(null);
 
     try {
-      const result = await analyzeInsiderTrading(query.toUpperCase());
-      setSearchResult(result);
+      // Add 20-second timeout
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Search timeout - this may mean no recent insider trades were found')), 20000)
+      );
+
+      const result = await Promise.race([
+        analyzeInsiderTrading(query.toUpperCase()),
+        timeoutPromise
+      ]);
+      
+      // Check if result has trades
+      if (!result || !result.recentTrades || result.recentTrades.length === 0) {
+        setError(`No recent insider trades found for ${query.toUpperCase()}. This could mean no Form 4 filings in the last 90 days.`);
+      } else {
+        setSearchResult(result);
+      }
     } catch (err: any) {
-      console.error(err);
-      setError(err?.message || "Search failed. Please try again.");
+      console.error('Insider trading search error:', err);
+      if (err.message.includes('timeout')) {
+        setError(`Search timed out for ${query.toUpperCase()}. Try a different ticker or check back later.`);
+      } else {
+        setError(err?.message || "Search failed. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -58,7 +76,7 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades }) => {
         <form onSubmit={handleSearch} className="relative">
           <input 
             type="text" 
-            placeholder="Search ticker (e.g., AAPL)"
+            placeholder="Search ticker (e.g., NVDA, TSLA, META)"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="w-full bg-slate-900 border border-slate-700 text-white text-xs font-mono px-3 py-2 pr-20 rounded-lg focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/50 uppercase placeholder:normal-case placeholder:text-slate-600"
@@ -86,8 +104,17 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades }) => {
         </form>
       </div>
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="rounded-lg border border-orange-500/30 bg-orange-950/20 p-6 text-center">
+          <div className="mb-3 h-6 w-6 mx-auto animate-spin rounded-full border-2 border-orange-600 border-t-transparent"></div>
+          <p className="text-xs text-slate-400">Scanning SEC filings for {query.toUpperCase()}...</p>
+          <p className="text-[10px] text-slate-500 mt-1">This may take up to 20 seconds</p>
+        </div>
+      )}
+
       {/* Search Result */}
-      {searchResult && (
+      {searchResult && !isLoading && (
         <div className="rounded-lg border border-orange-500/30 bg-orange-950/20 p-4 animate-in fade-in slide-in-from-top-2">
           <div className="flex items-center justify-between mb-3">
             <div>
@@ -101,16 +128,25 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades }) => {
           
           <div className="space-y-2 mb-3">
             {searchResult.recentTrades.slice(0, 3).map((trade, idx) => (
-              <div key={idx} className="flex items-center justify-between text-xs border-b border-slate-800/50 pb-2">
+              <div key={idx} className="flex items-start justify-between text-xs border-b border-slate-800/50 pb-2 last:border-0">
                 <div className="flex-1">
                   <div className="font-medium text-slate-300">{trade.insiderName}</div>
                   <div className="text-[10px] text-slate-500">{trade.title}</div>
+                  <div className="text-[9px] text-slate-600 mt-0.5">Filed: {trade.filingDate}</div>
                 </div>
-                <div className="text-right">
+                <div className="text-right ml-2">
                   <div className={`font-bold ${trade.transactionType === 'Buy' ? 'text-emerald-400' : 'text-red-400'}`}>
                     {trade.transactionType}
                   </div>
                   <div className="text-[10px] text-slate-400">{trade.value}</div>
+                  <a 
+                    href={`https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=&type=4&dateb=&owner=only&count=100&search_text=${searchResult.symbol}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[9px] text-indigo-400 hover:text-indigo-300 underline"
+                  >
+                    SEC →
+                  </a>
                 </div>
               </div>
             ))}
@@ -123,19 +159,30 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades }) => {
       )}
 
       {/* Error */}
-      {error && (
-        <div className="rounded-lg border border-red-500/30 bg-red-950/20 p-3 text-xs text-red-400">
-          {error}
+      {error && !isLoading && (
+        <div className="rounded-lg border border-red-500/30 bg-red-950/20 p-4">
+          <div className="flex items-start gap-2">
+            <svg className="h-4 w-4 text-red-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div className="flex-1">
+              <p className="text-xs text-red-400 font-medium">{error}</p>
+              <p className="text-[10px] text-red-400/70 mt-1">
+                Try searching for tickers with recent activity: NVDA, TSLA, META, AAPL
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Top 5 Insider Trades */}
-      {!searchResult && (
+      {/* Top 5 Insider Trades (Default View) */}
+      {!searchResult && !isLoading && (
         <>
           {topTrades.length === 0 ? (
             <div className="flex-1 rounded-xl border border-dashed border-slate-800 bg-slate-900/20 p-8 text-center flex flex-col items-center justify-center min-h-[300px]">
-               <div className="mb-3 h-8 w-8 animate-spin rounded-full border-2 border-orange-600 border-t-transparent opacity-50"></div>
-               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Scanning SEC Filings...</p>
+               <IconActivity className="h-8 w-8 text-slate-700 mb-3" />
+               <p className="text-xs text-slate-500 mb-1">No insider trades loaded</p>
+               <p className="text-[10px] text-slate-600">Use search above to find recent SEC Form 4 filings</p>
             </div>
           ) : (
             <div className="flex flex-col gap-2">
@@ -185,9 +232,9 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades }) => {
                          href={`https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=&type=4&dateb=&owner=only&count=100&search_text=${trade.symbol}`}
                          target="_blank"
                          rel="noopener noreferrer"
-                         className="text-indigo-400 hover:text-indigo-300 underline"
+                         className="text-indigo-400 hover:text-indigo-300 underline text-[8px]"
                        >
-                         View SEC Filings →
+                         SEC →
                        </a>
                      </div>
                      <span className="text-orange-400/70">{trade.significance}</span>
