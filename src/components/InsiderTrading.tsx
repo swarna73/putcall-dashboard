@@ -26,7 +26,7 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades }) => {
     try {
       // Add 20-second timeout
       const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Search timeout - this may mean no recent insider trades were found')), 20000)
+        setTimeout(() => reject(new Error('Search timeout - this may mean no recent insider trades were found')), 40000)
       );
 
       const result = await Promise.race([
