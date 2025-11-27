@@ -1,12 +1,9 @@
-// Simple In-Memory Cache Solution (No External Dependencies)
-// File: /src/app/api/dashboard/route.ts
-
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from "@google/genai";
 
-// In-memory cache (works on Vercel serverless)
+// In-memory cache
 const cache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes - reduces slow loads
 
 function extractJSON(text: string): any {
   try {
@@ -40,8 +37,11 @@ function extractJSON(text: string): any {
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+export const maxDuration = 60; // Maximum allowed on Vercel Pro (10s on free tier)
 
 export async function GET() {
+  console.log('🔄 Dashboard API called');
+  
   const cacheKey = 'dashboard-data';
   
   // Check cache first
@@ -51,7 +51,7 @@ export async function GET() {
     return NextResponse.json({
       ...cached.data,
       fromCache: true,
-      cacheAge: Math.floor((Date.now() - cached.timestamp) / 1000), // seconds
+      cacheAge: Math.floor((Date.now() - cached.timestamp) / 1000),
     }, {
       headers: {
         'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
@@ -60,12 +60,12 @@ export async function GET() {
     });
   }
 
-  // Cache miss - fetch fresh data
   console.log('❌ Cache miss - fetching fresh data');
   
   const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
   
   if (!apiKey) {
+    console.error('❌ API Key missing');
     return NextResponse.json(
       { error: "API Key is missing. Please configure GEMINI_API_KEY in your environment." },
       { status: 500 }
@@ -77,85 +77,62 @@ export async function GET() {
   
   const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
 
+  // SIMPLIFIED prompt - removed insider trading, reduced complexity
   const prompt = `
     Act as a Senior Wall Street Analyst. The current time in New York is: ${currentTime}.
     Generate a JSON market report using **REAL-TIME** data from Google Search.
     
-    **CRITICAL INSTRUCTION**: You must use the 'googleSearch' tool to find the absolute latest data from the last 24 hours.
+    **CRITICAL**: Keep searches minimal to avoid timeout. Focus on speed.
 
-    **Part 1: REDDIT & SOCIAL MOMENTUM ("The Hype")**
-    - Search r/wallstreetbets, r/investing, r/stocks for the **TOP 5 most discussed stock tickers** right now.
-    - IMPORTANT: You MUST return exactly 5 stocks in the redditTrends array, ranked by mentions/discussion volume.
-    - For EACH of the 5 stocks, identify:
-      * The specific catalyst (Earnings, FDA approval, Short Squeeze, CEO scandal, etc.)
-      * 'keywords': 5 slang words or specific themes driving the chat for that stock
-      * 'mentions': Estimated number of mentions/posts
-      * 'sentiment': Bullish, Bearish, or Neutral
-      * 'sentimentScore': 0-100 score
-      * 'volumeChange': Compare to average (e.g., "+20% vs Avg")
-      * 'discussionSummary': One sentence capturing what people are saying
+    **Part 1: REDDIT TRENDS (Quick Search)**
+    - Search "wallstreetbets reddit trending stocks" 
+    - Return TOP 5 most discussed tickers
+    - For each: symbol, name, mentions (estimate), sentiment (Bullish/Bearish/Neutral), sentimentScore (0-100), discussionSummary (one sentence), volumeChange, keywords (5 words)
     
-    **Part 2: CRITICAL NEWS WIRE ("The Truth")**
-    - Search for **Breaking Financial News** from: Bloomberg, Reuters, Financial Times, CNBC.
-    - **Timeframe**: Last 6 hours only.
-    - **STRICT FILTER**: Do NOT include "Top 5 stocks to buy" or "Opinion" articles. I want HARD NEWS (Central Banks, M&A, Earnings Reports, Geopolitics).
-    - 'impact': Mark as 'Critical' only if it affects the broader market.
+    **Part 2: MARKET NEWS (Quick Search)**
+    - Search "breaking financial news today"
+    - Return 5 news items from last 6 hours
+    - For each: title, source, url, timestamp, summary (one sentence), impact (Critical/Normal)
 
-    **Part 3: SUGGESTED STOCKS - FINANCIALS + FUNDAMENTALS ("The Value")**
-    - Search for **3 DISTINCT value stocks** with strong fundamentals.
-    - **Strategy**: Search for "best value stocks strong fundamentals low PE high FCF" to find candidates
-    - Then for each stock, search "TICKER financial metrics" to get all data in one search
-    - **Criteria**: Solid Balance Sheets (Low Debt), High Free Cash Flow, Low P/E relative to growth.
-    - **EXCLUDE**: Hype stocks, Meme stocks, Unprofitable tech. Focus on established companies.
-    
-    Required metrics for each stock:
-       - 'peRatio': Actual P/E ratio (e.g., "8.2", "15.4")
-       - 'roe': Return on Equity percentage (e.g., "12%", "18%")
-       - 'debtToEquity': Debt-to-Equity ratio (e.g., "0.9", "1.2")
-       - 'freeCashFlow': Free Cash Flow (e.g., "$16B", "$5.2B")
-       - 'marketCap': Market Capitalization (e.g., "130B", "45B")
-       - 'dividendYield': Dividend Yield percentage (e.g., "6.1%", "3.2%")
+    **Part 3: VALUE STOCKS (Quick Search)**
+    - Search "best value stocks low PE high FCF"
+    - Return 3 stocks with strong fundamentals
+    - For each: symbol, name, price, sector, metrics (peRatio, roe, debtToEquity, freeCashFlow, marketCap, dividendYield), technicalLevels (support, resistance, stopLoss), catalyst, analysis, conviction
 
-    **Part 4: INSIDER TRADING - REMOVED FROM DASHBOARD**
-    - Return EMPTY ARRAY for insiderTrades: []
-    - Insider data will be loaded separately on-demand only
+    **CRITICAL RULES:**
+    1. NO FABRICATION - Real data only
+    2. If data unavailable, return empty arrays
+    3. Keep it FAST - minimal searches
+    4. NO insider trading data (removed for speed)
 
-    **CRITICAL ANTI-FABRICATION RULES:**
-    1. NEVER invent or fabricate data
-    2. If you cannot find real data from your search, return empty arrays or say "Data Unavailable"
-    3. DO NOT use well-known CEO names unless you found them in actual search results
-    4. DO NOT create plausible-looking fake transactions
-    5. Only return data you actually found through Google Search
-
-    **Output JSON Structure (No Markdown)**:
+    **Output JSON (No Markdown)**:
     {
       "marketIndices": [ 
-        { "name": "S&P 500", "value": "...", "change": "...", "trend": "Up" }
+        { "name": "S&P 500", "value": "...", "change": "...", "trend": "Up" },
+        { "name": "Dow Jones Industrial Average", "value": "...", "change": "...", "trend": "Up" },
+        { "name": "Nasdaq Composite", "value": "...", "change": "...", "trend": "Up" }
       ],
       "marketSentiment": { "score": 75, "label": "Greed", "primaryDriver": "..." },
       "sectorRotation": [ 
         { "name": "Technology", "performance": "Bullish", "change": "+1.5%" }
       ],
       "redditTrends": [ 
-         { "symbol": "NVDA", "name": "NVIDIA", "mentions": 5000, "sentiment": "Bullish", "sentimentScore": 90, "discussionSummary": "AI hype continues", "volumeChange": "+20% vs Avg", "keywords": ["AI", "Blackwell", "Calls", "Moon", "Jensen"] }
+         { "symbol": "NVDA", "name": "NVIDIA", "mentions": 5000, "sentiment": "Bullish", "sentimentScore": 90, "discussionSummary": "...", "volumeChange": "+20% vs Avg", "keywords": ["AI", "Blackwell", "Calls", "Moon", "Jensen"] }
       ],
       "news": [ 
         { "title": "...", "source": "Bloomberg", "url": "...", "timestamp": "2h ago", "summary": "...", "impact": "Critical" }
       ],
       "picks": [ 
-         { "symbol": "VZ", "name": "Verizon", "price": "$42.15", "sector": "Telecom", "metrics": { "peRatio": "8.5", "roe": "15%", "debtToEquity": "1.8", "freeCashFlow": "$18B", "marketCap": "177B", "dividendYield": "6.5%" }, "technicalLevels": { "support": "41.00", "resistance": "44.00", "stopLoss": "40.50" }, "catalyst": "5G Expansion", "analysis": "Solid FCF with high yield", "conviction": "Strong Buy" }
+         { "symbol": "VZ", "name": "Verizon", "price": "$42.15", "sector": "Telecom", "metrics": { "peRatio": "8.5", "roe": "15%", "debtToEquity": "1.8", "freeCashFlow": "$18B", "marketCap": "177B", "dividendYield": "6.5%" }, "technicalLevels": { "support": "41.00", "resistance": "44.00", "stopLoss": "40.50" }, "catalyst": "5G Expansion", "analysis": "...", "conviction": "Strong Buy" }
       ],
       "insiderTrades": []
     }
-
-    **REMINDERS**: 
-    - 5 reddit stocks (REAL from search)
-    - 3 fundamental picks (REAL from search)
-    - insiderTrades: EMPTY ARRAY (will load separately)
-    - NO FAKE DATA ALLOWED
   `;
 
   try {
+    console.log('📡 Calling Gemini API...');
+    const startTime = Date.now();
+    
     const response = await ai.models.generateContent({
       model: model,
       contents: prompt,
@@ -164,6 +141,9 @@ export async function GET() {
         temperature: 0.3,
       },
     });
+
+    const endTime = Date.now();
+    console.log(`✅ Gemini responded in ${endTime - startTime}ms`);
 
     const text = response.text || "";
     const rawData = extractJSON(text);
@@ -186,6 +166,8 @@ export async function GET() {
       timestamp: Date.now(),
     });
 
+    console.log('💾 Data cached successfully');
+
     return NextResponse.json({
       ...dashboardData,
       fromCache: false,
@@ -197,9 +179,30 @@ export async function GET() {
     });
 
   } catch (error: any) {
-    console.error("Gemini API Error:", error);
+    console.error("❌ Gemini API Error:", error);
+    
+    // If there's cached data (even expired), serve it as fallback
+    const staleCache = cache.get(cacheKey);
+    if (staleCache) {
+      console.log('⚠️ Serving stale cache due to error');
+      return NextResponse.json({
+        ...staleCache.data,
+        fromCache: true,
+        cacheAge: Math.floor((Date.now() - staleCache.timestamp) / 1000),
+        stale: true,
+      }, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=300',
+          'X-Cache-Status': 'STALE',
+        },
+      });
+    }
+    
     return NextResponse.json(
-      { error: error.message || "Failed to fetch dashboard data" },
+      { 
+        error: error.message || "Failed to fetch dashboard data",
+        timestamp: new Date().toISOString(),
+      },
       { status: 500 }
     );
   }
