@@ -24,7 +24,7 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades }) => {
     setSearchResult(null);
 
     try {
-      // Add 20-second timeout
+      // Add 40-second timeout
       const timeoutPromise = new Promise<never>((_, reject) => 
         setTimeout(() => reject(new Error('Search timeout - this may mean no recent insider trades were found')), 40000)
       );
@@ -62,7 +62,7 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades }) => {
     <div className="flex flex-col gap-4 h-full">
       {/* Header with Search */}
       <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-2 pb-3 border-b border-slate-800">
+        <div className="flex items-center gap-2 pb-3 border-slate-800">
           <div className="p-1 rounded bg-orange-500/10 text-orange-400">
              <IconActivity className="h-4 w-4" />
           </div>
@@ -229,7 +229,7 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades }) => {
                      <div className="flex items-center gap-2">
                        <span>Filed: {trade.filingDate}</span>
                        <a
-			 href={`https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=${encodeURIComponent(searchResult.companyName)}&type=4&owner=only&count=40`}
+			 href={`https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=${encodeURIComponent(trade.companyName)}&type=4&owner=only&count=40`}
                          target="_blank"
                          rel="noopener noreferrer"
                          className="text-indigo-400 hover:text-indigo-300 underline text-[8px]"
