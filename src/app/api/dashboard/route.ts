@@ -138,9 +138,11 @@ export async function GET() {
     **CRITICAL**: Keep searches minimal to avoid timeout. Focus on speed and accuracy.
 
     **Part 1: REDDIT TRENDS**
-    - Search "wallstreetbets reddit trending stocks" 
-    - Return TOP 5 most discussed tickers
+    - Search "wallstreetbets reddit trending stocks today hot" 
+    - Return TOP 10 most discussed tickers (sorted by mentions, highest first)
     - For each: symbol, name, mentions (estimate), sentiment (Bullish/Bearish/Neutral), sentimentScore (0-100), discussionSummary (one sentence), volumeChange, keywords (5 words)
+    
+    CRITICAL: Must return EXACTLY 10 stocks with complete data. If fewer stocks found, search broader terms.
     
     **Part 2: MARKET NEWS**
     - Search "breaking financial news today"
@@ -197,7 +199,16 @@ export async function GET() {
         { "name": "Technology", "performance": "Bullish", "change": "+1.5%" }
       ],
       "redditTrends": [ 
-         { "symbol": "NVDA", "name": "NVIDIA", "mentions": 5000, "sentiment": "Bullish", "sentimentScore": 90, "discussionSummary": "...", "volumeChange": "+20% vs Avg", "keywords": ["AI", "Blackwell", "Calls", "Moon", "Jensen"] }
+         { "symbol": "NVDA", "name": "NVIDIA", "mentions": 5000, "sentiment": "Bullish", "sentimentScore": 90, "discussionSummary": "...", "volumeChange": "+20% vs Avg", "keywords": ["AI", "Blackwell", "Calls", "Moon", "Jensen"] },
+         { "symbol": "TSLA", "name": "Tesla", "mentions": 3800, "sentiment": "Bullish", "sentimentScore": 85, "discussionSummary": "...", "volumeChange": "+15% vs Avg", "keywords": ["EV", "Musk", "Growth", "Cybertruck", "Calls"] },
+         { "symbol": "META", "name": "Meta Platforms", "mentions": 3200, "sentiment": "Bullish", "sentimentScore": 88, "discussionSummary": "...", "volumeChange": "+25% vs Avg", "keywords": ["AI", "Metaverse", "Zuck", "Growth", "Calls"] },
+         { "symbol": "AMZN", "name": "Amazon", "mentions": 2900, "sentiment": "Bullish", "sentimentScore": 80, "discussionSummary": "...", "volumeChange": "+12% vs Avg", "keywords": ["Cloud", "AWS", "Retail", "Growth", "Prime"] },
+         { "symbol": "GOOGL", "name": "Alphabet", "mentions": 2500, "sentiment": "Neutral", "sentimentScore": 75, "discussionSummary": "...", "volumeChange": "+10% vs Avg", "keywords": ["AI", "Search", "Cloud", "Gemini", "Ads"] },
+         { "symbol": "AAPL", "name": "Apple", "mentions": 2200, "sentiment": "Neutral", "sentimentScore": 65, "discussionSummary": "...", "volumeChange": "+8% vs Avg", "keywords": ["iPhone", "Vision", "Services", "Dividend", "Warren"] },
+         { "symbol": "MSFT", "name": "Microsoft", "mentions": 1900, "sentiment": "Bullish", "sentimentScore": 82, "discussionSummary": "...", "volumeChange": "+14% vs Avg", "keywords": ["AI", "Azure", "Cloud", "Copilot", "Enterprise"] },
+         { "symbol": "AMD", "name": "AMD", "mentions": 1600, "sentiment": "Bullish", "sentimentScore": 78, "discussionSummary": "...", "volumeChange": "+11% vs Avg", "keywords": ["AI", "Chips", "DataCenter", "Competition", "Calls"] },
+         { "symbol": "PLTR", "name": "Palantir", "mentions": 1400, "sentiment": "Bullish", "sentimentScore": 88, "discussionSummary": "...", "volumeChange": "+30% vs Avg", "keywords": ["AI", "Government", "Data", "Moon", "Calls"] },
+         { "symbol": "COIN", "name": "Coinbase", "mentions": 1100, "sentiment": "Neutral", "sentimentScore": 55, "discussionSummary": "...", "volumeChange": "+5% vs Avg", "keywords": ["Crypto", "Bitcoin", "Trading", "Earnings", "Vol"] }
       ],
       "news": [ 
         { "title": "...", "source": "Bloomberg", "url": "...", "timestamp": "2h ago", "summary": "...", "impact": "Critical" }
