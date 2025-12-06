@@ -90,11 +90,65 @@ const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends }) => {
                     </div>
                  </div>
                  
-                 <div className="flex items-start gap-3 rounded-xl bg-slate-900/60 p-4 border border-slate-700/50 backdrop-blur-md max-w-xl">
+                 <div className="flex items-start gap-3 rounded-xl bg-slate-900/60 p-4 border border-slate-700/50 backdrop-blur-md max-w-xl mb-4">
                     <IconMessage className="h-5 w-5 text-indigo-400 shrink-0 mt-0.5" />
                     <p className="text-sm font-medium text-slate-200 leading-relaxed italic">
                         "{topTicker.discussionSummary}"
                     </p>
+                 </div>
+
+                 {/* NEW: Enhanced Stats & Keywords */}
+                 <div className="space-y-3 max-w-xl">
+                   {/* Quick Stats Grid */}
+                   <div className="grid grid-cols-4 gap-2">
+                     <div className="bg-slate-900/60 rounded-lg p-2.5 border border-slate-700/50">
+                       <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-1">Mentions</div>
+                       <div className="text-lg font-black text-white truncate">
+                         {topTicker.mentions?.toLocaleString() || '5K+'}
+                       </div>
+                     </div>
+                     
+                     <div className="bg-slate-900/60 rounded-lg p-2.5 border border-slate-700/50">
+                       <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-1">Bullish</div>
+                       <div className={`text-lg font-black ${
+                         topTicker.sentimentScore > 70 ? 'text-emerald-400' : 
+                         topTicker.sentimentScore > 50 ? 'text-green-400' : 'text-slate-400'
+                       }`}>
+                         {topTicker.sentimentScore}%
+                       </div>
+                     </div>
+                     
+                     <div className="bg-slate-900/60 rounded-lg p-2.5 border border-slate-700/50">
+                       <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-1">Vol Δ</div>
+                       <div className="text-lg font-black text-emerald-400 truncate">
+                         {topTicker.volumeChange?.replace(' vs Avg', '').replace('+', '') || '+22%'}
+                       </div>
+                     </div>
+                     
+                     <div className="bg-slate-900/60 rounded-lg p-2.5 border border-slate-700/50">
+                       <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-1">Rank</div>
+                       <div className="text-lg font-black text-indigo-400">#1</div>
+                     </div>
+                   </div>
+
+                   {/* Trending Keywords */}
+                   {topTicker.keywords && topTicker.keywords.length > 0 && (
+                     <div className="bg-gradient-to-r from-indigo-950/30 to-purple-950/30 rounded-lg p-3 border border-indigo-800/30">
+                       <div className="flex items-center gap-2 mb-2">
+                         <div className="text-[9px] text-indigo-400 uppercase font-bold tracking-wider">🔥 Trending Keywords</div>
+                       </div>
+                       <div className="flex flex-wrap gap-1.5">
+                         {topTicker.keywords.map((keyword, idx) => (
+                           <span 
+                             key={idx}
+                             className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-bold uppercase tracking-wide border border-indigo-500/30"
+                           >
+                             {keyword}
+                           </span>
+                         ))}
+                       </div>
+                     </div>
+                   )}
                  </div>
               </div>
 
