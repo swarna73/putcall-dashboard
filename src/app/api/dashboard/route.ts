@@ -5,6 +5,36 @@ import { GoogleGenAI } from "@google/genai";
 const cache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
 
+// Get REAL Fear & Greed Index from CNN
+async function getFearGreedIndex() {
+  try {
+    const response = await fetch('https://production.dataviz.cnn.io/index/fearandgreed/graphdata', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0',
+      },
+      signal: AbortSignal.timeout(5000), // 5 second timeout
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        score: Math.round(data.fear_and_greed.score),
+        label: data.fear_and_greed.rating,
+        primaryDriver: data.fear_and_greed.rating_description || "Market sentiment based on multiple indicators"
+      };
+    }
+  } catch (error) {
+    console.error('❌ Fear & Greed API failed:', error);
+  }
+  
+  // Fallback to neutral if API fails
+  return {
+    score: 50,
+    label: "Neutral",
+    primaryDriver: "Market data temporarily unavailable"
+  };
+}
+
 // Clean up fundamentals data to fix N/A issues
 function cleanFundamentals(picks: any[]) {
   if (!picks || picks.length === 0) return picks;
@@ -198,12 +228,17 @@ export async function GET() {
     const text = response.text || "";
     const rawData = extractJSON(text);
 
+    // Get REAL market sentiment instead of Gemini's inconsistent data
+    console.log('📊 Fetching real Fear & Greed Index...');
+    const realSentiment = await getFearGreedIndex();
+    console.log(`✅ Sentiment: ${realSentiment.score} (${realSentiment.label})`);
+
     // Clean fundamentals data to fix N/A issues
     const cleanedPicks = cleanFundamentals(rawData.picks || []);
 
     const dashboardData = {
       marketIndices: rawData.marketIndices || [],
-      marketSentiment: rawData.marketSentiment || { score: 50, label: "Neutral", primaryDriver: "Data Unavailable" },
+      marketSentiment: realSentiment, // Use real data instead of Gemini's made-up sentiment
       sectorRotation: rawData.sectorRotation || [],
       redditTrends: rawData.redditTrends || [],
       news: rawData.news || [],
