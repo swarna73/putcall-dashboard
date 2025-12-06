@@ -8,7 +8,7 @@ interface RedditSentimentProps {
 
 const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends }) => {
   const topTicker = trends.length > 0 ? trends[0] : null;
-  const runnersUp = trends.slice(1, 5); 
+  const runnersUp = trends.slice(1, 10); // CHANGED: Show 9 runners up instead of 4 (total 10 stocks)
 
   // Matrix Rain Column Component
   const MatrixColumn = ({ words, speed, offset, opacity = "opacity-20" }: { words: string[], speed: string, offset: string, opacity?: string }) => (
@@ -98,7 +98,7 @@ const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends }) => {
                  </div>
               </div>
 
-              {/* Right: Detailed Leaderboard Table */}
+              {/* Right: Detailed Leaderboard Table - NOW SHOWS 9 STOCKS */}
               <div className="lg:col-span-5 bg-[#0b1221]/90 backdrop-blur-md border-t lg:border-t-0 border-slate-800">
                  <div className="p-4 border-b border-slate-800/50 flex items-center justify-between bg-slate-950/50">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Trending Runners Up</span>
@@ -114,7 +114,7 @@ const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends }) => {
                         <div className="col-span-3 text-right">Score</div>
                     </div>
 
-                    {/* Table Rows */}
+                    {/* Table Rows - Now shows up to 9 stocks */}
                     {runnersUp.map((ticker, idx) => (
                         <div key={ticker.symbol} className="grid grid-cols-12 gap-2 px-4 py-3 border-b border-slate-800/30 hover:bg-slate-800/50 transition-colors items-center group/row cursor-pointer">
                             <div className="col-span-2 text-xs font-bold text-slate-500 group-hover/row:text-white">#{idx + 2}</div>
@@ -132,6 +132,13 @@ const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends }) => {
                             </div>
                         </div>
                     ))}
+
+                    {/* Show message if less than 9 runners up */}
+                    {runnersUp.length < 9 && (
+                      <div className="px-4 py-3 text-center text-[10px] text-slate-600">
+                        Showing {runnersUp.length} of 9 trending stocks
+                      </div>
+                    )}
                  </div>
               </div>
            </div>
