@@ -10,12 +10,12 @@
   },
   "dependencies": {
     "@google/genai": "*",
+    "@next/third-parties": "^16.0.7",
     "@vercel/analytics": "^1.6.1",
     "lucide-react": "^0.344.0",
     "next": "14.2.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "@vercel/analytics": "^1.5.0",
     "recharts": "^2.12.2"
   },
   "devDependencies": {

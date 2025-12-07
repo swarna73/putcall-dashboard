@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Analytics } from '@vercel/analytics/react';
+import { GoogleAnalytics } from '@next/third-parties/google';
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -142,6 +143,7 @@ export default function RootLayout({
       <body className="antialiased">
         {children}
         <Analytics />
+        <GoogleAnalytics gaId="G-9WED2VBRB2" />
       </body>
     </html>
   );
