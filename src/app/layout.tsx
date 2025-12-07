@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Analytics } from '@vercel/analytics/react';
-import { GoogleAnalytics } from '@next/third-parties/google';
+import ConditionalAnalytics from './ConditionalAnalytics';
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     siteName: "PutCall.nl",
     images: [
       {
-        url: "https://putcall.nl/og-image.png", // You'll need to create this
+        url: "https://putcall.nl/og-image.png",
         width: 1200,
         height: 630,
         alt: "PutCall.nl Market Intelligence Dashboard",
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
     title: "PutCall.nl - Real-Time Stock Market Intelligence",
     description: "Track Reddit sentiment, insider trading & fundamentals. Free AI-powered market analysis.",
     images: ["https://putcall.nl/og-image.png"],
-    creator: "@swarna73s", // Add your Twitter handle
+    creator: "@swarna73s",
   },
   
   // Additional Meta Tags
@@ -65,14 +65,12 @@ export const metadata: Metadata = {
     },
   },
   
-  // Verification (Add these once you have them)
+  // Verification
   verification: {
-    google: "your-google-verification-code", // Get from Google Search Console
-    // yandex: "your-yandex-verification-code",
-    // bing: "your-bing-verification-code",
+    google: "your-google-verification-code",
   },
   
-  // Alternate languages (if you add translations later)
+  // Alternate languages
   alternates: {
     canonical: "https://putcall.nl",
   },
@@ -142,8 +140,12 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         {children}
+        
+        {/* Vercel Analytics - Always loaded (privacy-friendly, no consent needed) */}
         <Analytics />
-        <GoogleAnalytics gaId="G-9WED2VBRB2" />
+        
+        {/* Conditional Google Analytics + Cookie Banner */}
+        <ConditionalAnalytics />
       </body>
     </html>
   );
