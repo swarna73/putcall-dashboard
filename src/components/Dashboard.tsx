@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Header from './Header';
 import RedditSentiment from './RedditSentiment';
+import MultiSourceTrending from './MultiSourceTrending'; // ← NEW IMPORT
 import NewsFeed from './NewsFeed';
 import SmartStockBox from './SmartStockBox';
 import InsiderTrading from './InsiderTrading';
@@ -134,8 +135,14 @@ const Dashboard: React.FC = () => {
           </div>
         )}
 
+        {/* Reddit Sentiment - Existing Section */}
         <section>
            <RedditSentiment trends={data.redditTrends} />
+        </section>
+
+        {/* Multi-Source Trending - NEW SECTION */}
+        <section>
+           <MultiSourceTrending redditTrends={data.redditTrends} />
         </section>
 
         <section>
