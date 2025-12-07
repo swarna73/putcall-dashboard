@@ -7,6 +7,7 @@ export interface RedditTicker {
   discussionSummary: string;
   volumeChange?: string; // e.g., "+15% vs yesterday"
   keywords: string[]; // New: specific buzzwords for the word cloud
+  recentNews?: string[]; // NEW: Array of recent news headlines about this stock
 }
 
 export interface NewsItem {

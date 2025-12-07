@@ -8,12 +8,11 @@ interface RedditSentimentProps {
 
 const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends }) => {
   const topTicker = trends.length > 0 ? trends[0] : null;
-  const runnersUp = trends.slice(1, 10); // CHANGED: Show 9 runners up instead of 4 (total 10 stocks)
+  const runnersUp = trends.slice(1, 10);
 
   // Matrix Rain Column Component
   const MatrixColumn = ({ words, speed, offset, opacity = "opacity-20" }: { words: string[], speed: string, offset: string, opacity?: string }) => (
     <div className={`flex flex-col gap-4 ${opacity} font-mono text-xs font-bold uppercase tracking-widest text-emerald-500 select-none ${speed}`} style={{ marginTop: offset }}>
-      {/* Repeat words to create infinite scroll illusion */}
       {[...words, ...words, ...words, ...words].map((word, i) => (
         <span key={i} className="whitespace-nowrap writing-vertical-lr">{word}</span>
       ))}
@@ -22,14 +21,13 @@ const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends }) => {
 
   return (
     <div className="w-full">
-      {/* Hero Section: The "King of the Hill" */}
       {topTicker ? (
         <div className="relative w-full overflow-hidden rounded-2xl border border-indigo-500/30 bg-[#0f172a] shadow-2xl shadow-indigo-900/20 animate-in fade-in duration-700 group">
            
            {/* Background Gradient */}
            <div className="absolute inset-0 bg-gradient-to-br from-[#0f172a] via-[#1e1b4b] to-[#0f172a] z-0"></div>
            
-           {/* MATRIX RAIN BACKGROUND - Made more visible */}
+           {/* MATRIX RAIN BACKGROUND */}
            <div className="absolute inset-0 z-0 flex justify-around px-4 overflow-hidden pointer-events-none mask-image-b">
               {topTicker.keywords && topTicker.keywords.length > 0 ? (
                 <>
@@ -97,7 +95,7 @@ const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends }) => {
                     </p>
                  </div>
 
-                 {/* NEW: Enhanced Stats & Keywords */}
+                 {/* Enhanced Stats & News */}
                  <div className="space-y-3 max-w-xl">
                    {/* Quick Stats Grid */}
                    <div className="grid grid-cols-4 gap-2">
@@ -131,28 +129,48 @@ const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends }) => {
                      </div>
                    </div>
 
-                   {/* Trending Keywords */}
-                   {topTicker.keywords && topTicker.keywords.length > 0 && (
-                     <div className="bg-gradient-to-r from-indigo-950/30 to-purple-950/30 rounded-lg p-3 border border-indigo-800/30">
-                       <div className="flex items-center gap-2 mb-2">
-                         <div className="text-[9px] text-indigo-400 uppercase font-bold tracking-wider">🔥 Trending Keywords</div>
+                   {/* CHANGED: Recent News instead of Keywords */}
+                   {topTicker.recentNews && topTicker.recentNews.length > 0 ? (
+                     <div className="bg-gradient-to-r from-slate-900/80 to-slate-800/80 rounded-lg p-3 border border-slate-700/50">
+                       <div className="flex items-center gap-2 mb-2.5">
+                         <div className="text-[9px] text-slate-300 uppercase font-bold tracking-wider">📰 Recent News</div>
                        </div>
-                       <div className="flex flex-wrap gap-1.5">
-                         {topTicker.keywords.map((keyword, idx) => (
-                           <span 
+                       <div className="space-y-2">
+                         {topTicker.recentNews.slice(0, 3).map((headline, idx) => (
+                           <div 
                              key={idx}
-                             className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-bold uppercase tracking-wide border border-indigo-500/30"
+                             className="flex items-start gap-2 text-slate-300 hover:text-white transition-colors"
                            >
-                             {keyword}
-                           </span>
+                             <span className="text-indigo-400 font-bold text-xs mt-0.5">•</span>
+                             <span className="text-xs leading-relaxed">{headline}</span>
+                           </div>
                          ))}
                        </div>
                      </div>
+                   ) : (
+                     /* Fallback to keywords if no news available */
+                     topTicker.keywords && topTicker.keywords.length > 0 && (
+                       <div className="bg-gradient-to-r from-indigo-950/30 to-purple-950/30 rounded-lg p-3 border border-indigo-800/30">
+                         <div className="flex items-center gap-2 mb-2">
+                           <div className="text-[9px] text-indigo-400 uppercase font-bold tracking-wider">🔥 Trending Keywords</div>
+                         </div>
+                         <div className="flex flex-wrap gap-1.5">
+                           {topTicker.keywords.map((keyword, idx) => (
+                             <span 
+                               key={idx}
+                               className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-bold uppercase tracking-wide border border-indigo-500/30"
+                             >
+                               {keyword}
+                             </span>
+                           ))}
+                         </div>
+                       </div>
+                     )
                    )}
                  </div>
               </div>
 
-              {/* Right: Detailed Leaderboard Table - NOW SHOWS 9 STOCKS */}
+              {/* Right: Detailed Leaderboard Table */}
               <div className="lg:col-span-5 bg-[#0b1221]/90 backdrop-blur-md border-t lg:border-t-0 border-slate-800">
                  <div className="p-4 border-b border-slate-800/50 flex items-center justify-between bg-slate-950/50">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Trending Runners Up</span>
@@ -160,7 +178,6 @@ const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends }) => {
                  </div>
                  
                  <div className="flex flex-col">
-                    {/* Table Header */}
                     <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-slate-900/30 text-[9px] font-bold text-slate-500 uppercase tracking-wider">
                         <div className="col-span-2">Rank</div>
                         <div className="col-span-3">Ticker</div>
@@ -168,7 +185,6 @@ const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends }) => {
                         <div className="col-span-3 text-right">Score</div>
                     </div>
 
-                    {/* Table Rows - Now shows up to 9 stocks */}
                     {runnersUp.map((ticker, idx) => (
                         <div key={ticker.symbol} className="grid grid-cols-12 gap-2 px-4 py-3 border-b border-slate-800/30 hover:bg-slate-800/50 transition-colors items-center group/row cursor-pointer">
                             <div className="col-span-2 text-xs font-bold text-slate-500 group-hover/row:text-white">#{idx + 2}</div>
@@ -187,7 +203,6 @@ const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends }) => {
                         </div>
                     ))}
 
-                    {/* Show message if less than 9 runners up */}
                     {runnersUp.length < 9 && (
                       <div className="px-4 py-3 text-center text-[10px] text-slate-600">
                         Showing {runnersUp.length} of 9 trending stocks

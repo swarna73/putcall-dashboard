@@ -3,7 +3,7 @@ import { GoogleGenAI } from "@google/genai";
 
 // In-memory cache
 const cache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
+const CACHE_DURATION = 60 * 60 * 1000; // 60 minutes (1 hour) - INCREASED to reduce API calls
 
 // Get REAL Fear & Greed Index from CNN
 async function getFearGreedIndex() {
@@ -140,9 +140,16 @@ export async function GET() {
     **Part 1: REDDIT TRENDS**
     - Search "wallstreetbets reddit trending stocks today hot" 
     - Return TOP 10 most discussed tickers (sorted by mentions, highest first)
-    - For each: symbol, name, mentions (estimate), sentiment (Bullish/Bearish/Neutral), sentimentScore (0-100), discussionSummary (one sentence), volumeChange, keywords (5 words)
+    - For each: symbol, name, mentions (estimate), sentiment (Bullish/Bearish/Neutral), sentimentScore (0-100), discussionSummary (one sentence), volumeChange, keywords (5 words), recentNews (array of 3 recent headlines)
     
-    CRITICAL: Must return EXACTLY 10 stocks with complete data. If fewer stocks found, search broader terms.
+    CRITICAL: Must return EXACTLY 10 stocks with complete data.
+    
+    For recentNews field:
+    - Search "{SYMBOL} stock news today" for the TOP 3 stocks only (to save time)
+    - Return 3 most recent headlines (last 24 hours preferred)
+    - Each headline should be concise (max 70 characters)
+    - Format: ["Headline 1", "Headline 2", "Headline 3"]
+    - For stocks 4-10, recentNews can be empty array []
     
     **Part 2: MARKET NEWS**
     - Search "breaking financial news today"
@@ -199,16 +206,58 @@ export async function GET() {
         { "name": "Technology", "performance": "Bullish", "change": "+1.5%" }
       ],
       "redditTrends": [ 
-         { "symbol": "NVDA", "name": "NVIDIA", "mentions": 5000, "sentiment": "Bullish", "sentimentScore": 90, "discussionSummary": "...", "volumeChange": "+20% vs Avg", "keywords": ["AI", "Blackwell", "Calls", "Moon", "Jensen"] },
-         { "symbol": "TSLA", "name": "Tesla", "mentions": 3800, "sentiment": "Bullish", "sentimentScore": 85, "discussionSummary": "...", "volumeChange": "+15% vs Avg", "keywords": ["EV", "Musk", "Growth", "Cybertruck", "Calls"] },
-         { "symbol": "META", "name": "Meta Platforms", "mentions": 3200, "sentiment": "Bullish", "sentimentScore": 88, "discussionSummary": "...", "volumeChange": "+25% vs Avg", "keywords": ["AI", "Metaverse", "Zuck", "Growth", "Calls"] },
-         { "symbol": "AMZN", "name": "Amazon", "mentions": 2900, "sentiment": "Bullish", "sentimentScore": 80, "discussionSummary": "...", "volumeChange": "+12% vs Avg", "keywords": ["Cloud", "AWS", "Retail", "Growth", "Prime"] },
-         { "symbol": "GOOGL", "name": "Alphabet", "mentions": 2500, "sentiment": "Neutral", "sentimentScore": 75, "discussionSummary": "...", "volumeChange": "+10% vs Avg", "keywords": ["AI", "Search", "Cloud", "Gemini", "Ads"] },
-         { "symbol": "AAPL", "name": "Apple", "mentions": 2200, "sentiment": "Neutral", "sentimentScore": 65, "discussionSummary": "...", "volumeChange": "+8% vs Avg", "keywords": ["iPhone", "Vision", "Services", "Dividend", "Warren"] },
-         { "symbol": "MSFT", "name": "Microsoft", "mentions": 1900, "sentiment": "Bullish", "sentimentScore": 82, "discussionSummary": "...", "volumeChange": "+14% vs Avg", "keywords": ["AI", "Azure", "Cloud", "Copilot", "Enterprise"] },
-         { "symbol": "AMD", "name": "AMD", "mentions": 1600, "sentiment": "Bullish", "sentimentScore": 78, "discussionSummary": "...", "volumeChange": "+11% vs Avg", "keywords": ["AI", "Chips", "DataCenter", "Competition", "Calls"] },
-         { "symbol": "PLTR", "name": "Palantir", "mentions": 1400, "sentiment": "Bullish", "sentimentScore": 88, "discussionSummary": "...", "volumeChange": "+30% vs Avg", "keywords": ["AI", "Government", "Data", "Moon", "Calls"] },
-         { "symbol": "COIN", "name": "Coinbase", "mentions": 1100, "sentiment": "Neutral", "sentimentScore": 55, "discussionSummary": "...", "volumeChange": "+5% vs Avg", "keywords": ["Crypto", "Bitcoin", "Trading", "Earnings", "Vol"] }
+         { 
+           "symbol": "GME", 
+           "name": "GameStop", 
+           "mentions": 7500, 
+           "sentiment": "Bullish", 
+           "sentimentScore": 88, 
+           "discussionSummary": "Renewed interest in short squeeze potential and upcoming earnings", 
+           "volumeChange": "+45% vs Avg", 
+           "keywords": ["SQUEEZE", "MOON", "EARNINGS", "APES", "DIAMONDHANDS"],
+           "recentNews": [
+             "GameStop reports Q4 earnings beat expectations",
+             "Short interest increases to 20% of float",
+             "Ryan Cohen increases stake by 2M shares"
+           ]
+         },
+         { 
+           "symbol": "AMC", 
+           "name": "AMC Entertainment", 
+           "mentions": 5200,
+           "sentiment": "Bullish",
+           "sentimentScore": 82,
+           "discussionSummary": "...",
+           "volumeChange": "+38% vs Avg",
+           "keywords": ["MOVIES", "SHORTS", "APES", "HOLD", "SQUEEZE"],
+           "recentNews": [
+             "AMC announces new streaming partnership",
+             "Box office revenue up 15% this quarter",
+             "Debt reduction plan announced"
+           ]
+         },
+         { 
+           "symbol": "TSLA", 
+           "name": "Tesla", 
+           "mentions": 4800,
+           "sentiment": "Neutral",
+           "sentimentScore": 70,
+           "discussionSummary": "...",
+           "volumeChange": "+18% vs Avg",
+           "keywords": ["EV", "MUSK", "CYBERTRUCK", "FSD", "DELIVERY"],
+           "recentNews": [
+             "Tesla delivery numbers exceed expectations",
+             "FSD beta expands to more markets",
+             "Cybertruck production ramps up"
+           ]
+         },
+         { "symbol": "NVDA", "name": "NVIDIA", "mentions": 4200, "sentiment": "Bullish", "sentimentScore": 92, "discussionSummary": "...", "volumeChange": "+28% vs Avg", "keywords": ["AI", "CHIPS", "DATACENTER", "BLACKWELL", "CALLS"], "recentNews": [] },
+         { "symbol": "PLTR", "name": "Palantir", "mentions": 3800, "sentiment": "Bullish", "sentimentScore": 85, "discussionSummary": "...", "volumeChange": "+30% vs Avg", "keywords": ["AI", "GOVERNMENT", "DATA", "MOON", "DEFENSE"], "recentNews": [] },
+         { "symbol": "AMD", "name": "AMD", "mentions": 3200, "sentiment": "Bullish", "sentimentScore": 80, "discussionSummary": "...", "volumeChange": "+22% vs Avg", "keywords": ["CHIPS", "AI", "DATACENTER", "NVDA", "COMPETITOR"], "recentNews": [] },
+         { "symbol": "AAPL", "name": "Apple", "mentions": 2800, "sentiment": "Neutral", "sentimentScore": 68, "discussionSummary": "...", "volumeChange": "+10% vs Avg", "keywords": ["IPHONE", "SERVICES", "VISION", "DIVIDEND", "BUFFETT"], "recentNews": [] },
+         { "symbol": "MSFT", "name": "Microsoft", "mentions": 2400, "sentiment": "Bullish", "sentimentScore": 87, "discussionSummary": "...", "volumeChange": "+15% vs Avg", "keywords": ["AI", "AZURE", "CLOUD", "COPILOT", "OPENAI"], "recentNews": [] },
+         { "symbol": "META", "name": "Meta Platforms", "mentions": 2000, "sentiment": "Bullish", "sentimentScore": 83, "discussionSummary": "...", "volumeChange": "+17% vs Avg", "keywords": ["AI", "METAVERSE", "ZUCK", "ADS", "GROWTH"], "recentNews": [] },
+         { "symbol": "GOOGL", "name": "Alphabet", "mentions": 1800, "sentiment": "Neutral", "sentimentScore": 72, "discussionSummary": "...", "volumeChange": "+12% vs Avg", "keywords": ["SEARCH", "AI", "GEMINI", "CLOUD", "ADS"], "recentNews": [] }
       ],
       "news": [ 
         { "title": "...", "source": "Bloomberg", "url": "...", "timestamp": "2h ago", "summary": "...", "impact": "Critical" }
