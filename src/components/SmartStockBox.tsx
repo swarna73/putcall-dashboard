@@ -34,6 +34,7 @@ const SmartStockBox: React.FC<SmartStockBoxProps> = ({ picks }) => {
               className="group relative flex flex-col gap-3 rounded-lg border border-slate-800 bg-[#0b1221] p-4 transition-all hover:border-emerald-500/30 hover:bg-[#0f192d] shadow-sm"
             >
               {/* Row 1: Header */}
+	      const showROE = pick.metrics.roe && pick.metrics.roe !== 'N/A';
               <div className="flex items-center justify-between">
                  <div className="flex items-center gap-3">
                     <div className="flex items-center justify-center h-8 w-8 rounded bg-slate-800 text-white font-bold text-sm tracking-tight border border-slate-700 group-hover:border-emerald-500/50 group-hover:text-emerald-400 transition-colors">
