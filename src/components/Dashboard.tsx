@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Header from './Header';
 import RedditSentiment from './RedditSentiment';
-import MultiSourceTrending from './MultiSourceTrending'; // ← NEW IMPORT
+import Multisourcetrending from './Multisourcetrending'; // ← NEW IMPORT
 import NewsFeed from './NewsFeed';
 import SmartStockBox from './SmartStockBox';
 import InsiderTrading from './InsiderTrading';
