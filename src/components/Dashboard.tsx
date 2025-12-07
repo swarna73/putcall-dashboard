@@ -142,7 +142,7 @@ const Dashboard: React.FC = () => {
 
         {/* Multi-Source Trending - NEW SECTION */}
         <section>
-           <MultiSourceTrending redditTrends={data.redditTrends} />
+           <Multisourcetrending redditTrends={data.redditTrends} />
         </section>
 
         <section>
