@@ -1,4 +1,4 @@
-// NEW API ROUTE: Fetch StockTwits + Yahoo Trending
+// UPDATED API ROUTE: Filters out crypto/forex, only returns stocks
 // File: /src/app/api/trending-sources/route.ts
 
 import { NextResponse } from 'next/server';
@@ -12,12 +12,46 @@ interface TrendingStock {
   name: string;
   sentiment?: 'Bullish' | 'Bearish' | 'Neutral';
   sentimentScore?: number;
-  source: 'StockTwits' | 'Yahoo' | 'Reddit';
+  source: 'StockTwits' | 'Yahoo';
   mentions?: number;
   change?: string;
 }
 
-// Fetch StockTwits trending
+// CRYPTO/FOREX FILTER - Reject these patterns
+const CRYPTO_FOREX_PATTERNS = [
+  '-USD', // BTC-USD, ETH-USD, XRP-USD
+  '-JPY', // CHF/JPY
+  '-EUR',
+  'USDT',
+  '/USD',
+  '.X',    // MOODENG.X, PMV.X, BYTE.X
+  'IBIT',  // Bitcoin ETF (still crypto-related)
+  'GBTC',
+  'ETHE',
+];
+
+function isActualStock(symbol: string): boolean {
+  // Reject crypto/forex patterns
+  for (const pattern of CRYPTO_FOREX_PATTERNS) {
+    if (symbol.includes(pattern)) {
+      return false;
+    }
+  }
+  
+  // Reject single-letter symbols (usually forex)
+  if (symbol.length === 1) {
+    return false;
+  }
+  
+  // Only accept uppercase letters (US stocks)
+  if (!/^[A-Z]{1,5}$/.test(symbol)) {
+    return false;
+  }
+  
+  return true;
+}
+
+// Fetch StockTwits trending (STOCKS ONLY)
 async function getStockTwitsTrending(): Promise<TrendingStock[]> {
   try {
     const response = await fetch('https://api.stocktwits.com/api/2/trending/symbols.json', {
@@ -31,21 +65,24 @@ async function getStockTwitsTrending(): Promise<TrendingStock[]> {
     
     const data = await response.json();
     
-    return data.symbols.slice(0, 10).map((stock: any) => ({
-      symbol: stock.symbol,
-      name: stock.title,
-      sentiment: stock.watchlist_count > 10000 ? 'Bullish' : 'Neutral',
-      sentimentScore: calculateSentiment(stock),
-      source: 'StockTwits',
-      mentions: stock.watchlist_count || 0,
-    }));
+    return data.symbols
+      .filter((stock: any) => isActualStock(stock.symbol)) // ← FILTER CRYPTO/FOREX
+      .slice(0, 10)
+      .map((stock: any) => ({
+        symbol: stock.symbol,
+        name: stock.title,
+        sentiment: stock.watchlist_count > 10000 ? 'Bullish' : 'Neutral',
+        sentimentScore: calculateSentiment(stock),
+        source: 'StockTwits',
+        mentions: stock.watchlist_count || 0,
+      }));
   } catch (error) {
     console.error('❌ StockTwits API failed:', error);
     return [];
   }
 }
 
-// Fetch Yahoo Finance trending
+// Fetch Yahoo Finance trending (STOCKS ONLY)
 async function getYahooTrending(): Promise<TrendingStock[]> {
   try {
     const response = await fetch('https://query1.finance.yahoo.com/v1/finance/trending/US', {
@@ -59,15 +96,18 @@ async function getYahooTrending(): Promise<TrendingStock[]> {
     
     const data = await response.json();
     
-    return data.finance.result[0].quotes.slice(0, 10).map((stock: any) => ({
-      symbol: stock.symbol,
-      name: stock.longName || stock.shortName,
-      change: stock.regularMarketChangePercent?.toFixed(2) + '%' || '0%',
-      sentiment: stock.regularMarketChangePercent > 0 ? 'Bullish' : 
-                 stock.regularMarketChangePercent < 0 ? 'Bearish' : 'Neutral',
-      sentimentScore: calculateYahooSentiment(stock),
-      source: 'Yahoo',
-    }));
+    return data.finance.result[0].quotes
+      .filter((stock: any) => isActualStock(stock.symbol)) // ← FILTER CRYPTO/FOREX
+      .slice(0, 10)
+      .map((stock: any) => ({
+        symbol: stock.symbol,
+        name: stock.longName || stock.shortName,
+        change: stock.regularMarketChangePercent?.toFixed(2) + '%' || '0%',
+        sentiment: stock.regularMarketChangePercent > 0 ? 'Bullish' : 
+                   stock.regularMarketChangePercent < 0 ? 'Bearish' : 'Neutral',
+        sentimentScore: calculateYahooSentiment(stock),
+        source: 'Yahoo',
+      }));
   } catch (error) {
     console.error('❌ Yahoo API failed:', error);
     return [];
@@ -125,6 +165,9 @@ export async function GET() {
       getStockTwitsTrending(),
       getYahooTrending(),
     ]);
+    
+    console.log(`📊 StockTwits: ${stocktwits.length} stocks (crypto filtered)`);
+    console.log(`📊 Yahoo: ${yahoo.length} stocks (crypto filtered)`);
     
     const data = {
       stocktwits: stocktwits,
