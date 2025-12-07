@@ -61,6 +61,9 @@ const SmartStockBox: React.FC<SmartStockBoxProps> = ({ picks }) => {
                     <div className="text-[8px] text-slate-500 uppercase font-bold mb-0.5">P/E Ratio</div>
                     <div className="text-[10px] font-mono font-bold text-white">{pick.metrics.peRatio}</div>
                  </div>
+		 <div className={`grid gap-px ... ${
+  showROE ? 'grid-cols-3' : 'grid-cols-2'  // ← 3 cols if ROE exists, 2 cols if not
+}`}>
                  <div className="bg-[#0f172a] p-2 text-center group-hover:bg-[#111c33] transition-colors">
                     <div className="text-[8px] text-slate-500 uppercase font-bold mb-0.5">ROE</div>
                     <div className="text-[10px] font-mono font-bold text-emerald-400">{pick.metrics.roe || '-'}</div>
