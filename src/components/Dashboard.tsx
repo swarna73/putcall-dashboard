@@ -12,6 +12,8 @@ import StockDeepDive from './StockDeepDive';
 import { fetchMarketDashboard } from '../services/geminiService';
 import { DashboardData, LoadingState } from '../types';
 import { IconShield, IconRefresh } from './Icons';
+import SubscriptionForm from '@/components/SubscriptionForm';
+
 
 const Dashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData>({
@@ -181,6 +183,17 @@ const Dashboard: React.FC = () => {
                ))}
              </div>
            </section>
+
+<section className="py-16 bg-gradient-to-b from-[#020617] to-[#0b1221]">
+  <div className="container mx-auto px-4">
+    <div className="max-w-md mx-auto">
+      <SubscriptionForm variant="inline" />
+    </div>
+  </div>
+</section>
+
+
+
         )}
       </main>
     </div>
