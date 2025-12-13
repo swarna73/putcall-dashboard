@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-export default function UnsubscribePage() {
+function UnsubscribeContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   
@@ -51,7 +51,7 @@ export default function UnsubscribePage() {
           <div className="text-center">
             <h2 className="text-2xl font-bold text-white mb-4">Unsubscribe from Daily Updates?</h2>
             <p className="text-slate-400 mb-6">
-              We're sorry to see you go! You'll no longer receive daily market briefs from PutCall.nl.
+              We&apos;re sorry to see you go! You&apos;ll no longer receive daily market briefs from PutCall.nl.
             </p>
 
             <div className="flex gap-3">
@@ -63,7 +63,7 @@ export default function UnsubscribePage() {
               </button>
               <Link
                 href="/"
-                className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-semibold px-6 py-3 rounded-lg transition-all text-center"
+                className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-semibold px-6 py-3 rounded-lg transition-all text-center flex items-center justify-center"
               >
                 Cancel
               </Link>
@@ -131,5 +131,20 @@ export default function UnsubscribePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function UnsubscribePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#020617] flex items-center justify-center p-6">
+        <div className="bg-[#0b1221] rounded-xl p-8 border border-slate-800 text-center">
+          <div className="animate-spin h-12 w-12 border-4 border-indigo-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-slate-400">Loading...</p>
+        </div>
+      </div>
+    }>
+      <UnsubscribeContent />
+    </Suspense>
   );
 }
