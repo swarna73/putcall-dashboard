@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from 'react';
-import { IconMail, IconCheck, IconX, IconLoader } from './Icons';
 
 interface SubscriptionFormProps {
   variant?: 'inline' | 'modal' | 'footer';
@@ -71,7 +70,9 @@ const SubscriptionForm: React.FC<SubscriptionFormProps> = ({ variant = 'inline' 
       <div className="w-full max-w-md">
         <div className="bg-gradient-to-r from-indigo-950/50 to-purple-950/50 rounded-xl p-6 border border-indigo-900/50">
           <div className="flex items-center gap-2 mb-3">
-            <IconMail className="h-5 w-5 text-indigo-400" />
+            <svg className="h-5 w-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
             <h3 className="text-lg font-bold text-white">Daily Market Brief</h3>
           </div>
           
@@ -91,7 +92,10 @@ const SubscriptionForm: React.FC<SubscriptionFormProps> = ({ variant = 'inline' 
               />
               {status === 'loading' && (
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                  <IconLoader className="h-5 w-5 text-indigo-400 animate-spin" />
+                  <svg className="h-5 w-5 text-indigo-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
                 </div>
               )}
             </div>
@@ -112,9 +116,13 @@ const SubscriptionForm: React.FC<SubscriptionFormProps> = ({ variant = 'inline' 
                 : 'bg-red-950/50 border border-red-500/30 text-red-300'
             }`}>
               {status === 'success' ? (
-                <IconCheck className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                <svg className="h-5 w-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
               ) : (
-                <IconX className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                <svg className="h-5 w-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               )}
               <span>{message}</span>
             </div>
@@ -132,7 +140,9 @@ const SubscriptionForm: React.FC<SubscriptionFormProps> = ({ variant = 'inline' 
     return (
       <div className="w-full">
         <div className="flex items-center gap-2 mb-3">
-          <IconMail className="h-4 w-4 text-indigo-400" />
+          <svg className="h-4 w-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
           <h4 className="text-sm font-bold text-white">Subscribe to Daily Updates</h4>
         </div>
         
