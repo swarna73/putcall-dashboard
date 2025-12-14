@@ -68,7 +68,7 @@ export async function POST(request: Request) {
 
         // Send the welcome email with today's market data
         await resend.emails.send({
-          from: 'PutCall.nl <onboarding@resend.dev>',
+	  from: 'PutCall.nl <noreply@putcall.nl>',
           to: subscriber.email,
           subject: `🎉 Welcome! Your First Daily Market Brief - ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`,
           html: emailHTML,
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
         
         // Send simple welcome email if dashboard fails
         await resend.emails.send({
-          from: 'PutCall.nl <onboarding@resend.dev>',
+	  from: 'PutCall.nl <noreply@putcall.nl>',
           to: subscriber.email,
           subject: '🎉 Welcome to PutCall.nl Daily Market Brief!',
           html: `
