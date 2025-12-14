@@ -38,7 +38,7 @@ export async function POST(request: Request) {
         const confirmUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://putcall.nl'}/confirm?token=${subscriber.confirmToken}`;
 
         await resend.emails.send({
-          from: 'PutCall.nl <onboarding@resend.dev>', // ← FIXED: Use Resend's verified domain
+          from: 'PutCall.nl <noreply@putcall.nl>', // ← FIXED: Use Resend's verified domain
           to: subscriber.email,
           subject: '✅ Confirm your PutCall.nl subscription',
           html: `
