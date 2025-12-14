@@ -3,17 +3,16 @@
 import React, { useEffect, useState } from 'react';
 import Header from './Header';
 import RedditSentiment from './RedditSentiment';
-import Multisourcetrending from './Multisourcetrending'; // ← NEW IMPORT
+import Multisourcetrending from './Multisourcetrending';
 import NewsFeed from './NewsFeed';
 import SmartStockBox from './SmartStockBox';
 import InsiderTrading from './InsiderTrading';
 import MarketOverview from './MarketOverview';
 import StockDeepDive from './StockDeepDive';
+import SubscriptionForm from './SubscriptionForm'; // ← NEW IMPORT
 import { fetchMarketDashboard } from '../services/geminiService';
 import { DashboardData, LoadingState } from '../types';
 import { IconShield, IconRefresh } from './Icons';
-import SubscriptionForm from '@/components/SubscriptionForm';
-
 
 const Dashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData>({
@@ -164,6 +163,13 @@ const Dashboard: React.FC = () => {
            <NewsFeed news={data.news} />
         </section>
 
+        {/* Email Subscription Section - NEW */}
+        <section className="py-12">
+          <div className="flex justify-center">
+            <SubscriptionForm variant="inline" />
+          </div>
+        </section>
+
         {data.groundingMetadata?.groundingChunks && (
            <section className="pt-6 mt-8 opacity-60 hover:opacity-100 transition-opacity">
              <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Verified Sources</h4>
@@ -183,17 +189,6 @@ const Dashboard: React.FC = () => {
                ))}
              </div>
            </section>
-
-<section className="py-16 bg-gradient-to-b from-[#020617] to-[#0b1221]">
-  <div className="container mx-auto px-4">
-    <div className="max-w-md mx-auto">
-      <SubscriptionForm variant="inline" />
-    </div>
-  </div>
-</section>
-
-
-
         )}
       </main>
     </div>
