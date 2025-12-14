@@ -11,6 +11,7 @@
   "dependencies": {
     "@google/genai": "*",
     "@next/third-parties": "^16.0.7",
+    "@supabase/supabase-js": "^2.87.1",
     "@vercel/analytics": "^1.6.1",
     "lucide-react": "^0.344.0",
     "next": "14.2.3",

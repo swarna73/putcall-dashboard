@@ -1,25 +1,20 @@
-import fs from 'fs/promises';
-import path from 'path';
+import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 
 export interface Subscriber {
   email: string;
-  token: string; // Unique token for unsubscribe
+  token: string;
   subscribedAt: string;
   confirmed: boolean;
   confirmToken?: string;
   lastEmailSent?: string;
 }
 
-// Use /tmp directory which is writable on Vercel (ephemeral but works)
-const SUBSCRIBERS_FILE = path.join('/tmp', 'subscribers.json');
+// Initialize Supabase client
+const supabaseUrl = process.env.SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-/**
- * Ensure data directory exists
- */
-async function ensureDataDir() {
-  // /tmp always exists on Vercel, no need to create
-}
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 /**
  * Generate unique token
@@ -29,25 +24,31 @@ function generateToken(): string {
 }
 
 /**
- * Load all subscribers from JSON file
+ * Load all subscribers from Supabase
  */
 export async function loadSubscribers(): Promise<Subscriber[]> {
   try {
-    await ensureDataDir();
-    const data = await fs.readFile(SUBSCRIBERS_FILE, 'utf-8');
-    return JSON.parse(data);
+    const { data, error } = await supabase
+      .from('subscribers')
+      .select('*');
+
+    if (error) {
+      console.error('Error loading subscribers:', error);
+      return [];
+    }
+
+    return (data || []).map(row => ({
+      email: row.email,
+      token: row.token,
+      subscribedAt: row.subscribed_at,
+      confirmed: row.confirmed,
+      confirmToken: row.confirm_token,
+      lastEmailSent: row.last_email_sent,
+    }));
   } catch (error) {
-    // File doesn't exist yet, return empty array
+    console.error('Error loading subscribers:', error);
     return [];
   }
-}
-
-/**
- * Save subscribers to JSON file
- */
-async function saveSubscribers(subscribers: Subscriber[]): Promise<void> {
-  await ensureDataDir();
-  await fs.writeFile(SUBSCRIBERS_FILE, JSON.stringify(subscribers, null, 2), 'utf-8');
 }
 
 /**
@@ -55,10 +56,13 @@ async function saveSubscribers(subscribers: Subscriber[]): Promise<void> {
  */
 export async function addSubscriber(email: string): Promise<{ success: boolean; subscriber?: Subscriber; error?: string }> {
   try {
-    const subscribers = await loadSubscribers();
-
     // Check if already subscribed
-    const existing = subscribers.find(s => s.email === email);
+    const { data: existing } = await supabase
+      .from('subscribers')
+      .select('*')
+      .eq('email', email)
+      .single();
+
     if (existing) {
       if (existing.confirmed) {
         return {
@@ -69,28 +73,53 @@ export async function addSubscriber(email: string): Promise<{ success: boolean; 
         // Re-send confirmation
         return {
           success: true,
-          subscriber: existing,
+          subscriber: {
+            email: existing.email,
+            token: existing.token,
+            subscribedAt: existing.subscribed_at,
+            confirmed: existing.confirmed,
+            confirmToken: existing.confirm_token,
+            lastEmailSent: existing.last_email_sent,
+          },
         };
       }
     }
 
     // Create new subscriber
-    const subscriber: Subscriber = {
+    const newSubscriber = {
       email,
       token: generateToken(),
-      subscribedAt: new Date().toISOString(),
+      subscribed_at: new Date().toISOString(),
       confirmed: false,
-      confirmToken: generateToken(),
+      confirm_token: generateToken(),
     };
 
-    subscribers.push(subscriber);
-    await saveSubscribers(subscribers);
+    const { data, error } = await supabase
+      .from('subscribers')
+      .insert([newSubscriber])
+      .select()
+      .single();
 
-    console.log('✅ Subscriber added to /tmp/subscribers.json:', email);
+    if (error) {
+      console.error('Error adding subscriber:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to add subscriber',
+      };
+    }
+
+    console.log('✅ Subscriber added to Supabase:', email);
 
     return {
       success: true,
-      subscriber,
+      subscriber: {
+        email: data.email,
+        token: data.token,
+        subscribedAt: data.subscribed_at,
+        confirmed: data.confirmed,
+        confirmToken: data.confirm_token,
+        lastEmailSent: data.last_email_sent,
+      },
     };
   } catch (error: any) {
     console.error('❌ Error adding subscriber:', error);
@@ -106,10 +135,15 @@ export async function addSubscriber(email: string): Promise<{ success: boolean; 
  */
 export async function confirmSubscriber(confirmToken: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const subscribers = await loadSubscribers();
-    const subscriber = subscribers.find(s => s.confirmToken === confirmToken);
+    // Find subscriber with this confirm token
+    const { data: subscriber, error: findError } = await supabase
+      .from('subscribers')
+      .select('*')
+      .eq('confirm_token', confirmToken)
+      .single();
 
-    if (!subscriber) {
+    if (findError || !subscriber) {
+      console.error('Invalid confirmation token:', confirmToken);
       return {
         success: false,
         error: 'Invalid confirmation token',
@@ -122,10 +156,22 @@ export async function confirmSubscriber(confirmToken: string): Promise<{ success
       };
     }
 
-    subscriber.confirmed = true;
-    subscriber.confirmToken = undefined; // Remove token after confirmation
+    // Update to confirmed
+    const { error: updateError } = await supabase
+      .from('subscribers')
+      .update({ 
+        confirmed: true,
+        confirm_token: null 
+      })
+      .eq('email', subscriber.email);
 
-    await saveSubscribers(subscribers);
+    if (updateError) {
+      console.error('Error confirming subscriber:', updateError);
+      return {
+        success: false,
+        error: updateError.message || 'Failed to confirm subscription',
+      };
+    }
 
     console.log('✅ Subscriber confirmed:', subscriber.email);
 
@@ -146,18 +192,18 @@ export async function confirmSubscriber(confirmToken: string): Promise<{ success
  */
 export async function unsubscribe(token: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const subscribers = await loadSubscribers();
-    const index = subscribers.findIndex(s => s.token === token);
+    const { error } = await supabase
+      .from('subscribers')
+      .delete()
+      .eq('token', token);
 
-    if (index === -1) {
+    if (error) {
+      console.error('Error unsubscribing:', error);
       return {
         success: false,
-        error: 'Invalid unsubscribe token',
+        error: error.message || 'Invalid unsubscribe token',
       };
     }
-
-    subscribers.splice(index, 1);
-    await saveSubscribers(subscribers);
 
     console.log('✅ Subscriber removed');
 
@@ -177,20 +223,42 @@ export async function unsubscribe(token: string): Promise<{ success: boolean; er
  * Get confirmed subscribers only
  */
 export async function getConfirmedSubscribers(): Promise<Subscriber[]> {
-  const subscribers = await loadSubscribers();
-  return subscribers.filter(s => s.confirmed);
+  try {
+    const { data, error } = await supabase
+      .from('subscribers')
+      .select('*')
+      .eq('confirmed', true);
+
+    if (error) {
+      console.error('Error getting confirmed subscribers:', error);
+      return [];
+    }
+
+    return (data || []).map(row => ({
+      email: row.email,
+      token: row.token,
+      subscribedAt: row.subscribed_at,
+      confirmed: row.confirmed,
+      confirmToken: row.confirm_token,
+      lastEmailSent: row.last_email_sent,
+    }));
+  } catch (error) {
+    console.error('Error getting confirmed subscribers:', error);
+    return [];
+  }
 }
 
 /**
  * Update last email sent timestamp
  */
 export async function updateLastEmailSent(email: string): Promise<void> {
-  const subscribers = await loadSubscribers();
-  const subscriber = subscribers.find(s => s.email === email);
-  
-  if (subscriber) {
-    subscriber.lastEmailSent = new Date().toISOString();
-    await saveSubscribers(subscribers);
+  try {
+    await supabase
+      .from('subscribers')
+      .update({ last_email_sent: new Date().toISOString() })
+      .eq('email', email);
+  } catch (error) {
+    console.error('Error updating last email sent:', error);
   }
 }
 
@@ -198,9 +266,22 @@ export async function updateLastEmailSent(email: string): Promise<void> {
  * Get subscriber count
  */
 export async function getSubscriberCount(): Promise<{ total: number; confirmed: number }> {
-  const subscribers = await loadSubscribers();
-  return {
-    total: subscribers.length,
-    confirmed: subscribers.filter(s => s.confirmed).length,
-  };
+  try {
+    const { count: total } = await supabase
+      .from('subscribers')
+      .select('*', { count: 'exact', head: true });
+
+    const { count: confirmed } = await supabase
+      .from('subscribers')
+      .select('*', { count: 'exact', head: true })
+      .eq('confirmed', true);
+
+    return {
+      total: total || 0,
+      confirmed: confirmed || 0,
+    };
+  } catch (error) {
+    console.error('Error getting subscriber count:', error);
+    return { total: 0, confirmed: 0 };
+  }
 }
