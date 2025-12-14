@@ -72,11 +72,12 @@ function ConfirmContent() {
               
               <div className="bg-emerald-950/50 rounded-lg p-4 mb-6 text-left">
                 <p className="text-sm text-emerald-100 mb-2">
-                  <strong>What&apos;s next?</strong>
+                  <strong>📧 Check Your Inbox!</strong>
                 </p>
                 <ul className="text-sm text-emerald-200 space-y-1">
-                  <li>📧 You&apos;ll receive your first market brief tomorrow morning</li>
+                  <li>✅ We just sent you today&apos;s market brief</li>
                   <li>📊 Includes Reddit trends, fundamentals, and news</li>
+                  <li>📅 You&apos;ll receive daily updates every morning</li>
                   <li>🔓 Unsubscribe anytime with one click</li>
                 </ul>
               </div>
