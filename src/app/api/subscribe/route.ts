@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server';
 import { validateEmail } from '@/utils/email-validator';
 import { addSubscriber } from '@/utils/subscribers';
-import { Resend } from 'resend';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: Request) {
   try {
@@ -27,16 +24,24 @@ export async function POST(request: Request) {
       );
     }
 
-    // Send confirmation email
     const subscriber = result.subscriber!;
-    const confirmUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://putcall.nl'}/confirm?token=${subscriber.confirmToken}`;
 
-    try {
-      await resend.emails.send({
-        from: 'PutCall.nl <noreply@putcall.nl>',
-        to: subscriber.email,
-        subject: '✅ Confirm your PutCall.nl subscription',
-        html: `
+    // Check if Resend is configured
+    const resendApiKey = process.env.RESEND_API_KEY;
+
+    if (resendApiKey) {
+      // Send confirmation email only if Resend is configured
+      try {
+        const { Resend } = await import('resend');
+        const resend = new Resend(resendApiKey);
+        
+        const confirmUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://putcall.nl'}/confirm?token=${subscriber.confirmToken}`;
+
+        await resend.emails.send({
+          from: 'PutCall.nl <onboarding@resend.dev>', // ← FIXED: Use Resend's verified domain
+          to: subscriber.email,
+          subject: '✅ Confirm your PutCall.nl subscription',
+          html: `
 <!DOCTYPE html>
 <html>
 <head>
@@ -122,16 +127,25 @@ export async function POST(request: Request) {
   </div>
 </body>
 </html>
-        `,
-      });
-    } catch (emailError) {
-      console.error('Failed to send confirmation email:', emailError);
-      // Don't fail the subscription if email fails
+          `,
+        });
+
+        console.log('✅ Confirmation email sent to:', subscriber.email);
+      } catch (emailError) {
+        console.error('⚠️ Failed to send confirmation email:', emailError);
+        // Don't fail the subscription if email fails
+      }
+    } else {
+      console.log('ℹ️ Resend API key not configured - skipping confirmation email');
+      console.log('📧 Subscriber added:', subscriber.email);
+      console.log('🔗 Confirmation URL:', `${process.env.NEXT_PUBLIC_BASE_URL || 'https://putcall.nl'}/confirm?token=${subscriber.confirmToken}`);
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Please check your email to confirm your subscription',
+      message: resendApiKey 
+        ? 'Please check your email to confirm your subscription'
+        : 'Subscription successful! (Email confirmation temporarily disabled - check server logs for confirmation link)',
     });
 
   } catch (error: any) {
