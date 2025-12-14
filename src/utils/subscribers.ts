@@ -11,18 +11,14 @@ export interface Subscriber {
   lastEmailSent?: string;
 }
 
-const SUBSCRIBERS_FILE = path.join(process.cwd(), 'data', 'subscribers.json');
+// Use /tmp directory which is writable on Vercel (ephemeral but works)
+const SUBSCRIBERS_FILE = path.join('/tmp', 'subscribers.json');
 
 /**
  * Ensure data directory exists
  */
 async function ensureDataDir() {
-  const dataDir = path.join(process.cwd(), 'data');
-  try {
-    await fs.access(dataDir);
-  } catch {
-    await fs.mkdir(dataDir, { recursive: true });
-  }
+  // /tmp always exists on Vercel, no need to create
 }
 
 /**
@@ -90,11 +86,14 @@ export async function addSubscriber(email: string): Promise<{ success: boolean; 
     subscribers.push(subscriber);
     await saveSubscribers(subscribers);
 
+    console.log('✅ Subscriber added to /tmp/subscribers.json:', email);
+
     return {
       success: true,
       subscriber,
     };
   } catch (error: any) {
+    console.error('❌ Error adding subscriber:', error);
     return {
       success: false,
       error: error.message || 'Failed to add subscriber',
@@ -128,10 +127,13 @@ export async function confirmSubscriber(confirmToken: string): Promise<{ success
 
     await saveSubscribers(subscribers);
 
+    console.log('✅ Subscriber confirmed:', subscriber.email);
+
     return {
       success: true,
     };
   } catch (error: any) {
+    console.error('❌ Error confirming subscriber:', error);
     return {
       success: false,
       error: error.message || 'Failed to confirm subscription',
@@ -157,10 +159,13 @@ export async function unsubscribe(token: string): Promise<{ success: boolean; er
     subscribers.splice(index, 1);
     await saveSubscribers(subscribers);
 
+    console.log('✅ Subscriber removed');
+
     return {
       success: true,
     };
   } catch (error: any) {
+    console.error('❌ Error unsubscribing:', error);
     return {
       success: false,
       error: error.message || 'Failed to unsubscribe',
