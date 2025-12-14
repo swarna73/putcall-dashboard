@@ -40,13 +40,14 @@ export async function POST(request: Request) {
 
     console.log('✅ Confirmation successful for:', subscriber.email);
 
+    // Define base URL and unsubscribe URL (needed for both emails)
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://putcall.nl';
+    const unsubscribeUrl = `${baseUrl}/unsubscribe?token=${subscriber.token}`;
+
     // Send immediate welcome email with today's market brief
     try {
       const { Resend } = await import('resend');
       const resend = new Resend(process.env.RESEND_API_KEY);
-      
-      // Fetch today's dashboard data
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://putcall.nl';
       
       console.log('📊 Fetching dashboard data...');
       const dashboardResponse = await fetch(`${baseUrl}/api/dashboard`, {
@@ -60,7 +61,6 @@ export async function POST(request: Request) {
         const dashboardData = await dashboardResponse.json();
         
         // Generate the daily email
-        const unsubscribeUrl = `${baseUrl}/unsubscribe?token=${subscriber.token}`;
         const emailHTML = generateEmailHTML({
           data: dashboardData,
           unsubscribeUrl,
