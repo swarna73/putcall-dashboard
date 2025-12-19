@@ -85,7 +85,7 @@ const COMPANY_NAMES: Record<string, string> = {
   HPQ: 'HP Inc', IBM: 'IBM', ORCL: 'Oracle', CRM: 'Salesforce', NOW: 'ServiceNow',
   ADBE: 'Adobe', INTU: 'Intuit', PANW: 'Palo Alto Networks', FTNT: 'Fortinet',
   ZS: 'Zscaler', OKTA: 'Okta', DDOG: 'Datadog', MDB: 'MongoDB', ESTC: 'Elastic',
-  PATH: 'UiPath', AI: 'C3.ai', PLTR: 'Palantir', IONQ: 'IonQ', RGTI: 'Rigetti',
+  PATH: 'UiPath', AI: 'C3.ai', IONQ: 'IonQ', RGTI: 'Rigetti',
 };
 
 // Valid tickers to look for (prevents false positives)
