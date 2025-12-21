@@ -34,16 +34,17 @@ async function getStockTwitsTrending(): Promise<TrendingStock[]> {
     if (!response.ok) throw new Error('StockTwits API failed');
     const data = await response.json();
     
-    const scores = [85, 80, 75, 70, 65];
+    // Scores for 10 stocks (descending)
+    const scores = [85, 82, 78, 75, 72, 68, 65, 62, 58, 55];
     
     return data.symbols
       .filter((stock: any) => isActualStock(stock.symbol))
-      .slice(0, 5)
+      .slice(0, 10)  // Changed from 5 to 10
       .map((stock: any, index: number) => ({
         symbol: stock.symbol,
         name: stock.title || stock.name || stock.symbol,
         sentiment: 'Bullish',
-        sentimentScore: scores[index],
+        sentimentScore: scores[index] || 50,
         source: 'StockTwits',
         mentions: stock.watchlist_count || 0,
       }));
@@ -63,11 +64,12 @@ async function getYahooTrending(): Promise<TrendingStock[]> {
     if (!response.ok) throw new Error('Yahoo API failed');
     const data = await response.json();
     
-    const scores = [82, 77, 72, 67, 62];
+    // Scores for 10 stocks (descending)
+    const scores = [82, 79, 76, 73, 70, 67, 64, 61, 58, 55];
     
     return data.finance.result[0].quotes
       .filter((stock: any) => isActualStock(stock.symbol))
-      .slice(0, 5)
+      .slice(0, 10)  // Changed from 5 to 10
       .map((stock: any, index: number) => {
         const changePercent = stock.regularMarketChangePercent || 0;
         
@@ -76,7 +78,7 @@ async function getYahooTrending(): Promise<TrendingStock[]> {
           name: stock.longName || stock.shortName || stock.symbol,
           change: changePercent.toFixed(2) + '%',
           sentiment: changePercent > 0 ? 'Bullish' : changePercent < 0 ? 'Bearish' : 'Neutral',
-          sentimentScore: scores[index],
+          sentimentScore: scores[index] || 50,
           source: 'Yahoo',
         };
       });
@@ -100,8 +102,8 @@ export async function GET() {
       getYahooTrending(),
     ]);
     
-    console.log('✅ StockTwits scores:', stocktwits.map(s => `${s.symbol}:${s.sentimentScore}`).join(', '));
-    console.log('✅ Yahoo scores:', yahoo.map(s => `${s.symbol}:${s.sentimentScore}`).join(', '));
+    console.log('✅ StockTwits:', stocktwits.length, 'stocks');
+    console.log('✅ Yahoo:', yahoo.length, 'stocks');
     
     const data = {
       stocktwits,

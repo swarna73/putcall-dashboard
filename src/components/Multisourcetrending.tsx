@@ -1,4 +1,4 @@
-// UPDATED COMPONENT: 2-column layout + Reddit #1 validation
+// UPDATED COMPONENT: Shows 10 stocks per platform
 // File: /src/components/MultiSourceTrending.tsx
 
 "use client";
@@ -137,9 +137,9 @@ const MultiSourceTrending: React.FC<MultiSourceTrendingProps> = ({ redditTrends 
                   Reddit's Top Pick: {redditValidation.symbol}
                 </span>
                 <span className="text-xs text-slate-400">
-                  {redditValidation.onStockTwits && '✓ StockTwits'}
+                  {redditValidation.onStockTwits && '✔ StockTwits'}
                   {redditValidation.onStockTwits && redditValidation.onYahoo && ' • '}
-                  {redditValidation.onYahoo && '✓ Yahoo'}
+                  {redditValidation.onYahoo && '✔ Yahoo'}
                 </span>
               </div>
               <p className={`text-xs ${
@@ -159,7 +159,7 @@ const MultiSourceTrending: React.FC<MultiSourceTrendingProps> = ({ redditTrends 
         </div>
       )}
 
-      {/* 2-Column Comparison: StockTwits + Yahoo */}
+      {/* 2-Column Comparison: StockTwits + Yahoo - NOW SHOWING 10 EACH */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         
         {/* StockTwits Column */}
@@ -174,19 +174,19 @@ const MultiSourceTrending: React.FC<MultiSourceTrendingProps> = ({ redditTrends 
             </div>
           </div>
           
-          <div className="p-3 space-y-2">
+          <div className="p-3 space-y-1.5 max-h-[480px] overflow-y-auto">
             {loading ? (
               <div className="text-center text-slate-500 text-xs py-4">Loading...</div>
             ) : stocktwits.length === 0 ? (
               <div className="text-center text-slate-500 text-xs py-4">No data available</div>
             ) : (
-              stocktwits.slice(0, 5).map((stock, idx) => (
+              stocktwits.slice(0, 10).map((stock, idx) => (
                 <div key={stock.symbol} className="flex items-center justify-between p-2.5 rounded-lg bg-slate-800/40 hover:bg-slate-800/60 transition-colors group">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-slate-500 w-4">#{idx + 1}</span>
+                    <span className="text-[10px] font-bold text-slate-500 w-5">#{idx + 1}</span>
                     <div>
                       <div className="font-bold text-white text-sm">{stock.symbol}</div>
-                      <div className="text-[10px] text-slate-500 truncate max-w-[150px]">{stock.name}</div>
+                      <div className="text-[10px] text-slate-500 truncate max-w-[140px]">{stock.name}</div>
                     </div>
                   </div>
                   <div className={`flex items-center gap-1 text-xs font-bold ${getSentimentColor(stock.sentimentScore)}`}>
@@ -211,16 +211,16 @@ const MultiSourceTrending: React.FC<MultiSourceTrendingProps> = ({ redditTrends 
             </div>
           </div>
           
-          <div className="p-3 space-y-2">
+          <div className="p-3 space-y-1.5 max-h-[480px] overflow-y-auto">
             {loading ? (
               <div className="text-center text-slate-500 text-xs py-4">Loading...</div>
             ) : yahoo.length === 0 ? (
               <div className="text-center text-slate-500 text-xs py-4">No data available</div>
             ) : (
-              yahoo.slice(0, 5).map((stock, idx) => (
+              yahoo.slice(0, 10).map((stock, idx) => (
                 <div key={stock.symbol} className="flex items-center justify-between p-2.5 rounded-lg bg-slate-800/40 hover:bg-slate-800/60 transition-colors">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-slate-500 w-4">#{idx + 1}</span>
+                    <span className="text-[10px] font-bold text-slate-500 w-5">#{idx + 1}</span>
                     <div>
                       <div className="font-bold text-white text-sm">{stock.symbol}</div>
                       <div className="text-[10px] text-slate-500">{stock.change}</div>
@@ -253,7 +253,7 @@ const MultiSourceTrending: React.FC<MultiSourceTrendingProps> = ({ redditTrends 
               >
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-emerald-400 text-sm">{symbol}</span>
-                  <span className="text-[10px] text-emerald-300">✓ Both platforms</span>
+                  <span className="text-[10px] text-emerald-300">✔ Both platforms</span>
                 </div>
               </div>
             ))}
