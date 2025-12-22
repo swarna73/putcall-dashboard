@@ -3,9 +3,11 @@ import { DashboardData, RedditTicker } from '../types';
 interface EmailTemplateProps {
   data: DashboardData;
   unsubscribeUrl?: string;
+  stocktwits?: Array<{ symbol: string; name: string; sentimentScore: number }>;
+  yahoo?: Array<{ symbol: string; change: string; sentimentScore: number }>;
 }
 
-export function generateEmailHTML({ data, unsubscribeUrl }: EmailTemplateProps): string {
+export function generateEmailHTML({ data, unsubscribeUrl, stocktwits, yahoo }: EmailTemplateProps): string {
   const today = new Date().toLocaleDateString('en-US', { 
     weekday: 'long',
     year: 'numeric', 
@@ -15,6 +17,26 @@ export function generateEmailHTML({ data, unsubscribeUrl }: EmailTemplateProps):
 
   const featuredStock = data.redditTrends[0];
   const runnersUp = data.redditTrends.slice(1, 10);
+  const allPicks = data.picks.slice(0, 6); // Show up to 6 value picks
+
+  // Get sentiment color
+  const getSentimentColor = (score: number) => {
+    if (score >= 70) return '#10b981'; // green
+    if (score >= 50) return '#f59e0b'; // yellow
+    return '#ef4444'; // red
+  };
+
+  // Get conviction color
+  const getConvictionColor = (conviction: string) => {
+    if (conviction === 'Strong Buy') return '#10b981';
+    if (conviction === 'Buy') return '#22c55e';
+    return '#94a3b8';
+  };
+
+  // Check if featured stock is on other platforms
+  const isOnStockTwits = stocktwits?.some(s => s.symbol === featuredStock?.symbol);
+  const isOnYahoo = yahoo?.some(s => s.symbol === featuredStock?.symbol);
+  const platformCount = (isOnStockTwits ? 1 : 0) + (isOnYahoo ? 1 : 0);
 
   return `
 <!DOCTYPE html>
@@ -27,9 +49,10 @@ export function generateEmailHTML({ data, unsubscribeUrl }: EmailTemplateProps):
     body {
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background-color: #020617;
       color: #ffffff;
+      line-height: 1.5;
     }
     .container {
       max-width: 600px;
@@ -43,7 +66,7 @@ export function generateEmailHTML({ data, unsubscribeUrl }: EmailTemplateProps):
     }
     .header h1 {
       margin: 0 0 8px 0;
-      font-size: 28px;
+      font-size: 26px;
       font-weight: 800;
       color: white;
     }
@@ -52,49 +75,81 @@ export function generateEmailHTML({ data, unsubscribeUrl }: EmailTemplateProps):
       font-size: 14px;
       color: rgba(255,255,255,0.9);
     }
+    .market-bar {
+      background-color: #1e293b;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+    }
+    .market-item {
+      text-align: center;
+    }
+    .market-label {
+      color: #64748b;
+      margin-bottom: 2px;
+    }
+    .market-value {
+      color: #ffffff;
+      font-weight: 600;
+    }
+    .market-change {
+      font-weight: 700;
+    }
+    .market-up { color: #10b981; }
+    .market-down { color: #ef4444; }
     .section {
-      margin: 24px;
+      margin: 20px;
       padding: 20px;
       background-color: #0f172a;
       border: 1px solid #334155;
       border-radius: 12px;
     }
     .section-title {
-      font-size: 12px;
+      font-size: 14px;
       font-weight: 700;
-      color: #94a3b8;
-      text-transform: uppercase;
-      letter-spacing: 1px;
+      color: #ffffff;
+      margin: 0 0 4px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-subtitle {
+      font-size: 11px;
+      color: #64748b;
       margin: 0 0 16px 0;
     }
     .featured-stock {
       text-align: center;
-      padding: 16px;
+      padding: 20px;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border-radius: 12px;
+      margin-bottom: 16px;
     }
     .stock-symbol {
-      font-size: 48px;
+      font-size: 52px;
       font-weight: 900;
       color: white;
-      margin: 0 0 8px 0;
+      margin: 0;
+      letter-spacing: -2px;
     }
     .stock-name {
       font-size: 14px;
       color: #94a3b8;
-      margin: 0 0 16px 0;
+      margin: 4px 0 16px 0;
     }
     .sentiment-badge {
       display: inline-block;
-      padding: 8px 16px;
-      background-color: #10b981;
-      color: white;
+      padding: 8px 20px;
       border-radius: 20px;
       font-size: 14px;
       font-weight: 700;
-      margin-bottom: 16px;
+      margin-bottom: 20px;
     }
-    .metrics-row {
+    .metrics-grid {
       display: flex;
-      justify-content: space-around;
+      justify-content: center;
+      gap: 32px;
       margin: 16px 0;
     }
     .metric {
@@ -107,180 +162,217 @@ export function generateEmailHTML({ data, unsubscribeUrl }: EmailTemplateProps):
       display: block;
     }
     .metric-label {
-      font-size: 11px;
+      font-size: 10px;
       color: #64748b;
       text-transform: uppercase;
-      margin-top: 4px;
+      letter-spacing: 0.5px;
     }
-    .summary {
+    .summary-box {
       background-color: #1e293b;
-      padding: 12px;
+      padding: 14px 16px;
       border-radius: 8px;
       font-size: 13px;
       color: #cbd5e1;
       line-height: 1.6;
-      margin: 16px 0;
-    }
-    .news-list {
-      list-style: none;
-      padding: 0;
-      margin: 12px 0 0 0;
-    }
-    .news-item {
-      padding: 8px 0 8px 20px;
-      font-size: 13px;
-      color: #cbd5e1;
-      position: relative;
-    }
-    .news-item:before {
-      content: "•";
-      position: absolute;
-      left: 0;
-      color: #4f46e5;
-      font-weight: bold;
+      margin-top: 16px;
+      border-left: 3px solid #4f46e5;
     }
     .runners-table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 12px;
+    }
+    .runners-table th {
+      text-align: left;
+      font-size: 10px;
+      color: #64748b;
+      text-transform: uppercase;
+      padding: 8px 6px;
+      border-bottom: 1px solid #334155;
+    }
+    .runners-table th:last-child {
+      text-align: right;
     }
     .runners-table td {
-      padding: 10px 8px;
+      padding: 10px 6px;
       border-bottom: 1px solid #1e293b;
       font-size: 13px;
     }
     .rank {
       color: #64748b;
-      width: 40px;
+      font-weight: 600;
+      width: 30px;
     }
     .ticker {
       font-weight: 700;
       color: white;
-      width: 80px;
+    }
+    .ticker-name {
+      font-size: 11px;
+      color: #64748b;
+      font-weight: 400;
     }
     .volume {
-      color: #94a3b8;
-      text-align: right;
+      color: #10b981;
+      font-size: 12px;
     }
     .score {
-      color: #10b981;
-      font-weight: 700;
       text-align: right;
-      width: 50px;
-    }
-    .warning-banner {
-      background-color: #78350f;
-      border: 1px solid #f59e0b;
-      border-radius: 8px;
-      padding: 12px;
-      margin: 16px 0;
-    }
-    .warning-title {
-      font-size: 13px;
       font-weight: 700;
-      color: #fbbf24;
-      margin: 0 0 4px 0;
     }
-    .warning-text {
+    .validation-banner {
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+    }
+    .validation-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin: 0 0 6px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .validation-text {
       font-size: 12px;
-      color: #fde68a;
       margin: 0;
+      line-height: 1.5;
     }
     .platform-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-top: 16px;
+      display: flex;
+      gap: 12px;
     }
-    .platform-column h4 {
+    .platform-column {
+      flex: 1;
+      background-color: #1e293b;
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .platform-header {
       font-size: 11px;
       color: #64748b;
       text-transform: uppercase;
-      margin: 0 0 8px 0;
       font-weight: 700;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #334155;
     }
     .platform-stock {
       display: flex;
       justify-content: space-between;
+      align-items: center;
       padding: 6px 0;
-      font-size: 13px;
+      font-size: 12px;
     }
-    .platform-stock span:first-child {
+    .platform-symbol {
       color: white;
       font-weight: 600;
     }
-    .platform-stock span:last-child {
-      color: #10b981;
+    .platform-score {
       font-weight: 700;
     }
     .fund-card {
       background-color: #1e293b;
-      border-radius: 8px;
+      border-radius: 10px;
       padding: 16px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
     .fund-header {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
       margin-bottom: 12px;
+    }
+    .fund-ticker-box {
+      background-color: #0f172a;
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-right: 12px;
     }
     .fund-ticker {
       font-size: 18px;
-      font-weight: 700;
+      font-weight: 800;
       color: white;
+    }
+    .fund-info {
+      flex: 1;
     }
     .fund-name {
-      font-size: 12px;
-      color: #94a3b8;
+      font-size: 14px;
+      color: white;
+      font-weight: 600;
+      margin-bottom: 2px;
     }
     .fund-price {
-      font-size: 20px;
+      font-size: 16px;
       font-weight: 700;
-      color: white;
+      color: #10b981;
+    }
+    .conviction-badge {
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
     }
     .fund-metrics {
       display: flex;
-      gap: 16px;
-      padding-top: 12px;
-      border-top: 1px solid #334155;
+      gap: 8px;
+      flex-wrap: wrap;
     }
     .fund-metric {
       flex: 1;
+      min-width: 70px;
+      background-color: #0f172a;
+      padding: 8px 10px;
+      border-radius: 6px;
     }
     .fund-metric-label {
-      font-size: 10px;
+      font-size: 9px;
       color: #64748b;
       text-transform: uppercase;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
     }
     .fund-metric-value {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 700;
       color: white;
     }
+    .fund-analysis {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #94a3b8;
+      border-top: 1px solid #334155;
+      padding-top: 10px;
+    }
+    .cta-section {
+      text-align: center;
+      padding: 24px;
+    }
     .cta-button {
-      display: block;
-      width: 100%;
-      padding: 16px;
+      display: inline-block;
+      padding: 14px 32px;
       background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
       color: white;
-      text-align: center;
       text-decoration: none;
       border-radius: 8px;
       font-weight: 700;
       font-size: 14px;
-      margin: 24px 0;
     }
     .footer {
       text-align: center;
       padding: 24px;
       font-size: 12px;
       color: #64748b;
+      border-top: 1px solid #1e293b;
     }
     .footer a {
-      color: #4f46e5;
+      color: #818cf8;
       text-decoration: none;
+    }
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #334155, transparent);
+      margin: 0 24px;
     }
   </style>
 </head>
@@ -289,125 +381,170 @@ export function generateEmailHTML({ data, unsubscribeUrl }: EmailTemplateProps):
     
     <!-- Header -->
     <div class="header">
-      <h1>📊 PutCall.nl Daily Market Brief</h1>
+      <h1>📊 Daily Market Brief</h1>
       <p>${today}</p>
     </div>
 
-    <!-- Reddit Sentiment Section -->
+    <!-- Market Indices Bar -->
+    ${data.marketIndices && data.marketIndices.length > 0 ? `
+    <div class="market-bar">
+      ${data.marketIndices.slice(0, 3).map(idx => `
+        <div class="market-item">
+          <div class="market-label">${idx.name === 'Dow Jones Industrial Average' ? 'DOW' : idx.name === 'Nasdaq Composite' ? 'NASDAQ' : 'S&P 500'}</div>
+          <div class="market-value">${idx.value}</div>
+          <div class="market-change ${idx.trend === 'Up' ? 'market-up' : 'market-down'}">${idx.change}</div>
+        </div>
+      `).join('')}
+    </div>
+    ` : ''}
+
+    <!-- Market Sentiment -->
+    ${data.marketSentiment ? `
+    <div class="section" style="text-align: center; padding: 16px;">
+      <div style="font-size: 12px; color: #64748b; margin-bottom: 8px;">MARKET SENTIMENT</div>
+      <div style="font-size: 48px; font-weight: 800; color: ${getSentimentColor(data.marketSentiment.score)};">${data.marketSentiment.score}</div>
+      <div style="font-size: 16px; font-weight: 700; color: ${getSentimentColor(data.marketSentiment.score)};">${data.marketSentiment.label}</div>
+    </div>
+    ` : ''}
+
+    <!-- Featured Stock (Reddit #1) -->
+    ${featuredStock ? `
     <div class="section">
-      <div class="section-title">⚡ Reddit Sentiment</div>
+      <div class="section-title">🔥 Reddit's #1 Trending Stock</div>
+      <div class="section-subtitle">Most discussed on r/wallstreetbets today</div>
       
       <div class="featured-stock">
         <div class="stock-symbol">${featuredStock.symbol}</div>
         <div class="stock-name">${featuredStock.name}</div>
         
-        <div class="sentiment-badge">
-          ${featuredStock.sentimentScore}% ${featuredStock.sentiment.toUpperCase()}
+        <div class="sentiment-badge" style="background-color: ${getSentimentColor(featuredStock.sentimentScore)}20; color: ${getSentimentColor(featuredStock.sentimentScore)}; border: 1px solid ${getSentimentColor(featuredStock.sentimentScore)}40;">
+          ${featuredStock.sentimentScore}% ${featuredStock.sentiment}
         </div>
         
-        <div class="metrics-row">
+        <div class="metrics-grid">
           <div class="metric">
             <span class="metric-value">${featuredStock.mentions.toLocaleString()}</span>
             <span class="metric-label">Mentions</span>
           </div>
           <div class="metric">
-            <span class="metric-value">#1</span>
-            <span class="metric-label">Rank</span>
-          </div>
-          <div class="metric">
-            <span class="metric-value">${featuredStock.volumeChange || 'N/A'}</span>
-            <span class="metric-label">Volume</span>
+            <span class="metric-value" style="color: #10b981;">${featuredStock.volumeChange || 'N/A'}</span>
+            <span class="metric-label">vs Average</span>
           </div>
         </div>
         
-        <div class="summary">
-          "${featuredStock.discussionSummary}"
+        <div class="summary-box">
+          💬 "${featuredStock.discussionSummary}"
         </div>
-        
-        ${featuredStock.recentNews && featuredStock.recentNews.length > 0 ? `
-          <div style="margin-top: 16px; text-align: left;">
-            <div style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 700; margin-bottom: 8px;">📰 Recent News</div>
-            <ul class="news-list">
-              ${featuredStock.recentNews.map(news => `<li class="news-item">${news}</li>`).join('')}
-            </ul>
-          </div>
-        ` : ''}
       </div>
     </div>
+    ` : ''}
 
     <!-- Trending Runners Up -->
+    ${runnersUp.length > 0 ? `
     <div class="section">
-      <div class="section-title">🔥 Trending Runners Up</div>
+      <div class="section-title">📈 Top 10 Trending Stocks</div>
+      <div class="section-subtitle">Ranked by Reddit mentions and sentiment</div>
+      
       <table class="runners-table">
-        ${runnersUp.map((stock, index) => `
+        <thead>
           <tr>
-            <td class="rank">#${index + 2}</td>
-            <td class="ticker">${stock.symbol}</td>
-            <td class="volume">${stock.volumeChange || '+0%'}</td>
-            <td class="score">${stock.sentimentScore}</td>
+            <th>#</th>
+            <th>Stock</th>
+            <th>Volume</th>
+            <th>Score</th>
           </tr>
-        `).join('')}
+        </thead>
+        <tbody>
+          ${runnersUp.map((stock, index) => `
+            <tr>
+              <td class="rank">${index + 2}</td>
+              <td>
+                <span class="ticker">${stock.symbol}</span>
+                <div class="ticker-name">${stock.name}</div>
+              </td>
+              <td class="volume">${stock.volumeChange || '+0%'}</td>
+              <td class="score" style="color: ${getSentimentColor(stock.sentimentScore)};">${stock.sentimentScore}</td>
+            </tr>
+          `).join('')}
+        </tbody>
       </table>
     </div>
+    ` : ''}
+
+    <div class="divider"></div>
 
     <!-- Cross-Platform Validation -->
+    ${stocktwits || yahoo ? `
     <div class="section">
       <div class="section-title">✅ Cross-Platform Validation</div>
+      <div class="section-subtitle">Compare Reddit trends with institutional platforms</div>
       
-      <div class="warning-banner">
-        <div class="warning-title">⚠️ Reddit's Top Pick: ${featuredStock.symbol}</div>
-        <p class="warning-text">Reddit-only stock. Not trending on institutional platforms. Higher risk meme play.</p>
+      <!-- Validation Banner -->
+      <div class="validation-banner" style="background-color: ${platformCount === 0 ? '#78350f' : platformCount === 1 ? '#713f12' : '#064e3b'}; border: 1px solid ${platformCount === 0 ? '#f59e0b' : platformCount === 1 ? '#eab308' : '#10b981'};">
+        <div class="validation-title" style="color: ${platformCount === 0 ? '#fbbf24' : platformCount === 1 ? '#facc15' : '#34d399'};">
+          ${platformCount === 0 ? '⚠️' : platformCount === 1 ? '⚡' : '🎯'} Reddit's Top Pick: ${featuredStock?.symbol}
+          ${isOnStockTwits ? ' ✓ StockTwits' : ''}${isOnYahoo ? ' ✓ Yahoo' : ''}
+        </div>
+        <p class="validation-text" style="color: ${platformCount === 0 ? '#fde68a' : platformCount === 1 ? '#fef08a' : '#a7f3d0'};">
+          ${platformCount === 0 ? 'Reddit-only stock. Not trending on institutional platforms. Higher risk meme play.' : 
+            platformCount === 1 ? 'Trending on 2 platforms. Gaining broader market attention.' :
+            'Strong consensus! Trending across retail AND institutional platforms.'}
+        </p>
       </div>
       
       <div class="platform-grid">
+        ${stocktwits && stocktwits.length > 0 ? `
         <div class="platform-column">
-          <h4>StockTwits</h4>
-          <div class="platform-stock">
-            <span>ARBB</span>
-            <span>85</span>
-          </div>
-          <div class="platform-stock">
-            <span>SSSS</span>
-            <span>80</span>
-          </div>
-          <div class="platform-stock">
-            <span>GALT</span>
-            <span>75</span>
-          </div>
+          <div class="platform-header">📱 StockTwits</div>
+          ${stocktwits.slice(0, 5).map(s => `
+            <div class="platform-stock">
+              <span class="platform-symbol">${s.symbol}</span>
+              <span class="platform-score" style="color: ${getSentimentColor(s.sentimentScore)};">${s.sentimentScore}</span>
+            </div>
+          `).join('')}
         </div>
+        ` : ''}
         
+        ${yahoo && yahoo.length > 0 ? `
         <div class="platform-column">
-          <h4>Yahoo Finance</h4>
-          <div class="platform-stock">
-            <span>OKLO</span>
-            <span>82</span>
-          </div>
-          <div class="platform-stock">
-            <span>RBLX</span>
-            <span>77</span>
-          </div>
-          <div class="platform-stock">
-            <span>GE</span>
-            <span>72</span>
-          </div>
+          <div class="platform-header">📊 Yahoo Finance</div>
+          ${yahoo.slice(0, 5).map(s => `
+            <div class="platform-stock">
+              <span class="platform-symbol">${s.symbol}</span>
+              <span class="platform-score" style="color: ${getSentimentColor(s.sentimentScore)};">${s.sentimentScore}</span>
+            </div>
+          `).join('')}
         </div>
+        ` : ''}
       </div>
     </div>
+    ` : ''}
+
+    <div class="divider"></div>
 
     <!-- Fundamentals Screener -->
+    ${allPicks.length > 0 ? `
     <div class="section">
-      <div class="section-title">💎 Fundamentals Screener</div>
-      <p style="font-size: 11px; color: #64748b; margin: 0 0 16px 0;">CRITERIA: FCF+ • LOW DEBT • VALUE</p>
+      <div class="section-title">💎 Value Stock Picks</div>
+      <div class="section-subtitle">FCF+ • LOW DEBT • UNDERVALUED</div>
       
-      ${data.picks.slice(0, 3).map(pick => `
+      ${allPicks.map(pick => `
         <div class="fund-card">
           <div class="fund-header">
-            <div>
-              <div class="fund-ticker">${pick.symbol}</div>
-              <div class="fund-name">${pick.name}</div>
+            <div style="display: flex; align-items: center;">
+              <div class="fund-ticker-box">
+                <div class="fund-ticker">${pick.symbol}</div>
+              </div>
+              <div class="fund-info">
+                <div class="fund-name">${pick.name}</div>
+                <div class="fund-price">${pick.price}</div>
+              </div>
             </div>
-            <div class="fund-price">${pick.price}</div>
+            <div class="conviction-badge" style="background-color: ${getConvictionColor(pick.conviction)}20; color: ${getConvictionColor(pick.conviction)}; border: 1px solid ${getConvictionColor(pick.conviction)}40;">
+              ${pick.conviction}
+            </div>
           </div>
+          
           <div class="fund-metrics">
             <div class="fund-metric">
               <div class="fund-metric-label">P/E Ratio</div>
@@ -417,21 +554,32 @@ export function generateEmailHTML({ data, unsubscribeUrl }: EmailTemplateProps):
               <div class="fund-metric-label">Free Cash Flow</div>
               <div class="fund-metric-value">${pick.metrics.freeCashFlow}</div>
             </div>
+            <div class="fund-metric">
+              <div class="fund-metric-label">Dividend</div>
+              <div class="fund-metric-value">${pick.metrics.dividendYield || 'N/A'}</div>
+            </div>
+          </div>
+          
+          <div class="fund-analysis">
+            📝 ${pick.analysis}
           </div>
         </div>
       `).join('')}
     </div>
+    ` : ''}
 
-    <!-- CTA Button -->
-    <a href="https://putcall.nl" class="cta-button">
-      View Full Dashboard →
-    </a>
+    <!-- CTA -->
+    <div class="cta-section">
+      <a href="https://putcall.nl" class="cta-button">
+        View Full Dashboard →
+      </a>
+    </div>
 
     <!-- Footer -->
     <div class="footer">
-      <p>You're receiving this because you subscribed to PutCall.nl daily updates.</p>
+      <p>You're receiving this because you subscribed to PutCall.nl</p>
       ${unsubscribeUrl ? `<p><a href="${unsubscribeUrl}">Unsubscribe</a></p>` : ''}
-      <p style="margin-top: 16px; font-size: 11px;">
+      <p style="margin-top: 12px; font-size: 10px;">
         © ${new Date().getFullYear()} PutCall.nl • AI-Powered Market Intelligence
       </p>
     </div>

@@ -1,15 +1,14 @@
 // app/api/newsletter/send/route.ts
-// Daily newsletter endpoint - called by GitHub Actions
+// Daily newsletter endpoint - fetches all data including cross-platform validation
 
 import { NextResponse } from 'next/server';
 import { getConfirmedSubscribers, updateLastEmailSent } from '@/utils/subscribers';
 import { generateEmailHTML } from '@/utils/email-template';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 120; // 2 minutes for sending multiple emails
+export const maxDuration = 120;
 
 export async function GET(request: Request) {
-  // Allow GET with secret param for easy testing
   const { searchParams } = new URL(request.url);
   const secret = searchParams.get('secret');
   
@@ -21,7 +20,6 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  // Verify authorization
   const authHeader = request.headers.get('authorization');
   const expectedToken = process.env.CRON_SECRET;
   
@@ -55,21 +53,39 @@ async function handleNewsletterSend() {
       });
     }
 
-    // 2. Fetch fresh dashboard data
+    // 2. Fetch all data in parallel
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://putcall.nl';
-    console.log('📊 Fetching dashboard data...');
+    console.log('📊 Fetching dashboard and cross-platform data...');
     
-    const dashboardResponse = await fetch(`${baseUrl}/api/dashboard`, {
-      headers: { 'Accept': 'application/json' },
-      cache: 'no-store',
-    });
+    const [dashboardResponse, trendingResponse] = await Promise.all([
+      fetch(`${baseUrl}/api/dashboard`, {
+        headers: { 'Accept': 'application/json' },
+        cache: 'no-store',
+      }),
+      fetch(`${baseUrl}/api/trending-sources`, {
+        headers: { 'Accept': 'application/json' },
+        cache: 'no-store',
+      }).catch(() => null), // Don't fail if trending-sources fails
+    ]);
 
     if (!dashboardResponse.ok) {
       throw new Error(`Dashboard API failed: ${dashboardResponse.status}`);
     }
 
     const dashboardData = await dashboardResponse.json();
-    console.log('✅ Dashboard data fetched');
+    
+    // Get trending sources data (StockTwits + Yahoo)
+    let stocktwits: any[] = [];
+    let yahoo: any[] = [];
+    
+    if (trendingResponse && trendingResponse.ok) {
+      const trendingData = await trendingResponse.json();
+      stocktwits = trendingData.stocktwits || [];
+      yahoo = trendingData.yahoo || [];
+      console.log(`✅ Trending data: ${stocktwits.length} StockTwits, ${yahoo.length} Yahoo`);
+    } else {
+      console.warn('⚠️ Could not fetch trending sources');
+    }
 
     // 3. Initialize Resend
     const resendApiKey = process.env.RESEND_API_KEY;
@@ -105,9 +121,12 @@ async function handleNewsletterSend() {
       try {
         const unsubscribeUrl = `${baseUrl}/unsubscribe?token=${subscriber.token}`;
         
+        // Pass all data including cross-platform to email template
         const emailHTML = generateEmailHTML({
           data: dashboardData,
           unsubscribeUrl,
+          stocktwits,
+          yahoo,
         });
 
         await resend.emails.send({
@@ -117,13 +136,12 @@ async function handleNewsletterSend() {
           html: emailHTML,
         });
 
-        // Update last email sent timestamp in Supabase
         await updateLastEmailSent(subscriber.email);
         
         results.sent++;
         console.log(`✅ Sent to: ${subscriber.email}`);
         
-        // Rate limit: Resend free tier allows ~10/sec
+        // Rate limit
         await new Promise(resolve => setTimeout(resolve, 150));
         
       } catch (error: any) {
