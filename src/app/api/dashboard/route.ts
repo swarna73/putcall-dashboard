@@ -42,7 +42,10 @@ const FALLBACK = {
   picks: [
     { symbol: "VZ", name: "Verizon Communications", price: "$42.15", sector: "Telecommunications", metrics: { peRatio: "8.5", freeCashFlow: "$18B", marketCap: "$177B", dividendYield: "6.5%" }, analysis: "Strong dividend with 5G growth potential", conviction: "Strong Buy" },
     { symbol: "PFE", name: "Pfizer", price: "$26.50", sector: "Healthcare", metrics: { peRatio: "12.3", freeCashFlow: "$12B", marketCap: "$150B", dividendYield: "5.8%" }, analysis: "Undervalued pharma with pipeline", conviction: "Buy" },
-    { symbol: "CVX", name: "Chevron", price: "$148.00", sector: "Energy", metrics: { peRatio: "11.2", freeCashFlow: "$20B", marketCap: "$275B", dividendYield: "4.2%" }, analysis: "Cash flow machine", conviction: "Hold" }
+    { symbol: "CVX", name: "Chevron", price: "$148.00", sector: "Energy", metrics: { peRatio: "11.2", freeCashFlow: "$20B", marketCap: "$275B", dividendYield: "4.2%" }, analysis: "Cash flow machine", conviction: "Hold" },
+    { symbol: "JNJ", name: "Johnson & Johnson", price: "$155.00", sector: "Healthcare", metrics: { peRatio: "15.2", freeCashFlow: "$18B", marketCap: "$375B", dividendYield: "3.0%" }, analysis: "Defensive healthcare giant with diversified revenue", conviction: "Strong Buy" },
+    { symbol: "KO", name: "Coca-Cola", price: "$62.00", sector: "Consumer Staples", metrics: { peRatio: "23.5", freeCashFlow: "$10B", marketCap: "$268B", dividendYield: "3.1%" }, analysis: "Dividend aristocrat with global brand moat", conviction: "Buy" },
+    { symbol: "IBM", name: "IBM", price: "$168.00", sector: "Technology", metrics: { peRatio: "18.7", freeCashFlow: "$11B", marketCap: "$153B", dividendYield: "3.9%" }, analysis: "AI and hybrid cloud transformation", conviction: "Hold" }
   ],
   sectorRotation: [
     { name: "Technology", performance: "Bullish", change: "+1.2%" },
@@ -379,7 +382,7 @@ function categorizeImpact(title: string): 'Critical' | 'High' | 'Medium' {
 
 // 5. Value Picks - Yahoo Finance (~300ms)
 async function getValuePicks() {
-  const symbols = ['VZ', 'PFE', 'CVX'];
+  const symbols = ['VZ', 'PFE', 'CVX', 'JNJ', 'KO', 'IBM'];
   
   try {
     const response = await fetch(
@@ -398,7 +401,10 @@ async function getValuePicks() {
     const analysis: Record<string, { sector: string; analysis: string; conviction: 'Strong Buy' | 'Buy' | 'Hold' }> = {
       VZ: { sector: 'Telecommunications', analysis: 'Strong dividend yield with 5G expansion driving growth', conviction: 'Strong Buy' },
       PFE: { sector: 'Healthcare', analysis: 'Undervalued pharma with robust pipeline and cash flow', conviction: 'Buy' },
-      CVX: { sector: 'Energy', analysis: 'Cash flow machine with consistent dividend growth', conviction: 'Hold' }
+      CVX: { sector: 'Energy', analysis: 'Cash flow machine with consistent dividend growth', conviction: 'Hold' },
+      JNJ: { sector: 'Healthcare', analysis: 'Defensive healthcare giant with diversified revenue streams', conviction: 'Strong Buy' },
+      KO: { sector: 'Consumer Staples', analysis: 'Dividend aristocrat with global brand moat', conviction: 'Buy' },
+      IBM: { sector: 'Technology', analysis: 'AI and hybrid cloud transformation underway', conviction: 'Hold' }
     };
 
     return quotes.map((q: any) => ({
