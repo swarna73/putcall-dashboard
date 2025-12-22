@@ -132,6 +132,7 @@ export async function addSubscriber(email: string): Promise<{ success: boolean; 
 
 /**
  * Confirm subscriber email
+ * UPDATED: Keep confirm_token so re-clicks show "already confirmed" instead of "invalid token"
  */
 export async function confirmSubscriber(confirmToken: string): Promise<{ success: boolean; error?: string }> {
   try {
@@ -150,18 +151,20 @@ export async function confirmSubscriber(confirmToken: string): Promise<{ success
       };
     }
 
+    // Check if already confirmed
     if (subscriber.confirmed) {
+      console.log('ℹ️ Subscriber already confirmed:', subscriber.email);
       return {
-        success: true, // Already confirmed, no error
+        success: true, // Return success - they're already confirmed
       };
     }
 
-    // Update to confirmed
+    // Update to confirmed - BUT KEEP THE TOKEN so re-clicks work!
     const { error: updateError } = await supabase
       .from('subscribers')
       .update({ 
         confirmed: true,
-        confirm_token: null 
+        // Don't set confirm_token to null - keep it so re-clicks can be detected
       })
       .eq('email', subscriber.email);
 
