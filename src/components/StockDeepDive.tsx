@@ -1,247 +1,212 @@
-"use client";
-
 import React, { useState } from 'react';
-import { IconSearch, IconX, IconBrain, IconActivity } from './Icons';
-import { analyzeStock } from '../services/geminiService';
-import { StockAnalysis } from '../types';
+import { IconBrain } from './Icons';
+
+interface StockData {
+  symbol: string;
+  name: string;
+  price: string;
+  change: string;
+  changePercent: string;
+  peRatio: string;
+  eps: string;
+  marketCap: string;
+  volume: string;
+  avgVolume: string;
+  high52: string;
+  low52: string;
+  dividend: string;
+  beta: string;
+  description?: string;
+}
 
 const StockDeepDive: React.FC = () => {
-  const [query, setQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [data, setData] = useState<StockAnalysis | null>(null);
+  const [ticker, setTicker] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [stockData, setStockData] = useState<StockData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim()) return;
-
-    setIsLoading(true);
+  const handleSearch = async () => {
+    if (!ticker.trim()) return;
+    
+    setLoading(true);
     setError(null);
-    setData(null);
+    setStockData(null);
 
     try {
-      const result = await analyzeStock(query.toUpperCase());
-      setData(result);
-    } catch (err: any) {
-      console.error(err);
-      const msg = err?.message || "Analysis failed. Please try again.";
-      // User friendly error mapping
-      if (msg.includes("API Key is missing")) {
-        setError("System Config Error: API Key missing.");
-      } else if (msg.includes("extract valid JSON")) {
-        setError("Data Parsing Error: Search results were unstructured. Please retry.");
-      } else {
-        setError(msg);
+      // Fetch from Yahoo Finance API
+      const response = await fetch(
+        `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${ticker.toUpperCase()}`
+      );
+      
+      if (!response.ok) throw new Error('Failed to fetch');
+      
+      const data = await response.json();
+      const quote = data.quoteResponse?.result?.[0];
+      
+      if (!quote) {
+        setError(`No data found for ${ticker.toUpperCase()}`);
+        return;
       }
+
+      setStockData({
+        symbol: quote.symbol,
+        name: quote.shortName || quote.longName || quote.symbol,
+        price: `$${quote.regularMarketPrice?.toFixed(2) || 'N/A'}`,
+        change: quote.regularMarketChange >= 0 
+          ? `+$${quote.regularMarketChange?.toFixed(2)}` 
+          : `-$${Math.abs(quote.regularMarketChange)?.toFixed(2)}`,
+        changePercent: quote.regularMarketChangePercent >= 0
+          ? `+${quote.regularMarketChangePercent?.toFixed(2)}%`
+          : `${quote.regularMarketChangePercent?.toFixed(2)}%`,
+        peRatio: quote.trailingPE?.toFixed(1) || 'N/A',
+        eps: quote.epsTrailingTwelveMonths?.toFixed(2) || 'N/A',
+        marketCap: formatLargeNumber(quote.marketCap),
+        volume: formatLargeNumber(quote.regularMarketVolume),
+        avgVolume: formatLargeNumber(quote.averageDailyVolume3Month),
+        high52: `$${quote.fiftyTwoWeekHigh?.toFixed(2) || 'N/A'}`,
+        low52: `$${quote.fiftyTwoWeekLow?.toFixed(2) || 'N/A'}`,
+        dividend: quote.dividendYield ? `${(quote.dividendYield * 100).toFixed(2)}%` : 'N/A',
+        beta: quote.beta?.toFixed(2) || 'N/A',
+      });
+    } catch (err) {
+      setError('Failed to fetch stock data. Try again.');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const clearSearch = () => {
-    setQuery('');
-    setData(null);
-    setError(null);
+  const formatLargeNumber = (num: number | undefined): string => {
+    if (!num) return 'N/A';
+    if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
+    if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
+    if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
+    return num.toLocaleString();
   };
 
-  // Calculate percentage for Fair Value gauge
-  const getFairValuePosition = () => {
-    if (!data) return 50;
-    const clean = (s: string) => parseFloat(s.replace(/[^0-9.]/g, ''));
-    const curr = clean(data.currentPrice);
-    const fair = clean(data.fairValue);
-    
-    if (!curr || !fair) return 50;
-    
-    // Simple ratio to position on a bar. 
-    // If Price == Fair, pos = 50%.
-    // If Price is 50% of Fair (Undervalued), pos should be left (low).
-    // If Price is 150% of Fair (Overvalued), pos should be right (high).
-    
-    const ratio = curr / fair; // 0.8 means trading at 80% of value (Undervalued)
-    // Scale: 0.5 (Undervalued) -> 0% pos, 1.0 (Fair) -> 50% pos, 1.5 (Overvalued) -> 100% pos
-    
-    let pos = (ratio - 0.5) * 100;
-    return Math.max(0, Math.min(100, pos));
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleSearch();
   };
+
+  const isPositive = stockData?.change?.startsWith('+');
 
   return (
-    <div className="w-full rounded-xl border border-indigo-500/20 bg-[#0f172a] shadow-lg overflow-hidden transition-all duration-300">
-      
-      {/* Search Header */}
-      <div className="flex items-center gap-3 p-4 bg-[#0b1221] border-b border-slate-800">
-        <div className="p-2 rounded bg-indigo-500/10 text-indigo-400">
-          <IconBrain className="h-5 w-5" />
-        </div>
-        <div className="flex-1">
-          <h2 className="text-sm font-bold text-white uppercase tracking-wider">Financial X-Ray</h2>
-          <p className="text-[10px] text-slate-500">CFA-Level Deep Dive & Valuation Check</p>
+    <div className="flex flex-col h-full rounded-xl border border-slate-800 bg-[#0b1221] overflow-hidden">
+      {/* Header with Search */}
+      <div className="flex items-center justify-between gap-3 p-4 border-b border-slate-800 bg-slate-900/30">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded bg-blue-500/10 text-blue-400">
+            <IconBrain className="h-4 w-4" />
+          </div>
+          <div>
+            <h2 className="text-xs font-bold text-white uppercase tracking-wider">Financial X-Ray</h2>
+            <p className="text-[9px] text-slate-500">CFA-Level Deep Dive & Valuation</p>
+          </div>
         </div>
         
-        <form onSubmit={handleSearch} className="relative flex items-center">
-          <input 
-            type="text" 
-            placeholder="ENTER TICKER (e.g. AAPL)"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="w-48 sm:w-64 bg-slate-900 border border-slate-700 text-white text-xs font-mono px-4 py-2 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 uppercase placeholder:normal-case placeholder:text-slate-600"
-          />
-          {query && (
-            <button 
-                type="button"
-                onClick={clearSearch} 
-                className="absolute right-12 text-slate-500 hover:text-white"
-            >
-                <IconX className="h-3 w-3" />
-            </button>
-          )}
-          <button 
-            type="submit"
-            disabled={isLoading || !query}
-            className="absolute right-1 p-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-500 disabled:opacity-50 disabled:bg-slate-700 transition-colors"
+        {/* Search Input */}
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <input
+              type="text"
+              value={ticker}
+              onChange={(e) => setTicker(e.target.value.toUpperCase())}
+              onKeyPress={handleKeyPress}
+              placeholder="AAPL"
+              className="w-28 px-3 py-1.5 text-xs font-mono bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+          <button
+            onClick={handleSearch}
+            disabled={loading || !ticker.trim()}
+            className="p-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:cursor-not-allowed transition-colors"
           >
-             {isLoading ? <div className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white"></div> : <IconSearch className="h-3 w-3" />}
+            {loading ? (
+              <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            ) : (
+              <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            )}
           </button>
-        </form>
+        </div>
       </div>
 
       {/* Content Area */}
-      {error && (
-        <div className="p-6 text-center text-xs text-red-400 font-mono border-t border-red-500/20 bg-red-950/10">
-           ERROR: {error}
-        </div>
-      )}
+      <div className="flex-1 p-4 min-h-[280px]">
+        {/* Empty State */}
+        {!stockData && !loading && !error && (
+          <div className="h-full flex flex-col items-center justify-center text-center">
+            <div className="text-slate-600 mb-2">
+              <svg className="h-10 w-10 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <p className="text-xs text-slate-500 uppercase tracking-wider">Enter a ticker to scan fundamentals</p>
+          </div>
+        )}
 
-      {!data && !isLoading && !error && (
-         <div className="p-8 text-center border-t border-slate-800/50">
-            <p className="text-xs text-slate-600 font-medium">ENTER A TICKER TO SCAN FUNDAMENTALS</p>
-         </div>
-      )}
+        {/* Error State */}
+        {error && (
+          <div className="h-full flex flex-col items-center justify-center text-center">
+            <div className="text-red-500/50 mb-2">
+              <svg className="h-10 w-10 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <p className="text-xs text-red-400">{error}</p>
+          </div>
+        )}
 
-      {isLoading && (
-        <div className="p-12 text-center border-t border-slate-800/50">
-           <div className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent mb-3"></div>
-           <p className="text-[10px] text-indigo-400 animate-pulse font-mono">SEARCHING LIVE MARKET DATA...</p>
-        </div>
-      )}
+        {/* Loading State */}
+        {loading && (
+          <div className="h-full flex flex-col items-center justify-center">
+            <div className="h-8 w-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mb-3"></div>
+            <p className="text-xs text-slate-500 uppercase tracking-wider">Analyzing {ticker}...</p>
+          </div>
+        )}
 
-      {/* RESULT DASHBOARD */}
-      {data && (
-        <div className="animate-in slide-in-from-top-4 duration-500">
-           {/* Top Row: Price & Fair Value Gauge */}
-           <div className="grid grid-cols-1 md:grid-cols-3 border-b border-slate-800 divide-y md:divide-y-0 md:divide-x divide-slate-800">
-              
-              {/* 1. Identity */}
-              <div className="p-5 bg-[#0b1221]">
-                 <div className="flex items-baseline gap-3">
-                    <h1 className="text-3xl font-black text-white tracking-tighter">{data.symbol}</h1>
-                    <span className="text-lg font-mono text-indigo-300">{data.currentPrice}</span>
-                 </div>
-                 <p className="text-xs text-slate-400 font-medium truncate">{data.name}</p>
-                 <div className="mt-3 flex gap-2">
-                    <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase border ${
-                        data.valuation.rating === 'Undervalued' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
-                        data.valuation.rating === 'Overvalued' ? 'bg-red-500/10 text-red-400 border-red-500/30' :
-                        'bg-slate-500/10 text-slate-300 border-slate-500/30'
-                    }`}>
-                        {data.valuation.rating}
+        {/* Stock Data */}
+        {stockData && !loading && (
+          <div className="space-y-4">
+            {/* Stock Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center h-10 w-14 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 font-bold text-sm">
+                  {stockData.symbol}
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-white">{stockData.name}</div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-mono font-bold text-white">{stockData.price}</span>
+                    <span className={`text-xs font-mono font-bold ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {stockData.change} ({stockData.changePercent})
                     </span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase border ${
-                        data.health.rating === 'Strong' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
-                        data.health.rating === 'Weak' ? 'bg-orange-500/10 text-orange-400 border-orange-500/30' :
-                        'bg-slate-500/10 text-slate-300 border-slate-500/30'
-                    }`}>
-                        Health: {data.health.rating}
-                    </span>
-                 </div>
+                  </div>
+                </div>
               </div>
+            </div>
 
-              {/* 2. Fair Value Gauge */}
-              <div className="p-5 col-span-1 md:col-span-2 relative overflow-hidden">
-                 <div className="flex justify-between items-end mb-4">
-                    <div>
-                       <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Intrinsic Value Est.</div>
-                       <div className="text-2xl font-mono font-bold text-white">{data.fairValue}</div>
-                    </div>
-                    <div className="text-right">
-                       <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Upside</div>
-                       <div className="text-xl font-mono font-bold text-emerald-400">{data.upside}</div>
-                    </div>
-                 </div>
-
-                 {/* The Bar */}
-                 <div className="relative h-4 bg-slate-800 rounded-full overflow-hidden mb-2 ring-1 ring-slate-700">
-                    <div className="absolute inset-y-0 left-0 right-1/2 bg-emerald-500/20"></div> {/* Undervalued Zone */}
-                    <div className="absolute inset-y-0 left-1/2 right-0 bg-red-500/20"></div> {/* Overvalued Zone */}
-                    <div className="absolute top-0 bottom-0 w-0.5 bg-slate-500 left-1/2 z-0"></div> {/* Center Line */}
-                    
-                    {/* Marker */}
-                    <div 
-                        className="absolute top-0 bottom-0 w-1.5 bg-white shadow-[0_0_10px_white] z-10 transition-all duration-1000"
-                        style={{ left: `${getFairValuePosition()}%` }}
-                    ></div>
-                 </div>
-                 <div className="flex justify-between text-[9px] font-mono text-slate-500 uppercase">
-                    <span>Undervalued</span>
-                    <span>Fair Value</span>
-                    <span>Overvalued</span>
-                 </div>
-              </div>
-           </div>
-
-           {/* Metrics Grid */}
-           <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-slate-800 border-b border-slate-800">
-               {/* Valuation */}
-               <div className="bg-[#0f172a] p-4">
-                   <h4 className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2">Valuation</h4>
-                   <div className="space-y-1">
-                       <div className="flex justify-between text-xs"><span className="text-slate-400">EV/EBITDA</span> <span className="text-white font-mono">{data.valuation.evEbitda}</span></div>
-                       <div className="flex justify-between text-xs"><span className="text-slate-400">Fwd P/E</span> <span className="text-white font-mono">{data.valuation.peFwd}</span></div>
-                       <div className="flex justify-between text-xs"><span className="text-slate-400">P/B</span> <span className="text-white font-mono">{data.valuation.priceToBook}</span></div>
-                   </div>
-               </div>
-               
-               {/* Health */}
-               <div className="bg-[#0f172a] p-4">
-                   <h4 className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2">Health</h4>
-                   <div className="space-y-1">
-                       <div className="flex justify-between text-xs"><span className="text-slate-400">ROIC</span> <span className="text-emerald-400 font-mono font-bold">{data.health.roic}</span></div>
-                       <div className="flex justify-between text-xs"><span className="text-slate-400">Debt/Eq</span> <span className="text-white font-mono">{data.health.debtToEquity}</span></div>
-                       <div className="flex justify-between text-xs"><span className="text-slate-400">Liq. Ratio</span> <span className="text-white font-mono">{data.health.currentRatio}</span></div>
-                   </div>
-               </div>
-
-               {/* Growth */}
-               <div className="bg-[#0f172a] p-4">
-                   <h4 className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2">Growth (YoY)</h4>
-                   <div className="space-y-1">
-                       <div className="flex justify-between text-xs"><span className="text-slate-400">Revenue</span> <span className="text-white font-mono">{data.growth.revenueGrowth}</span></div>
-                       <div className="flex justify-between text-xs"><span className="text-slate-400">Earnings</span> <span className="text-white font-mono">{data.growth.earningsGrowth}</span></div>
-                   </div>
-               </div>
-
-               {/* Smart Money */}
-               <div className="bg-[#0f172a] p-4">
-                   <h4 className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2">Smart Money</h4>
-                   <div className="space-y-1">
-                       <div className="flex justify-between text-xs"><span className="text-slate-400">Inst. Own</span> <span className="text-white font-mono">{data.institutional.instOwnership}</span></div>
-                       <div className="text-xs text-indigo-300 font-medium text-right mt-1">{data.institutional.recentTrends}</div>
-                   </div>
-               </div>
-           </div>
-
-           {/* Verdict */}
-           <div className="p-5 bg-indigo-950/20">
-              <div className="flex gap-3">
-                 <IconActivity className="h-5 w-5 text-indigo-400 mt-0.5" />
-                 <div>
-                    <h4 className="text-xs font-bold text-indigo-300 uppercase mb-1">CFA Verdict</h4>
-                    <p className="text-sm text-slate-200 leading-relaxed italic">"{data.verdict}"</p>
-                 </div>
-              </div>
-           </div>
-        </div>
-      )}
+            {/* Metrics Grid */}
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { label: 'P/E Ratio', value: stockData.peRatio },
+                { label: 'EPS', value: stockData.eps },
+                { label: 'Market Cap', value: stockData.marketCap },
+                { label: 'Beta', value: stockData.beta },
+                { label: '52W High', value: stockData.high52 },
+                { label: '52W Low', value: stockData.low52 },
+                { label: 'Dividend', value: stockData.dividend },
+                { label: 'Volume', value: stockData.volume },
+              ].map((metric, i) => (
+                <div key={i} className="bg-slate-900/80 rounded-lg p-2 text-center">
+                  <div className="text-[8px] text-slate-500 uppercase font-bold mb-1">{metric.label}</div>
+                  <div className="text-[11px] font-mono font-bold text-white">{metric.value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
