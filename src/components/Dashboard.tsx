@@ -9,7 +9,7 @@ import SmartStockBox from './SmartStockBox';
 import InsiderTrading from './InsiderTrading';
 import MarketOverview from './MarketOverview';
 import StockDeepDive from './StockDeepDive';
-import SubscriptionForm from './SubscriptionForm'; // ← NEW IMPORT
+import SubscriptionForm from './SubscriptionForm';
 import { fetchMarketDashboard } from '../services/geminiService';
 import { DashboardData, LoadingState } from '../types';
 import { IconShield, IconRefresh } from './Icons';
@@ -136,34 +136,37 @@ const Dashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Reddit Sentiment - Existing Section */}
+        {/* Reddit Sentiment */}
         <section>
            <RedditSentiment trends={data.redditTrends} />
         </section>
 
-        {/* Multi-Source Trending - NEW SECTION */}
+        {/* Multi-Source Trending */}
         <section>
            <Multisourcetrending redditTrends={data.redditTrends} />
         </section>
 
-        <section>
-           <StockDeepDive />
-        </section>
-
+        {/* Financial X-Ray & Insider Trading - SIDE BY SIDE */}
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
            <div className="col-span-1">
-              <SmartStockBox picks={data.picks} />
+              <StockDeepDive />
            </div>
            <div className="col-span-1">
               <InsiderTrading topTrades={data.insiderTrades} />
            </div>
         </section>
 
+        {/* Fundamentals Screener - FULL WIDTH */}
+        <section>
+           <SmartStockBox picks={data.picks} />
+        </section>
+
+        {/* News Feed */}
         <section>
            <NewsFeed news={data.news} />
         </section>
 
-        {/* Email Subscription Section - NEW */}
+        {/* Email Subscription Section */}
         <section className="py-12">
           <div className="flex justify-center">
             <SubscriptionForm variant="inline" />
