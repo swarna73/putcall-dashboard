@@ -570,7 +570,7 @@ export function generateEmailHTML({ data, unsubscribeUrl, stocktwits, yahoo }: E
 
     <!-- CTA -->
     <div class="cta-section">
-      <a href="https://putcall.nl" class="cta-button">
+      <a href="https://putcall.nl" class="cta-button" style="color: white !important;">
         View Full Dashboard →
       </a>
     </div>
