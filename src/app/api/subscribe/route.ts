@@ -111,16 +111,7 @@ export async function POST(request: Request) {
       </p>
       
       <div style="text-align: center;">
-        <a href="${confirmUrl}" class="button">
-	  style="
-    color: #ffffff;
-    background-color: #5b4ee4;
-    padding: 14px 28px;
-    border-radius: 10px;
-    text-decoration: none;
-    font-weight: 600;
-    display: inline-block;
-  "
+        <a href="${confirmUrl}" class="button" style="color: white !important;">
           Confirm Subscription
         </a>
       </div>
