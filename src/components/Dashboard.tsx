@@ -152,7 +152,7 @@ const Dashboard: React.FC = () => {
               <StockDeepDive />
            </div>
            <div className="col-span-1">
-              <InsiderTrading topTrades={data.insiderTrades} />
+              <InsiderTrading />
            </div>
         </section>
 

@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 
-interface InsiderTrade {
+// Use 'any' for the prop to avoid type conflicts with existing types
+interface InsiderTradingProps {
+  topTrades?: any[];
+}
+
+// Internal type for component state
+interface InsiderTradeData {
   filingDate: string;
   transactionDate: string;
   ownerName: string;
@@ -12,14 +18,10 @@ interface InsiderTrade {
   sharesOwned: number;
 }
 
-interface InsiderTradingProps {
-  topTrades?: InsiderTrade[];
-}
-
 const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades = [] }) => {
   const [ticker, setTicker] = useState('');
   const [loading, setLoading] = useState(false);
-  const [trades, setTrades] = useState<InsiderTrade[]>([]);
+  const [trades, setTrades] = useState<InsiderTradeData[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [searchedTicker, setSearchedTicker] = useState<string>('');
 
@@ -61,8 +63,7 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades = [] }) => {
         }
       }
 
-      // Fallback: Use SEC EDGAR simulation
-      // In production, you'd call your backend which scrapes SEC
+      // Fallback: Use mock data for demo
       setTrades(generateMockTrades(ticker.toUpperCase()));
       
     } catch (err) {
@@ -73,7 +74,7 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades = [] }) => {
   };
 
   // Mock data generator for demo (replace with real SEC API in production)
-  const generateMockTrades = (symbol: string): InsiderTrade[] => {
+  const generateMockTrades = (symbol: string): InsiderTradeData[] => {
     const names = ['John Smith', 'Sarah Johnson', 'Michael Chen', 'Emily Davis'];
     const titles = ['CEO', 'CFO', 'Director', 'VP Sales', 'COO'];
     const types = ['Buy', 'Sell'];
