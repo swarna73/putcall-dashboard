@@ -3,7 +3,7 @@
 // Direct APIs - No Gemini dependency for data fetching
 // Expected response time: 500ms - 2s (vs 15-30s before)
 // 
-// UPDATED: Multi-source Reddit with honest fallback
+// UPDATED: Multi-source Reddit with ApeWisdom + Tradestie + fallback
 // =====================================================
 
 import { NextResponse } from 'next/server';
@@ -96,6 +96,8 @@ const COMPANY_NAMES: Record<string, string> = {
   ADBE: 'Adobe', INTU: 'Intuit', PANW: 'Palo Alto Networks', FTNT: 'Fortinet',
   ZS: 'Zscaler', OKTA: 'Okta', DDOG: 'Datadog', MDB: 'MongoDB', ESTC: 'Elastic',
   PATH: 'UiPath', AI: 'C3.ai', IONQ: 'IonQ', RGTI: 'Rigetti',
+  SNSE: 'Sensei Biotherapeutics', HIMS: 'Hims & Hers Health', CRSP: 'CRISPR Therapeutics',
+  MRNA: 'Moderna', BNTX: 'BioNTech', SOUN: 'SoundHound AI', BBAI: 'BigBear.ai',
 };
 
 // Valid tickers to look for (prevents false positives)
@@ -181,15 +183,69 @@ async function getMarketSentiment() {
 }
 
 // =====================================================
-// 3. REDDIT TRENDS - MULTI-SOURCE (NEW!)
-// Priority: Tradestie → Reddit → Cache → Empty
+// 3. REDDIT TRENDS - MULTI-SOURCE
+// Priority: ApeWisdom → Tradestie → Reddit → Cache → Empty
 // =====================================================
 
-// Source 1: Tradestie API (Most Reliable - pre-processed WSB data)
-async function fetchFromTradestie(): Promise<any[] | null> {
+// Source 1: ApeWisdom API (Most Reliable - aggregates WSB mentions)
+async function fetchFromApeWisdom(): Promise<any[] | null> {
   try {
     const response = await fetch(
-      'https://tradestie.com/api/v1/apps/reddit',
+      'https://apewisdom.io/api/v1.0/filter/all-stocks/page/1',
+      {
+        headers: { 
+          'User-Agent': 'PutCall.nl/1.0',
+          'Accept': 'application/json'
+        },
+        signal: AbortSignal.timeout(5000),
+      }
+    );
+
+    if (!response.ok) {
+      console.warn(`⚠️ ApeWisdom returned ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    const results = data.results || [];
+    
+    if (!Array.isArray(results) || results.length === 0) {
+      console.warn('⚠️ ApeWisdom returned empty data');
+      return null;
+    }
+
+    console.log(`✅ ApeWisdom: ${results.length} tickers`);
+
+    return results.slice(0, 10).map((item: any, index: number) => {
+      // ApeWisdom doesn't provide sentiment, estimate based on rank change
+      const rankChange = item.rank_24h_ago ? (item.rank_24h_ago - item.rank) : 0;
+      const sentimentScore = Math.min(95, Math.max(30, 60 + rankChange * 2));
+      const sentiment = sentimentScore >= 70 ? 'Bullish' : sentimentScore <= 45 ? 'Bearish' : 'Neutral';
+      
+      return {
+        symbol: item.ticker,
+        name: item.name || COMPANY_NAMES[item.ticker] || item.ticker,
+        mentions: parseInt(item.mentions) || 0,
+        sentiment,
+        sentimentScore,
+        discussionSummary: `${item.mentions} mentions, ${item.upvotes || 0} upvotes on Reddit`,
+        volumeChange: rankChange > 0 ? `+${rankChange} rank` : rankChange < 0 ? `${rankChange} rank` : 'No change',
+        keywords: generateKeywords(item.ticker, sentiment),
+        recentNews: [],
+      };
+    });
+  } catch (error: any) {
+    console.warn('⚠️ ApeWisdom failed:', error.message);
+    return null;
+  }
+}
+
+// Source 2: Tradestie API (corrected URL)
+async function fetchFromTradestie(): Promise<any[] | null> {
+  try {
+    // Note: URL changed from tradestie.com to api.tradestie.com
+    const response = await fetch(
+      'https://api.tradestie.com/v1/apps/reddit',
       {
         headers: { 'User-Agent': 'PutCall.nl/1.0' },
         signal: AbortSignal.timeout(5000),
@@ -211,7 +267,7 @@ async function fetchFromTradestie(): Promise<any[] | null> {
     console.log(`✅ Tradestie: ${data.length} tickers`);
 
     return data.slice(0, 10).map((item: any, index: number) => {
-      const sentimentScore = Math.round(item.sentiment_score * 100) || 50;
+      const sentimentScore = Math.round((item.sentiment_score || 0.5) * 100);
       const sentiment = item.sentiment === 'Bullish' ? 'Bullish' 
                       : item.sentiment === 'Bearish' ? 'Bearish' 
                       : 'Neutral';
@@ -234,7 +290,7 @@ async function fetchFromTradestie(): Promise<any[] | null> {
   }
 }
 
-// Source 2: Direct Reddit JSON API
+// Source 3: Direct Reddit JSON API (often blocked)
 async function fetchFromReddit(): Promise<any[] | null> {
   try {
     const response = await fetch(
@@ -347,16 +403,31 @@ async function fetchFromReddit(): Promise<any[] | null> {
 // Main Reddit function - tries sources in order
 async function getRedditTrends(): Promise<{
   trends: any[];
-  source: 'tradestie' | 'reddit' | 'cache' | 'unavailable';
+  source: 'apewisdom' | 'tradestie' | 'reddit' | 'cache' | 'unavailable';
   lastUpdated: string | null;
   isStale: boolean;
 }> {
   console.log('🔍 Fetching Reddit trends (multi-source)...');
 
-  // Source 1: Tradestie (most reliable)
+  // Source 1: ApeWisdom (most reliable currently)
+  const apeWisdomData = await fetchFromApeWisdom();
+  if (apeWisdomData && apeWisdomData.length > 0) {
+    redditCache.data = apeWisdomData;
+    redditCache.timestamp = Date.now();
+    redditCache.source = 'apewisdom';
+    
+    console.log('✅ Using ApeWisdom data');
+    return {
+      trends: apeWisdomData,
+      source: 'apewisdom',
+      lastUpdated: new Date().toISOString(),
+      isStale: false
+    };
+  }
+
+  // Source 2: Tradestie
   const tradestieData = await fetchFromTradestie();
   if (tradestieData && tradestieData.length > 0) {
-    // Update cache with fresh data
     redditCache.data = tradestieData;
     redditCache.timestamp = Date.now();
     redditCache.source = 'tradestie';
@@ -370,7 +441,7 @@ async function getRedditTrends(): Promise<{
     };
   }
 
-  // Source 2: Direct Reddit
+  // Source 3: Direct Reddit
   const redditData = await fetchFromReddit();
   if (redditData && redditData.length > 0) {
     redditCache.data = redditData;
@@ -386,7 +457,7 @@ async function getRedditTrends(): Promise<{
     };
   }
 
-  // Source 3: Use recent cache if available (less than 4 hours old)
+  // Source 4: Use recent cache if available (less than 4 hours old)
   const cacheAge = Date.now() - redditCache.timestamp;
   if (redditCache.data && redditCache.data.length > 0 && cacheAge < REDDIT_MAX_CACHE_AGE) {
     console.log(`📦 Using cached Reddit data (${Math.round(cacheAge / 60000)} min old)`);

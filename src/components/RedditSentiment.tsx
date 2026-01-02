@@ -6,16 +6,65 @@ interface RedditSentimentProps {
   trends: RedditTicker[];
   // NEW: Optional metadata from API
   redditMeta?: {
-    source: 'tradestie' | 'reddit' | 'cache' | 'unavailable';
+    source: 'apewisdom' | 'tradestie' | 'reddit' | 'cache' | 'unavailable';
     lastUpdated: string | null;
     isStale: boolean;
     isUnavailable: boolean;
   };
+  // NEW: Alternative data sources to show when Reddit fails
+  stocktwits?: Array<{ symbol: string; name: string; sentiment: number; sentimentScore?: number }>;
+  yahoo?: Array<{ symbol: string; name: string; sentiment: number; change?: string }>;
 }
 
-const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends, redditMeta }) => {
+const RedditSentiment: React.FC<RedditSentimentProps> = ({ 
+  trends, 
+  redditMeta,
+  stocktwits = [],
+  yahoo = []
+}) => {
   const topTicker = trends.length > 0 ? trends[0] : null;
   const runnersUp = trends.slice(1, 10);
+  
+  // Determine if we should show fallback data
+  const showFallback = !topTicker && (stocktwits.length > 0 || yahoo.length > 0);
+  
+  // Merge StockTwits and Yahoo for fallback display
+  const fallbackData = React.useMemo(() => {
+    if (!showFallback) return [];
+    
+    // Combine and dedupe by symbol, prefer StockTwits
+    const combined = new Map<string, any>();
+    
+    stocktwits.forEach((s, idx) => {
+      combined.set(s.symbol, {
+        symbol: s.symbol,
+        name: s.name,
+        sentimentScore: s.sentiment || s.sentimentScore || 70,
+        sentiment: (s.sentiment || 70) >= 60 ? 'Bullish' : (s.sentiment || 70) <= 40 ? 'Bearish' : 'Neutral',
+        source: 'StockTwits',
+        rank: idx + 1
+      });
+    });
+    
+    yahoo.forEach((y, idx) => {
+      if (!combined.has(y.symbol)) {
+        combined.set(y.symbol, {
+          symbol: y.symbol,
+          name: y.name,
+          sentimentScore: y.sentiment || 65,
+          sentiment: (y.sentiment || 65) >= 60 ? 'Bullish' : (y.sentiment || 65) <= 40 ? 'Bearish' : 'Neutral',
+          source: 'Yahoo',
+          change: y.change,
+          rank: idx + 1
+        });
+      }
+    });
+    
+    return Array.from(combined.values()).slice(0, 10);
+  }, [showFallback, stocktwits, yahoo]);
+
+  const fallbackTop = fallbackData[0];
+  const fallbackRunnersUp = fallbackData.slice(1, 10);
 
   // Matrix Rain Column Component
   const MatrixColumn = ({ words, speed, offset, opacity = "opacity-20" }: { words: string[], speed: string, offset: string, opacity?: string }) => (
@@ -45,6 +94,17 @@ const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends, redditMeta })
     }
   };
 
+  // Source label mapping
+  const getSourceLabel = (source: string) => {
+    switch (source) {
+      case 'apewisdom': return 'ApeWisdom';
+      case 'tradestie': return 'Tradestie';
+      case 'reddit': return 'Reddit';
+      case 'cache': return 'Cached';
+      default: return source;
+    }
+  };
+
   return (
     <div className="w-full">
       {/* Stale Data Warning Banner */}
@@ -58,7 +118,11 @@ const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends, redditMeta })
         </div>
       )}
 
+      {/* MAIN CONTENT: Show Reddit data OR fallback to StockTwits/Yahoo */}
       {topTicker ? (
+        // =====================================================
+        // REDDIT DATA AVAILABLE - Show normal Reddit UI
+        // =====================================================
         <div className="relative w-full overflow-hidden rounded-2xl border border-indigo-500/30 bg-[#0f172a] shadow-2xl shadow-indigo-900/20 animate-in fade-in duration-700 group">
            
            {/* Background Gradient */}
@@ -95,12 +159,11 @@ const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends, redditMeta })
                       {redditMeta?.source && redditMeta.source !== 'unavailable' && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-slate-800/80 px-2 py-0.5 text-[9px] font-medium text-slate-400 border border-slate-700/50">
                           <span className={`w-1.5 h-1.5 rounded-full ${
-                            redditMeta.source === 'tradestie' || redditMeta.source === 'reddit' 
+                            redditMeta.source === 'apewisdom' || redditMeta.source === 'tradestie' || redditMeta.source === 'reddit' 
                               ? 'bg-emerald-500' 
                               : 'bg-amber-500'
                           }`}></span>
-                          {redditMeta.source === 'tradestie' ? 'Live' : 
-                           redditMeta.source === 'reddit' ? 'Live' : 'Cached'}
+                          {getSourceLabel(redditMeta.source)}
                         </span>
                       )}
                     </div>
@@ -178,43 +241,23 @@ const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends, redditMeta })
                      </div>
                    </div>
 
-                   {/* CHANGED: Recent News instead of Keywords */}
-                   {topTicker.recentNews && topTicker.recentNews.length > 0 ? (
-                     <div className="bg-gradient-to-r from-slate-900/80 to-slate-800/80 rounded-lg p-3 border border-slate-700/50">
-                       <div className="flex items-center gap-2 mb-2.5">
-                         <div className="text-[9px] text-slate-300 uppercase font-bold tracking-wider">📰 Recent News</div>
+                   {/* Keywords */}
+                   {topTicker.keywords && topTicker.keywords.length > 0 && (
+                     <div className="bg-gradient-to-r from-indigo-950/30 to-purple-950/30 rounded-lg p-3 border border-indigo-800/30">
+                       <div className="flex items-center gap-2 mb-2">
+                         <div className="text-[9px] text-indigo-400 uppercase font-bold tracking-wider">🔥 Trending Keywords</div>
                        </div>
-                       <div className="space-y-2">
-                         {topTicker.recentNews.slice(0, 3).map((headline, idx) => (
-                           <div 
+                       <div className="flex flex-wrap gap-1.5">
+                         {topTicker.keywords.map((keyword, idx) => (
+                           <span 
                              key={idx}
-                             className="flex items-start gap-2 text-slate-300 hover:text-white transition-colors"
+                             className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-bold uppercase tracking-wide border border-indigo-500/30"
                            >
-                             <span className="text-indigo-400 font-bold text-xs mt-0.5">•</span>
-                             <span className="text-xs leading-relaxed">{headline}</span>
-                           </div>
+                             {keyword}
+                           </span>
                          ))}
                        </div>
                      </div>
-                   ) : (
-                     /* Fallback to keywords if no news available */
-                     topTicker.keywords && topTicker.keywords.length > 0 && (
-                       <div className="bg-gradient-to-r from-indigo-950/30 to-purple-950/30 rounded-lg p-3 border border-indigo-800/30">
-                         <div className="flex items-center gap-2 mb-2">
-                           <div className="text-[9px] text-indigo-400 uppercase font-bold tracking-wider">🔥 Trending Keywords</div>
-                         </div>
-                         <div className="flex flex-wrap gap-1.5">
-                           {topTicker.keywords.map((keyword, idx) => (
-                             <span 
-                               key={idx}
-                               className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-bold uppercase tracking-wide border border-indigo-500/30"
-                             >
-                               {keyword}
-                             </span>
-                           ))}
-                         </div>
-                       </div>
-                     )
                    )}
                  </div>
               </div>
@@ -261,9 +304,135 @@ const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends, redditMeta })
               </div>
            </div>
         </div>
+      ) : showFallback && fallbackTop ? (
+        // =====================================================
+        // REDDIT UNAVAILABLE - Show StockTwits/Yahoo fallback
+        // =====================================================
+        <div className="relative w-full overflow-hidden rounded-2xl border border-blue-500/30 bg-[#0f172a] shadow-2xl shadow-blue-900/20 animate-in fade-in duration-700 group">
+           
+           {/* Background Gradient - Blue tint for fallback */}
+           <div className="absolute inset-0 bg-gradient-to-br from-[#0f172a] via-[#1e3a5f] to-[#0f172a] z-0"></div>
+
+           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-0 lg:divide-x lg:divide-slate-800/50">
+              
+              {/* Left: Top Stock from fallback */}
+              <div className="lg:col-span-7 p-6 lg:p-8 flex flex-col justify-center min-h-[300px]">
+                 <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white shadow-lg shadow-blue-500/40">
+                        <IconZap className="h-3 w-3 fill-current" />
+                        Trending Now
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-2 py-0.5 text-[9px] font-medium text-amber-400 border border-amber-500/30">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                        {fallbackTop.source}
+                      </span>
+                    </div>
+                    
+                    {/* SENTIMENT BADGE */}
+                    <div className="flex items-center gap-3 bg-slate-950/80 backdrop-blur-md rounded-lg border border-slate-800 px-3 py-1.5 shadow-xl">
+                        <div className="text-right">
+                          <div className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Sentiment</div>
+                          <div className={`text-[10px] font-bold uppercase tracking-wide leading-none ${
+                             fallbackTop.sentiment === 'Bullish' ? 'text-emerald-400' : 
+                             fallbackTop.sentiment === 'Bearish' ? 'text-red-400' : 'text-slate-400'
+                          }`}>{fallbackTop.sentiment}</div>
+                        </div>
+                        <div className={`text-2xl font-black tabular-nums tracking-tighter ${
+                            fallbackTop.sentimentScore > 60 ? 'text-emerald-400' : 
+                            fallbackTop.sentimentScore < 40 ? 'text-red-400' : 'text-slate-200'
+                        }`}>
+                            {fallbackTop.sentimentScore}
+                        </div>
+                    </div>
+                 </div>
+                 
+                 <div className="mt-4 mb-6">
+                    <h1 className="text-7xl lg:text-9xl font-black tracking-tighter text-white drop-shadow-2xl">
+                        {fallbackTop.symbol}
+                    </h1>
+                    <div className="flex items-center gap-3 mt-2 pl-1">
+                        <span className="text-lg font-medium text-slate-400">{fallbackTop.name}</span>
+                    </div>
+                 </div>
+                 
+                 {/* Notice about Reddit being down */}
+                 <div className="flex items-start gap-3 rounded-xl bg-amber-500/10 p-4 border border-amber-500/30 backdrop-blur-md max-w-xl mb-4">
+                    <span className="text-amber-400 text-lg">📡</span>
+                    <div>
+                      <p className="text-sm font-medium text-amber-200 leading-relaxed">
+                        Reddit data temporarily unavailable
+                      </p>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Showing trending stocks from StockTwits & Yahoo Finance instead
+                      </p>
+                    </div>
+                 </div>
+
+                 {/* Stats */}
+                 <div className="grid grid-cols-3 gap-2 max-w-md">
+                   <div className="bg-slate-900/60 rounded-lg p-2.5 border border-slate-700/50">
+                     <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-1">Score</div>
+                     <div className={`text-lg font-black ${
+                       fallbackTop.sentimentScore > 60 ? 'text-emerald-400' : 'text-slate-400'
+                     }`}>
+                       {fallbackTop.sentimentScore}
+                     </div>
+                   </div>
+                   
+                   <div className="bg-slate-900/60 rounded-lg p-2.5 border border-slate-700/50">
+                     <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-1">Source</div>
+                     <div className="text-lg font-black text-blue-400">{fallbackTop.source}</div>
+                   </div>
+                   
+                   <div className="bg-slate-900/60 rounded-lg p-2.5 border border-slate-700/50">
+                     <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-1">Rank</div>
+                     <div className="text-lg font-black text-indigo-400">#1</div>
+                   </div>
+                 </div>
+              </div>
+
+              {/* Right: Combined StockTwits + Yahoo Leaderboard */}
+              <div className="lg:col-span-5 bg-[#0b1221]/90 backdrop-blur-md border-t lg:border-t-0 border-slate-800">
+                 <div className="p-4 border-b border-slate-800/50 flex items-center justify-between bg-slate-950/50">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">StockTwits + Yahoo Trending</span>
+                    <IconActivity className="h-4 w-4 text-slate-600" />
+                 </div>
+                 
+                 <div className="flex flex-col">
+                    <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-slate-900/30 text-[9px] font-bold text-slate-500 uppercase tracking-wider">
+                        <div className="col-span-2">Rank</div>
+                        <div className="col-span-4">Ticker</div>
+                        <div className="col-span-3 text-right">Source</div>
+                        <div className="col-span-3 text-right">Score</div>
+                    </div>
+
+                    {fallbackRunnersUp.map((stock, idx) => (
+                        <div key={stock.symbol} className="grid grid-cols-12 gap-2 px-4 py-3 border-b border-slate-800/30 hover:bg-slate-800/50 transition-colors items-center group/row cursor-pointer">
+                            <div className="col-span-2 text-xs font-bold text-slate-500 group-hover/row:text-white">#{idx + 2}</div>
+                            <div className="col-span-4">
+                              <span className="font-bold text-slate-200 group-hover/row:text-blue-400 transition-colors">{stock.symbol}</span>
+                            </div>
+                            <div className="col-span-3 text-right text-[10px] text-slate-500">
+                              {stock.source}
+                            </div>
+                            <div className={`col-span-3 text-right flex justify-end items-center gap-1 text-xs font-bold ${
+                                stock.sentiment === 'Bullish' ? 'text-emerald-500' : 
+                                stock.sentiment === 'Bearish' ? 'text-red-500' : 'text-slate-500'
+                            }`}>
+                                {stock.sentiment === 'Bullish' ? <IconTrendingUp className="h-3 w-3" /> : 
+                                 stock.sentiment === 'Bearish' ? <IconTrendingDown className="h-3 w-3" /> : null}
+                                {stock.sentimentScore}
+                            </div>
+                        </div>
+                    ))}
+                 </div>
+              </div>
+           </div>
+        </div>
       ) : (
         // =====================================================
-        // NEW: HONEST "UNAVAILABLE" STATE - No fake data!
+        // NO DATA AT ALL - Show unavailable message
         // =====================================================
         <div className="w-full rounded-2xl border border-slate-700/50 bg-[#0f172a] overflow-hidden">
           <div className="p-8 lg:p-12 text-center">
@@ -277,38 +446,17 @@ const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends, redditMeta })
 
             {/* Message */}
             <h3 className="text-xl font-semibold text-slate-200 mb-3">
-              Reddit Sentiment Unavailable
+              Sentiment Data Loading
             </h3>
             <p className="text-sm text-slate-400 max-w-md mx-auto mb-6 leading-relaxed">
-              We're having trouble fetching live data from Reddit and WallStreetBets. 
-              This section will update automatically when data becomes available.
+              We're fetching the latest trending data. 
+              This section will update automatically.
             </p>
 
             {/* Status indicator */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/50 border border-slate-700/50 mb-8">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/50 border border-slate-700/50">
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-              <span className="text-xs text-slate-300 font-medium">Reconnecting to data sources...</span>
-            </div>
-
-            {/* Alternative data sources */}
-            <div className="pt-6 border-t border-slate-800/50">
-              <p className="text-xs text-slate-500 mb-4">
-                Meanwhile, these data sources are working:
-              </p>
-              <div className="flex justify-center gap-3 flex-wrap">
-                <span className="px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-medium border border-emerald-500/20 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                  StockTwits Live
-                </span>
-                <span className="px-3 py-1.5 rounded-full bg-blue-500/10 text-blue-400 text-xs font-medium border border-blue-500/20 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                  Yahoo Finance Live
-                </span>
-                <span className="px-3 py-1.5 rounded-full bg-purple-500/10 text-purple-400 text-xs font-medium border border-purple-500/20 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
-                  Market Indices Live
-                </span>
-              </div>
+              <span className="text-xs text-slate-300 font-medium">Connecting to data sources...</span>
             </div>
           </div>
         </div>
