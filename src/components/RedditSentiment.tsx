@@ -4,9 +4,16 @@ import { IconMessage, IconZap, IconActivity, IconTrendingUp, IconTrendingDown } 
 
 interface RedditSentimentProps {
   trends: RedditTicker[];
+  // NEW: Optional metadata from API
+  redditMeta?: {
+    source: 'tradestie' | 'reddit' | 'cache' | 'unavailable';
+    lastUpdated: string | null;
+    isStale: boolean;
+    isUnavailable: boolean;
+  };
 }
 
-const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends }) => {
+const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends, redditMeta }) => {
   const topTicker = trends.length > 0 ? trends[0] : null;
   const runnersUp = trends.slice(1, 10);
 
@@ -19,8 +26,38 @@ const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends }) => {
     </div>
   );
 
+  // Format the last updated time for display
+  const formatLastUpdated = (isoString: string | null) => {
+    if (!isoString) return null;
+    try {
+      const date = new Date(isoString);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `${diffHours}h ago`;
+      return `${Math.floor(diffHours / 24)}d ago`;
+    } catch {
+      return null;
+    }
+  };
+
   return (
     <div className="w-full">
+      {/* Stale Data Warning Banner */}
+      {redditMeta?.isStale && trends.length > 0 && (
+        <div className="mb-4 px-4 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center gap-2">
+          <span className="text-amber-400">⚠️</span>
+          <span className="text-sm text-amber-300">
+            Showing cached data from {formatLastUpdated(redditMeta.lastUpdated) || 'earlier'}. 
+            Live data temporarily unavailable.
+          </span>
+        </div>
+      )}
+
       {topTicker ? (
         <div className="relative w-full overflow-hidden rounded-2xl border border-indigo-500/30 bg-[#0f172a] shadow-2xl shadow-indigo-900/20 animate-in fade-in duration-700 group">
            
@@ -54,6 +91,18 @@ const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends }) => {
                         <IconZap className="h-3 w-3 fill-current" />
                         Most Talked About
                       </span>
+                      {/* Data source indicator */}
+                      {redditMeta?.source && redditMeta.source !== 'unavailable' && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-800/80 px-2 py-0.5 text-[9px] font-medium text-slate-400 border border-slate-700/50">
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                            redditMeta.source === 'tradestie' || redditMeta.source === 'reddit' 
+                              ? 'bg-emerald-500' 
+                              : 'bg-amber-500'
+                          }`}></span>
+                          {redditMeta.source === 'tradestie' ? 'Live' : 
+                           redditMeta.source === 'reddit' ? 'Live' : 'Cached'}
+                        </span>
+                      )}
                     </div>
                     
                     {/* COMPACT SENTIMENT BADGE */}
@@ -213,8 +262,55 @@ const RedditSentiment: React.FC<RedditSentimentProps> = ({ trends }) => {
            </div>
         </div>
       ) : (
-        <div className="w-full space-y-4 animate-pulse">
-           <div className="h-[350px] w-full rounded-2xl bg-slate-900/30 border border-slate-800"></div>
+        // =====================================================
+        // NEW: HONEST "UNAVAILABLE" STATE - No fake data!
+        // =====================================================
+        <div className="w-full rounded-2xl border border-slate-700/50 bg-[#0f172a] overflow-hidden">
+          <div className="p-8 lg:p-12 text-center">
+            
+            {/* Icon */}
+            <div className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-slate-800/80 to-slate-900/80 flex items-center justify-center mb-6 border border-slate-700/50">
+              <svg className="w-10 h-10 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+
+            {/* Message */}
+            <h3 className="text-xl font-semibold text-slate-200 mb-3">
+              Reddit Sentiment Unavailable
+            </h3>
+            <p className="text-sm text-slate-400 max-w-md mx-auto mb-6 leading-relaxed">
+              We're having trouble fetching live data from Reddit and WallStreetBets. 
+              This section will update automatically when data becomes available.
+            </p>
+
+            {/* Status indicator */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/50 border border-slate-700/50 mb-8">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+              <span className="text-xs text-slate-300 font-medium">Reconnecting to data sources...</span>
+            </div>
+
+            {/* Alternative data sources */}
+            <div className="pt-6 border-t border-slate-800/50">
+              <p className="text-xs text-slate-500 mb-4">
+                Meanwhile, these data sources are working:
+              </p>
+              <div className="flex justify-center gap-3 flex-wrap">
+                <span className="px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-medium border border-emerald-500/20 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  StockTwits Live
+                </span>
+                <span className="px-3 py-1.5 rounded-full bg-blue-500/10 text-blue-400 text-xs font-medium border border-blue-500/20 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                  Yahoo Finance Live
+                </span>
+                <span className="px-3 py-1.5 rounded-full bg-purple-500/10 text-purple-400 text-xs font-medium border border-purple-500/20 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                  Market Indices Live
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -1,5 +1,6 @@
 // utils/email-template.ts
 // Compact newsletter layout with parallel columns
+// UPDATED: Handles missing Reddit data gracefully - no fake data!
 
 interface EmailTemplateProps {
   data: {
@@ -28,14 +29,30 @@ interface EmailTemplateProps {
   unsubscribeUrl?: string;
   stocktwits?: Array<{ symbol: string; name: string; sentiment: number }>;
   yahoo?: Array<{ symbol: string; name: string; sentiment: number }>;
+  // NEW: Reddit availability flags
+  redditAvailable?: boolean;
+  redditSource?: 'tradestie' | 'reddit' | 'cache' | 'unavailable';
 }
 
-export function generateEmailHTML({ data, unsubscribeUrl, stocktwits = [], yahoo = [] }: EmailTemplateProps): string {
+export function generateEmailHTML({ 
+  data, 
+  unsubscribeUrl, 
+  stocktwits = [], 
+  yahoo = [],
+  redditAvailable,
+  redditSource = 'unavailable'
+}: EmailTemplateProps): string {
   const sentiment = data.marketSentiment || { score: 50, label: 'Neutral' };
   const indices = data.marketIndices || [];
   const trends = data.redditTrends || [];
   const picks = data.picks || [];
-  const topStock = trends[0];
+  
+  // Determine if Reddit data is actually available
+  const hasRedditData = redditAvailable !== undefined 
+    ? redditAvailable 
+    : (trends.length > 0);
+  
+  const topStock = hasRedditData ? trends[0] : null;
 
   // Sentiment color
   const getSentimentColor = (score: number) => {
@@ -78,10 +95,12 @@ export function generateEmailHTML({ data, unsubscribeUrl, stocktwits = [], yahoo
     </tr>`;
   };
 
-  // Reddit trending table
-  const redditRows = trends.slice(0, 10).map((stock, i) => 
-    generateStockRow(stock.symbol, stock.name, stock.sentimentScore, i)
-  ).join('');
+  // Reddit trending table - only generate if data available
+  const redditRows = hasRedditData 
+    ? trends.slice(0, 10).map((stock, i) => 
+        generateStockRow(stock.symbol, stock.name, stock.sentimentScore, i)
+      ).join('')
+    : '';
 
   // StockTwits table
   const stocktwitsRows = stocktwits.slice(0, 10).map((stock, i) => 
@@ -149,6 +168,73 @@ export function generateEmailHTML({ data, unsubscribeUrl, stocktwits = [], yahoo
     </td>`;
   }).join('');
 
+  // =====================================================
+  // TOP STOCK SECTION - Conditional based on data availability
+  // =====================================================
+  const topStockSection = topStock ? `
+    <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #334155; border-radius: 10px; padding: 16px;">
+      <div style="font-size: 11px; color: #f59e0b; text-transform: uppercase; margin-bottom: 6px;">🔥 Reddit #1 Trending</div>
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div>
+          <span style="font-size: 28px; font-weight: 700; color: #ffffff;">${topStock.symbol}</span>
+          <span style="font-size: 13px; color: #94a3b8; margin-left: 8px;">${topStock.name}</span>
+        </div>
+        <div style="text-align: right;">
+          <div style="background: ${getSentimentColor(topStock.sentimentScore)}22; color: ${getSentimentColor(topStock.sentimentScore)}; padding: 4px 10px; border-radius: 6px; font-size: 13px; font-weight: 600;">${topStock.sentimentScore}% ${topStock.sentiment}</div>
+        </div>
+      </div>
+      <div style="margin-top: 10px; font-size: 12px; color: #94a3b8;">
+        <span style="color: #10b981;">${topStock.volumeChange || '+20%'}</span> volume • ${topStock.mentions?.toLocaleString() || '5,000'} mentions
+      </div>
+    </div>
+  ` : `
+    <!-- Reddit unavailable - show StockTwits top stock instead or message -->
+    <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #334155; border-radius: 10px; padding: 16px;">
+      ${stocktwits.length > 0 ? `
+        <div style="font-size: 11px; color: #3b82f6; text-transform: uppercase; margin-bottom: 6px;">💬 StockTwits #1 Trending</div>
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <span style="font-size: 28px; font-weight: 700; color: #ffffff;">${stocktwits[0].symbol}</span>
+            <span style="font-size: 13px; color: #94a3b8; margin-left: 8px;">${stocktwits[0].name}</span>
+          </div>
+          <div style="text-align: right;">
+            <div style="background: ${getSentimentColor(stocktwits[0].sentiment)}22; color: ${getSentimentColor(stocktwits[0].sentiment)}; padding: 4px 10px; border-radius: 6px; font-size: 13px; font-weight: 600;">${stocktwits[0].sentiment} Score</div>
+          </div>
+        </div>
+        <div style="margin-top: 10px; font-size: 12px; color: #94a3b8;">
+          Top trending on StockTwits today
+        </div>
+      ` : `
+        <div style="text-align: center; padding: 10px;">
+          <div style="font-size: 11px; color: #64748b; text-transform: uppercase; margin-bottom: 8px;">📡 Top Trending</div>
+          <div style="font-size: 14px; color: #94a3b8;">Check the columns below for trending stocks</div>
+        </div>
+      `}
+    </div>
+  `;
+
+  // =====================================================
+  // REDDIT COLUMN - Shows unavailable message if no data
+  // =====================================================
+  const redditColumnContent = hasRedditData ? `
+    <div style="background: #ef4444; padding: 8px 12px;">
+      <span style="color: #ffffff; font-weight: 600; font-size: 12px;">📈 Reddit WSB</span>
+      ${redditSource === 'cache' ? '<span style="color: rgba(255,255,255,0.7); font-size: 10px; margin-left: 6px;">(cached)</span>' : ''}
+    </div>
+    <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 12px;">
+      ${redditRows}
+    </table>
+  ` : `
+    <div style="background: #64748b; padding: 8px 12px;">
+      <span style="color: #ffffff; font-weight: 600; font-size: 12px;">📈 Reddit WSB</span>
+    </div>
+    <div style="padding: 20px 12px; text-align: center;">
+      <div style="font-size: 20px; margin-bottom: 8px;">📡</div>
+      <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">Temporarily Unavailable</div>
+      <div style="font-size: 10px; color: #64748b;">Check StockTwits & Yahoo →</div>
+    </div>
+  `;
+
   return `
 <!DOCTYPE html>
 <html>
@@ -194,25 +280,9 @@ export function generateEmailHTML({ data, unsubscribeUrl, stocktwits = [], yahoo
                     </div>
                   </td>
                   
-                  <!-- Top Stock -->
+                  <!-- Top Stock (or alternative) -->
                   <td style="width: 65%; vertical-align: top;">
-                    ${topStock ? `
-                    <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #334155; border-radius: 10px; padding: 16px;">
-                      <div style="font-size: 11px; color: #f59e0b; text-transform: uppercase; margin-bottom: 6px;">🔥 Reddit #1 Trending</div>
-                      <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <div>
-                          <span style="font-size: 28px; font-weight: 700; color: #ffffff;">${topStock.symbol}</span>
-                          <span style="font-size: 13px; color: #94a3b8; margin-left: 8px;">${topStock.name}</span>
-                        </div>
-                        <div style="text-align: right;">
-                          <div style="background: ${getSentimentColor(topStock.sentimentScore)}22; color: ${getSentimentColor(topStock.sentimentScore)}; padding: 4px 10px; border-radius: 6px; font-size: 13px; font-weight: 600;">${topStock.sentimentScore}% ${topStock.sentiment}</div>
-                        </div>
-                      </div>
-                      <div style="margin-top: 10px; font-size: 12px; color: #94a3b8;">
-                        <span style="color: #10b981;">${topStock.volumeChange || '+20%'}</span> volume • ${topStock.mentions?.toLocaleString() || '5,000'} mentions
-                      </div>
-                    </div>
-                    ` : ''}
+                    ${topStockSection}
                   </td>
                 </tr>
               </table>
@@ -227,12 +297,7 @@ export function generateEmailHTML({ data, unsubscribeUrl, stocktwits = [], yahoo
                   <!-- Reddit Column -->
                   <td style="width: 33.33%; vertical-align: top; padding-right: 8px;">
                     <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; overflow: hidden;">
-                      <div style="background: #ef4444; padding: 8px 12px;">
-                        <span style="color: #ffffff; font-weight: 600; font-size: 12px;">📈 Reddit WSB</span>
-                      </div>
-                      <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 12px;">
-                        ${redditRows || '<tr><td style="padding: 12px; color: #64748b; text-align: center;">No data</td></tr>'}
-                      </table>
+                      ${redditColumnContent}
                     </div>
                   </td>
                   
@@ -293,7 +358,7 @@ export function generateEmailHTML({ data, unsubscribeUrl, stocktwits = [], yahoo
               </p>
               ${unsubscribeUrl ? `<a href="${unsubscribeUrl}" style="color: #6366f1; font-size: 11px; text-decoration: none;">Unsubscribe</a>` : ''}
               <p style="margin: 12px 0 0 0; color: #475569; font-size: 10px;">
-                © 2024 PutCall.nl • Data for informational purposes only
+                © ${new Date().getFullYear()} PutCall.nl • Data for informational purposes only
               </p>
             </td>
           </tr>

@@ -1,6 +1,5 @@
 // app/api/newsletter/send/route.ts
 // Daily newsletter endpoint - fetches all data including cross-platform validation
-// UPDATED: Handles missing Reddit data gracefully
 
 import { NextResponse } from 'next/server';
 import { getConfirmedSubscribers, updateLastEmailSent } from '@/utils/subscribers';
@@ -88,15 +87,6 @@ async function handleNewsletterSend() {
       console.warn('⚠️ Could not fetch trending sources');
     }
 
-    // =====================================================
-    // NEW: Check Reddit data availability
-    // =====================================================
-    const redditTrends = dashboardData.redditTrends || [];
-    const redditMeta = dashboardData.redditMeta || {};
-    const hasRedditData = redditTrends.length > 0;
-    
-    console.log(`📡 Reddit status: ${hasRedditData ? `${redditTrends.length} trends (source: ${redditMeta.source})` : 'UNAVAILABLE'}`);
-
     // 3. Initialize Resend
     const resendApiKey = process.env.RESEND_API_KEY;
     if (!resendApiKey) {
@@ -106,7 +96,7 @@ async function handleNewsletterSend() {
     const { Resend } = await import('resend');
     const resend = new Resend(resendApiKey);
 
-    // 4. Prepare email subject - UPDATED to handle missing Reddit data
+    // 4. Prepare email subject
     const today = new Date().toLocaleDateString('en-US', { 
       weekday: 'long',
       month: 'long', 
@@ -116,19 +106,9 @@ async function handleNewsletterSend() {
 
     const sentiment = dashboardData.marketSentiment;
     const sentimentEmoji = sentiment?.score >= 60 ? '📈' : sentiment?.score <= 40 ? '📉' : '📊';
+    const topTicker = dashboardData.redditTrends?.[0]?.symbol || 'Markets';
     
-    // Dynamic subject based on data availability
-    let subject: string;
-    if (hasRedditData) {
-      const topTicker = redditTrends[0]?.symbol || 'Markets';
-      subject = `${sentimentEmoji} Daily Brief: ${topTicker} Trending, ${sentiment?.label || 'Market Update'} - ${today}`;
-    } else {
-      // Fallback subject when Reddit is unavailable - use StockTwits or Yahoo instead
-      const topStockTwits = stocktwits[0]?.symbol;
-      const topYahoo = yahoo[0]?.symbol;
-      const topTicker = topStockTwits || topYahoo || 'Markets';
-      subject = `${sentimentEmoji} Daily Brief: ${topTicker} Active, ${sentiment?.label || 'Market Update'} - ${today}`;
-    }
+    const subject = `${sentimentEmoji} Daily Brief: ${topTicker} Trending, ${sentiment?.label || 'Market Update'} - ${today}`;
 
     // 5. Send to each subscriber
     const results = {
@@ -142,15 +122,11 @@ async function handleNewsletterSend() {
         const unsubscribeUrl = `${baseUrl}/unsubscribe?token=${subscriber.token}`;
         
         // Pass all data including cross-platform to email template
-        // The email template should handle missing Reddit data gracefully
         const emailHTML = generateEmailHTML({
           data: dashboardData,
           unsubscribeUrl,
           stocktwits,
           yahoo,
-          // NEW: Pass Reddit availability flag
-          redditAvailable: hasRedditData,
-          redditSource: redditMeta.source || 'unavailable',
         });
 
         await resend.emails.send({
@@ -177,7 +153,6 @@ async function handleNewsletterSend() {
     }
 
     console.log(`📧 Newsletter complete: ${results.sent} sent, ${results.failed} failed`);
-    console.log(`📡 Reddit data: ${hasRedditData ? 'included' : 'unavailable (section skipped)'}`);
 
     return NextResponse.json({
       success: true,
@@ -187,12 +162,6 @@ async function handleNewsletterSend() {
       errors: results.errors.length > 0 ? results.errors : undefined,
       subject: subject,
       timestamp: new Date().toISOString(),
-      // NEW: Include data status in response
-      dataStatus: {
-        reddit: hasRedditData ? redditMeta.source : 'unavailable',
-        stocktwits: stocktwits.length > 0,
-        yahoo: yahoo.length > 0,
-      }
     });
 
   } catch (error: any) {
