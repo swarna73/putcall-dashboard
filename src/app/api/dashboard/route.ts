@@ -1,26 +1,25 @@
 // =====================================================
-// app/api/dashboard/route.ts - PRODUCTION READY
-// Real-time data with DYNAMIC VALUE SCREENER
+// app/api/dashboard/route.ts - PRODUCTION READY v2
 // 
-// Features:
-// - 50+ stock universe screened by P/E, dividend yield
-// - Reddit trends from ApeWisdom/Tradestie
-// - Live market data from Yahoo Finance
-// - NO fake/hardcoded data
+// FIXES:
+// - Cache-busting headers (no more stale data)
+// - Better logging for debugging
+// - Yahoo RSS fallback for news (no API key needed)
+// - fetch with cache: 'no-store' to prevent caching
 // =====================================================
 
 import { NextResponse } from 'next/server';
 
 // =====================================================
-// CACHE
+// CACHE - Reduced TTL for fresher data
 // =====================================================
 const cache = new Map<string, { data: any; ts: number }>();
-const CACHE_TTL = 2 * 60 * 1000; // 2 minutes
+const CACHE_TTL = 1 * 60 * 1000; // 1 minute (reduced from 2)
 
 const redditCache: { data: any[] | null; timestamp: number; source: string } = {
   data: null, timestamp: 0, source: ''
 };
-const REDDIT_MAX_CACHE_AGE = 4 * 60 * 60 * 1000;
+const REDDIT_MAX_CACHE_AGE = 2 * 60 * 60 * 1000; // 2 hours (reduced from 4)
 
 // =====================================================
 // STOCK UNIVERSE FOR SCREENER (50+ stocks)
@@ -112,18 +111,12 @@ const COMPANY_NAMES: Record<string, string> = {
   SPY: 'S&P 500 ETF', QQQ: 'Nasdaq 100 ETF', ARM: 'ARM Holdings',
   MARA: 'Marathon Digital', MSTR: 'MicroStrategy', CRWD: 'CrowdStrike',
   SNOW: 'Snowflake', NET: 'Cloudflare', DKNG: 'DraftKings', BABA: 'Alibaba',
+  SLS: 'SELLAS Life', ASTS: 'AST SpaceMobile', SLV: 'iShares Silver',
+  NBIS: 'Nebius Group', DTE: 'DTE Energy', VOO: 'Vanguard S&P 500',
+  LMT: 'Lockheed Martin', NOC: 'Northrop Grumman', RTX: 'RTX Corp',
+  MRNA: 'Moderna', MU: 'Micron', SNDK: 'SanDisk',
   ...Object.fromEntries(STOCK_UNIVERSE.map(s => [s.symbol, s.name]))
 };
-
-const VALID_TICKERS = new Set([...Object.keys(COMPANY_NAMES), ...STOCK_UNIVERSE.map(s => s.symbol)]);
-
-const EXCLUDE_WORDS = new Set([
-  'THE', 'FOR', 'AND', 'ARE', 'NOT', 'YOU', 'ALL', 'CAN', 'HAS', 'WAS', 'ONE',
-  'OUR', 'OUT', 'DAY', 'GET', 'CEO', 'CFO', 'IPO', 'ETF', 'WSB', 'YOLO', 'FOMO',
-  'POST', 'JUST', 'LIKE', 'THIS', 'THAT', 'WITH', 'HAVE', 'FROM', 'THEY', 'BEEN',
-  'WILL', 'MORE', 'WHEN', 'SOME', 'MOON', 'HOLD', 'SELL', 'CALL', 'PUTS', 'BUY',
-  'USD', 'USA', 'SEC', 'FDA', 'FED', 'GDP', 'CPI', 'ATH', 'DD', 'TA', 'FA',
-]);
 
 const SECTOR_ROTATION = [
   { name: "Technology", performance: "Bullish", change: "+1.2%" },
@@ -142,7 +135,8 @@ async function getMarketIndices() {
       'https://query1.finance.yahoo.com/v7/finance/quote?symbols=^GSPC,^DJI,^IXIC',
       { 
         headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0' },
-        signal: AbortSignal.timeout(5000) 
+        signal: AbortSignal.timeout(5000),
+        cache: 'no-store'
       }
     );
 
@@ -179,11 +173,15 @@ async function getMarketSentiment() {
   try {
     const response = await fetch(
       'https://production.dataviz.cnn.io/index/fearandgreed/graphdata',
-      { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(3000) }
+      { 
+        headers: { 'User-Agent': 'Mozilla/5.0' }, 
+        signal: AbortSignal.timeout(3000),
+        cache: 'no-store'
+      }
     );
     if (!response.ok) throw new Error(`CNN returned ${response.status}`);
     const data = await response.json();
-    console.log('✅ Sentiment: Live');
+    console.log('✅ Sentiment: Live -', data.fear_and_greed.score);
     return {
       score: Math.round(data.fear_and_greed.score),
       label: data.fear_and_greed.rating,
@@ -191,26 +189,43 @@ async function getMarketSentiment() {
     };
   } catch (error: any) {
     console.warn('⚠️ Sentiment failed:', error.message);
-    return { score: 50, label: "Loading...", primaryDriver: "Fetching..." };
+    return { score: 50, label: "Neutral", primaryDriver: "Data temporarily unavailable" };
   }
 }
 
 // =====================================================
-// 3. REDDIT TRENDS
+// 3. REDDIT TRENDS - With better logging
 // =====================================================
 async function fetchFromApeWisdom(): Promise<any[] | null> {
   try {
+    console.log('📡 Calling ApeWisdom API...');
     const response = await fetch('https://apewisdom.io/api/v1.0/filter/all-stocks/page/1', {
-      headers: { 'User-Agent': 'PutCall.nl/1.0', 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(5000),
+      headers: { 
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0', 
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache'
+      },
+      signal: AbortSignal.timeout(8000),
+      cache: 'no-store'
     });
-    if (!response.ok) return null;
+    
+    if (!response.ok) {
+      console.warn(`⚠️ ApeWisdom HTTP ${response.status}`);
+      return null;
+    }
+    
     const data = await response.json();
     const results = data.results || [];
-    if (results.length === 0) return null;
+    if (results.length === 0) {
+      console.warn('⚠️ ApeWisdom returned empty results');
+      return null;
+    }
 
-    console.log(`✅ ApeWisdom: ${results.length} tickers`);
-    return results.slice(0, 10).map((item: any, index: number) => {
+    // Log for debugging
+    const top3 = results.slice(0, 3).map((r: any) => `${r.ticker}:${r.mentions}`).join(', ');
+    console.log(`✅ ApeWisdom: ${results.length} tickers. Top 3: ${top3}`);
+    
+    return results.slice(0, 10).map((item: any) => {
       const rankChange = item.rank_24h_ago ? (item.rank_24h_ago - item.rank) : 0;
       const sentimentScore = Math.min(95, Math.max(30, 60 + rankChange * 2));
       const sentiment = sentimentScore >= 70 ? 'Bullish' : sentimentScore <= 45 ? 'Bearish' : 'Neutral';
@@ -233,15 +248,29 @@ async function fetchFromApeWisdom(): Promise<any[] | null> {
 
 async function fetchFromTradestie(): Promise<any[] | null> {
   try {
+    console.log('📡 Calling Tradestie API...');
     const response = await fetch('https://api.tradestie.com/v1/apps/reddit', {
-      headers: { 'User-Agent': 'PutCall.nl/1.0' },
+      headers: { 
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0' 
+      },
       signal: AbortSignal.timeout(5000),
+      cache: 'no-store'
     });
-    if (!response.ok) return null;
+    
+    if (!response.ok) {
+      console.warn(`⚠️ Tradestie HTTP ${response.status}`);
+      return null;
+    }
+    
     const data = await response.json();
-    if (!Array.isArray(data) || data.length === 0) return null;
+    if (!Array.isArray(data) || data.length === 0) {
+      console.warn('⚠️ Tradestie returned empty data');
+      return null;
+    }
 
-    console.log(`✅ Tradestie: ${data.length} tickers`);
+    const top3 = data.slice(0, 3).map((r: any) => `${r.ticker}:${r.no_of_comments}`).join(', ');
+    console.log(`✅ Tradestie: ${data.length} tickers. Top 3: ${top3}`);
+    
     return data.slice(0, 10).map((item: any, index: number) => {
       const sentimentScore = Math.round((item.sentiment_score || 0.5) * 100);
       const sentiment = item.sentiment === 'Bullish' ? 'Bullish' : item.sentiment === 'Bearish' ? 'Bearish' : 'Neutral';
@@ -264,41 +293,80 @@ async function fetchFromTradestie(): Promise<any[] | null> {
 }
 
 async function getRedditTrends() {
-  console.log('🔍 Fetching Reddit trends...');
+  const fetchStart = Date.now();
+  console.log('🔍 Fetching Reddit trends...', new Date().toISOString());
 
+  // Try ApeWisdom first
   const apeData = await fetchFromApeWisdom();
   if (apeData?.length) {
-    redditCache.data = apeData; redditCache.timestamp = Date.now(); redditCache.source = 'apewisdom';
-    return { trends: apeData, source: 'apewisdom', lastUpdated: new Date().toISOString(), isStale: false };
+    redditCache.data = apeData; 
+    redditCache.timestamp = Date.now(); 
+    redditCache.source = 'apewisdom';
+    return { 
+      trends: apeData, 
+      source: 'apewisdom', 
+      lastUpdated: new Date().toISOString(), 
+      isStale: false,
+      fetchTimeMs: Date.now() - fetchStart
+    };
   }
 
+  // Try Tradestie
   const tradestieData = await fetchFromTradestie();
   if (tradestieData?.length) {
-    redditCache.data = tradestieData; redditCache.timestamp = Date.now(); redditCache.source = 'tradestie';
-    return { trends: tradestieData, source: 'tradestie', lastUpdated: new Date().toISOString(), isStale: false };
+    redditCache.data = tradestieData; 
+    redditCache.timestamp = Date.now(); 
+    redditCache.source = 'tradestie';
+    return { 
+      trends: tradestieData, 
+      source: 'tradestie', 
+      lastUpdated: new Date().toISOString(), 
+      isStale: false,
+      fetchTimeMs: Date.now() - fetchStart
+    };
   }
 
+  // Check cache
   const cacheAge = Date.now() - redditCache.timestamp;
+  const cacheAgeMinutes = Math.round(cacheAge / 60000);
+  
   if (redditCache.data?.length && cacheAge < REDDIT_MAX_CACHE_AGE) {
-    console.log(`📦 Using cached Reddit (${Math.round(cacheAge / 60000)}m old)`);
-    return { trends: redditCache.data, source: 'cache', lastUpdated: new Date(redditCache.timestamp).toISOString(), isStale: cacheAge > 3600000 };
+    console.log(`📦 Using cached Reddit (${cacheAgeMinutes}m old). #1: ${redditCache.data[0]?.symbol}`);
+    return { 
+      trends: redditCache.data, 
+      source: 'cache', 
+      lastUpdated: new Date(redditCache.timestamp).toISOString(), 
+      isStale: cacheAge > 3600000,
+      cacheAgeMinutes,
+      fetchTimeMs: Date.now() - fetchStart
+    };
   }
 
-  console.warn('❌ All Reddit sources failed');
-  return { trends: [], source: 'unavailable', lastUpdated: null, isStale: false };
+  console.warn('❌ All Reddit sources failed, no valid cache');
+  return { 
+    trends: [], 
+    source: 'unavailable', 
+    lastUpdated: null, 
+    isStale: false,
+    fetchTimeMs: Date.now() - fetchStart
+  };
 }
 
 // =====================================================
-// 4. NEWS
+// 4. NEWS - With Yahoo RSS fallback
 // =====================================================
 async function getNews() {
+  // Try Finnhub first (if API key available)
   const finnhubKey = process.env.FINNHUB_API_KEY;
   if (finnhubKey) {
     try {
-      const response = await fetch(`https://finnhub.io/api/v1/news?category=general&token=${finnhubKey}`, { signal: AbortSignal.timeout(3000) });
+      const response = await fetch(
+        `https://finnhub.io/api/v1/news?category=general&token=${finnhubKey}`, 
+        { signal: AbortSignal.timeout(4000), cache: 'no-store' }
+      );
       if (response.ok) {
         const data = await response.json();
-        if (data.length > 0) {
+        if (Array.isArray(data) && data.length > 0) {
           console.log('✅ News: Finnhub');
           return data.slice(0, 5).map((item: any) => ({
             title: item.headline?.substring(0, 100) || 'Market Update',
@@ -310,10 +378,50 @@ async function getNews() {
           }));
         }
       }
-    } catch (e) { console.warn('⚠️ Finnhub news failed'); }
+    } catch (e: any) { 
+      console.warn('⚠️ Finnhub news failed:', e.message); 
+    }
   }
-  console.warn('⚠️ News unavailable');
-  return [{ title: "Loading news...", source: "...", url: "#", timestamp: "...", summary: "", impact: "Medium" }];
+
+  // Fallback: Yahoo RSS via rss2json (no API key needed)
+  try {
+    const response = await fetch(
+      'https://api.rss2json.com/v1/api.json?rss_url=https://finance.yahoo.com/news/rssindex',
+      { signal: AbortSignal.timeout(5000), cache: 'no-store' }
+    );
+    if (response.ok) {
+      const data = await response.json();
+      if (data.items && Array.isArray(data.items) && data.items.length > 0) {
+        console.log('✅ News: Yahoo RSS');
+        return data.items.slice(0, 5).map((item: any) => ({
+          title: item.title?.substring(0, 100) || 'Market Update',
+          source: 'Yahoo Finance',
+          url: item.link || '#',
+          timestamp: formatTime(new Date(item.pubDate).getTime()),
+          summary: stripHtml(item.description)?.substring(0, 150) || '',
+          impact: categorizeImpact(item.title || '')
+        }));
+      }
+    }
+  } catch (e: any) {
+    console.warn('⚠️ Yahoo RSS failed:', e.message);
+  }
+
+  console.warn('❌ All news sources failed');
+  return [{ 
+    title: "News temporarily unavailable", 
+    source: "System", 
+    url: "#", 
+    timestamp: "Now", 
+    summary: "Please check back shortly.", 
+    impact: "Medium",
+    isUnavailable: true
+  }];
+}
+
+function stripHtml(html: string | undefined): string {
+  if (!html) return '';
+  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
 }
 
 function formatTime(ts: number): string {
@@ -325,8 +433,8 @@ function formatTime(ts: number): string {
 
 function categorizeImpact(title: string): 'Critical' | 'High' | 'Medium' {
   const lower = title.toLowerCase();
-  if (['fed', 'rate', 'inflation', 'crash'].some(k => lower.includes(k))) return 'Critical';
-  if (['earnings', 'revenue', 'profit'].some(k => lower.includes(k))) return 'High';
+  if (['fed', 'rate', 'inflation', 'crash', 'crisis', 'war', 'tariff'].some(k => lower.includes(k))) return 'Critical';
+  if (['earnings', 'revenue', 'profit', 'loss', 'layoff', 'acquisition'].some(k => lower.includes(k))) return 'High';
   return 'Medium';
 }
 
@@ -387,7 +495,6 @@ async function getValuePicks() {
   const allSymbols = STOCK_UNIVERSE.map(s => s.symbol);
   
   try {
-    // Fetch in batches
     const batchSize = 15;
     const allQuotes: any[] = [];
     
@@ -398,7 +505,8 @@ async function getValuePicks() {
           `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${batch.join(',')}`,
           {
             headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0' },
-            signal: AbortSignal.timeout(5000)
+            signal: AbortSignal.timeout(5000),
+            cache: 'no-store'
           }
         );
         if (response.ok) {
@@ -412,7 +520,6 @@ async function getValuePicks() {
     if (allQuotes.length === 0) throw new Error('No quotes');
     console.log(`📊 Screener: Fetched ${allQuotes.length}/${allSymbols.length} stocks`);
     
-    // Map and score
     const stocksWithData = allQuotes.map(q => {
       const universe = STOCK_UNIVERSE.find(s => s.symbol === q.symbol);
       const pe = q.trailingPE || q.forwardPE || null;
@@ -429,19 +536,16 @@ async function getValuePicks() {
       };
     });
     
-    // Filter
     const filtered = stocksWithData.filter(s => 
       s.price && 
       (s.pe === null || s.pe <= SCREENING_CRITERIA.maxPE) &&
       s.divYield !== null && s.divYield >= SCREENING_CRITERIA.minDividendYield
     );
     
-    console.log(`📊 Screener: ${filtered.length} passed filters (P/E≤${SCREENING_CRITERIA.maxPE}, Div≥${SCREENING_CRITERIA.minDividendYield}%)`);
+    console.log(`📊 Screener: ${filtered.length} passed filters`);
     
-    // Sort by value score
     filtered.sort((a, b) => b.valueScore - a.valueScore);
     
-    // Pick top with sector diversity (max 2 per sector)
     const sectorCount: Record<string, number> = {};
     const finalPicks: typeof filtered = [];
     
@@ -482,24 +586,39 @@ async function getValuePicks() {
 }
 
 // =====================================================
-// MAIN HANDLER
+// MAIN HANDLER - With cache-busting headers
 // =====================================================
 export const dynamic = 'force-dynamic';
-export const maxDuration = 20;
+export const revalidate = 0;  // Disable ISR caching
+export const maxDuration = 25;
 
 export async function GET() {
   const startTime = Date.now();
-  console.log('📊 Dashboard API called');
+  const requestId = Math.random().toString(36).substring(7);
+  console.log(`📊 [${requestId}] Dashboard API called at ${new Date().toISOString()}`);
 
+  // Check in-memory cache (short TTL)
   const cached = cache.get('dashboard');
   if (cached && Date.now() - cached.ts < CACHE_TTL) {
-    console.log(`✅ Cache hit (${Math.floor((Date.now() - cached.ts) / 1000)}s old)`);
-    return NextResponse.json({ ...cached.data, fromCache: true, cacheAge: Math.floor((Date.now() - cached.ts) / 1000) }, {
-      headers: { 'Cache-Control': 'public, s-maxage=120', 'X-Cache': 'HIT', 'X-Response-Time': `${Date.now() - startTime}ms` }
-    });
+    const cacheAge = Math.floor((Date.now() - cached.ts) / 1000);
+    console.log(`✅ [${requestId}] Cache hit (${cacheAge}s old)`);
+    return NextResponse.json(
+      { ...cached.data, fromCache: true, cacheAge, requestId }, 
+      {
+        headers: { 
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'X-Cache': 'HIT', 
+          'X-Cache-Age': `${cacheAge}s`,
+          'X-Request-Id': requestId,
+          'X-Response-Time': `${Date.now() - startTime}ms` 
+        }
+      }
+    );
   }
 
-  console.log('🚀 Fetching fresh data...');
+  console.log(`🚀 [${requestId}] Fetching fresh data...`);
 
   try {
     const [marketIndices, marketSentiment, redditResult, news, picksResult] = await Promise.all([
@@ -511,34 +630,71 @@ export async function GET() {
     ]);
 
     const responseTime = Date.now() - startTime;
-    console.log(`⚡ Completed in ${responseTime}ms`);
+    console.log(`⚡ [${requestId}] Completed in ${responseTime}ms`);
 
     const dashboardData = {
       marketIndices,
       marketSentiment,
       sectorRotation: SECTOR_ROTATION,
       redditTrends: redditResult.trends,
-      redditMeta: { source: redditResult.source, lastUpdated: redditResult.lastUpdated, isStale: redditResult.isStale, isUnavailable: redditResult.source === 'unavailable' },
+      redditMeta: { 
+        source: redditResult.source, 
+        lastUpdated: redditResult.lastUpdated, 
+        isStale: redditResult.isStale, 
+        isUnavailable: redditResult.source === 'unavailable' 
+      },
       news,
       picks: picksResult.picks,
-      picksMeta: { source: picksResult.source, isLive: picksResult.isLive, screenedFrom: picksResult.screenedFrom, passedFilter: picksResult.passedFilter },
+      picksMeta: { 
+        source: picksResult.source, 
+        isLive: picksResult.isLive, 
+        screenedFrom: picksResult.screenedFrom, 
+        passedFilter: picksResult.passedFilter 
+      },
       insiderTrades: [],
       lastUpdated: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'America/New_York' }),
+      fetchedAt: new Date().toISOString(),
     };
 
+    // Store in memory cache
     cache.set('dashboard', { data: dashboardData, ts: Date.now() });
 
-    return NextResponse.json({ ...dashboardData, fromCache: false, responseTime }, {
-      headers: { 'Cache-Control': 'public, s-maxage=120', 'X-Cache': 'MISS', 'X-Response-Time': `${responseTime}ms` }
-    });
+    return NextResponse.json(
+      { ...dashboardData, fromCache: false, responseTime, requestId }, 
+      {
+        headers: { 
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'Surrogate-Control': 'no-store',
+          'X-Cache': 'MISS', 
+          'X-Request-Id': requestId,
+          'X-Response-Time': `${responseTime}ms` 
+        }
+      }
+    );
 
   } catch (error: any) {
-    console.error('❌ Dashboard error:', error);
-    if (cached) return NextResponse.json({ ...cached.data, fromCache: true, stale: true });
+    console.error(`❌ [${requestId}] Dashboard error:`, error);
     
+    // Return stale cache if available
+    if (cached) {
+      return NextResponse.json(
+        { ...cached.data, fromCache: true, stale: true, error: error.message }, 
+        {
+          headers: { 
+            'Cache-Control': 'no-store',
+            'X-Cache': 'STALE',
+            'X-Request-Id': requestId
+          }
+        }
+      );
+    }
+    
+    // Return error response
     return NextResponse.json({
       marketIndices: [{ name: "S&P 500", value: "--", change: "--", trend: "Neutral" }],
-      marketSentiment: { score: 50, label: "...", primaryDriver: "..." },
+      marketSentiment: { score: 50, label: "Neutral", primaryDriver: "Data unavailable" },
       sectorRotation: SECTOR_ROTATION,
       redditTrends: [],
       redditMeta: { source: 'unavailable', lastUpdated: null, isStale: false, isUnavailable: true },
@@ -547,7 +703,14 @@ export async function GET() {
       picksMeta: { source: 'unavailable', isLive: false, screenedFrom: 0, passedFilter: 0 },
       insiderTrades: [],
       lastUpdated: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-      error: 'Data unavailable'
+      error: 'Data temporarily unavailable',
+      requestId
+    }, {
+      headers: { 
+        'Cache-Control': 'no-store',
+        'X-Cache': 'ERROR',
+        'X-Request-Id': requestId
+      }
     });
   }
 }
