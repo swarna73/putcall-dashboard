@@ -9,7 +9,7 @@ import SmartStockBox from './SmartStockBox';
 import InsiderTrading from './InsiderTrading';
 import MarketOverview from './MarketOverview';
 import StockDeepDive from './StockDeepDive';
-import SubscriptionForm from './SubscriptionForm';
+import NewsletterPopup from './NewsletterPopup';
 import { fetchMarketDashboard } from '../services/geminiService';
 import { DashboardData, LoadingState } from '../types';
 import { IconShield, IconRefresh } from './Icons';
@@ -81,6 +81,9 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#020617] text-slate-100 selection:bg-indigo-500/30 pb-20 relative flex flex-col">
+      
+      {/* Newsletter Popup - shows 2 seconds after page load */}
+      <NewsletterPopup delayMs={2000} />
       
       <Header 
         onRefresh={() => loadData(false)} 
@@ -164,13 +167,6 @@ const Dashboard: React.FC = () => {
         {/* News Feed */}
         <section>
            <NewsFeed news={data.news} />
-        </section>
-
-        {/* Email Subscription Section */}
-        <section className="py-12">
-          <div className="flex justify-center">
-            <SubscriptionForm variant="inline" />
-          </div>
         </section>
 
         {data.groundingMetadata?.groundingChunks && (
