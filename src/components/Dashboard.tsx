@@ -9,7 +9,7 @@ import SmartStockBox from './SmartStockBox';
 import InsiderTrading from './InsiderTrading';
 import MarketOverview from './MarketOverview';
 import StockDeepDive from './StockDeepDive';
-import NewsletterPopup from './NewsletterPopup';
+import FancyNewsletterPopup from './FancyNewsletterPopup';
 import { fetchMarketDashboard } from '../services/geminiService';
 import { DashboardData, LoadingState } from '../types';
 import { IconShield, IconRefresh } from './Icons';
@@ -82,8 +82,8 @@ const Dashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#020617] text-slate-100 selection:bg-indigo-500/30 pb-20 relative flex flex-col">
       
-      {/* Newsletter Popup - shows 2 seconds after page load */}
-      <NewsletterPopup delayMs={2000} />
+      {/* Fancy Newsletter Popup - shows 2 seconds after page load */}
+      <FancyNewsletterPopup delayMs={2000} />
       
       <Header 
         onRefresh={() => loadData(false)} 
