@@ -46,23 +46,41 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades = [] }) => {
           const transactions = data.data || [];
           
           if (transactions.length > 0) {
-            setTrades(transactions.slice(0, 8).map((t: any) => ({
-              filingDate: t.filingDate,
-              transactionDate: t.transactionDate,
-              ownerName: t.name,
-              ownerTitle: t.position || 'Insider',
-              transactionType: t.transactionCode === 'P' ? 'Buy' : t.transactionCode === 'S' ? 'Sell' : t.transactionCode,
-              shares: Math.abs(t.share || 0),
-              pricePerShare: t.price || 0,
-              totalValue: Math.abs((t.share || 0) * (t.price || 0)),
-              sharesOwned: t.shareOwned || 0,
-            })));
+            setTrades(transactions.slice(0, 8).map((t: any) => {
+              const price = t.price || 0;
+              const shares = Math.abs(t.share || 0);
+              const totalValue = Math.abs(shares * price);
+              const code = t.transactionCode;
+
+              // FIX: Determine label based on Price and Code
+              let typeLabel = code;
+              if (price === 0) {
+                // If price is 0, it's an Award (Grant) or Gift
+                // 'P' = Purchase/Acquisition -> Award
+                // 'S' = Sale/Disposition -> Gift
+                typeLabel = code === 'S' ? 'Gift' : 'Award';
+              } else {
+                // Standard Buy/Sell logic for non-zero prices
+                typeLabel = code === 'P' ? 'Buy' : code === 'S' ? 'Sell' : code;
+              }
+
+              return {
+                filingDate: t.filingDate,
+                transactionDate: t.transactionDate,
+                ownerName: t.name,
+                ownerTitle: t.position || 'Insider',
+                transactionType: typeLabel,
+                shares: shares,
+                pricePerShare: price,
+                totalValue: totalValue,
+                sharesOwned: t.shareOwned || 0,
+              };
+            }));
             return;
           }
         }
       }
 
-      // No data found - show empty state with SEC link (NO FAKE DATA)
       setNoData(true);
       
     } catch (err) {
@@ -73,6 +91,7 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades = [] }) => {
   };
 
   const formatNumber = (num: number): string => {
+    if (num === 0) return '$0'; // Clean handling for 0
     if (num >= 1e6) return `$${(num / 1e6).toFixed(1)}M`;
     if (num >= 1e3) return `$${(num / 1e3).toFixed(0)}K`;
     return `$${num.toLocaleString()}`;
@@ -91,6 +110,32 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades = [] }) => {
   const secUrl = searchedTicker 
     ? `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${searchedTicker}&type=4&dateb=&owner=include&count=40`
     : 'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&type=4&owner=include&count=40';
+
+  // Helper to determine styles based on transaction type
+  const getTransactionStyles = (type: string) => {
+    switch (type) {
+      case 'Buy':
+      case 'Award':
+        return {
+          container: 'bg-emerald-950/20 border-emerald-500/20 hover:border-emerald-500/40',
+          badge: 'bg-emerald-500/20 text-emerald-400',
+          valueText: 'text-emerald-400'
+        };
+      case 'Gift':
+        return {
+          container: 'bg-amber-950/20 border-amber-500/20 hover:border-amber-500/40',
+          badge: 'bg-amber-500/20 text-amber-400',
+          valueText: 'text-amber-400'
+        };
+      case 'Sell':
+      default:
+        return {
+          container: 'bg-red-950/20 border-red-500/20 hover:border-red-500/40',
+          badge: 'bg-red-500/20 text-red-400',
+          valueText: 'text-red-400'
+        };
+    }
+  };
 
   return (
     <div className="flex flex-col h-full rounded-xl border border-slate-800 bg-[#0b1221] overflow-hidden">
@@ -221,53 +266,47 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades = [] }) => {
             </div>
 
             {/* Trades */}
-            {trades.map((trade, i) => (
-              <div 
-                key={i}
-                className={`rounded-lg p-3 border transition-all ${
-                  trade.transactionType === 'Buy'
-                    ? 'bg-emerald-950/20 border-emerald-500/20 hover:border-emerald-500/40'
-                    : 'bg-red-950/20 border-red-500/20 hover:border-red-500/40'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
-                      trade.transactionType === 'Buy'
-                        ? 'bg-emerald-500/20 text-emerald-400'
-                        : 'bg-red-500/20 text-red-400'
-                    }`}>
-                      {trade.transactionType}
+            {trades.map((trade, i) => {
+              const styles = getTransactionStyles(trade.transactionType);
+              
+              return (
+                <div 
+                  key={i}
+                  className={`rounded-lg p-3 border transition-all ${styles.container}`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${styles.badge}`}>
+                        {trade.transactionType}
+                      </div>
+                      <span className="text-xs font-medium text-white">{trade.ownerName}</span>
                     </div>
-                    <span className="text-xs font-medium text-white">{trade.ownerName}</span>
+                    <span className="text-[9px] text-slate-500">{trade.filingDate}</span>
                   </div>
-                  <span className="text-[9px] text-slate-500">{trade.filingDate}</span>
-                </div>
-                
-                <div className="flex items-center gap-1 mb-2">
-                  <span className="text-[10px] text-slate-400">{trade.ownerTitle}</span>
-                </div>
+                  
+                  <div className="flex items-center gap-1 mb-2">
+                    <span className="text-[10px] text-slate-400">{trade.ownerTitle}</span>
+                  </div>
 
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="text-center">
-                    <div className="text-[8px] text-slate-500 uppercase">Shares</div>
-                    <div className="text-[11px] font-mono font-bold text-white">{formatShares(trade.shares)}</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-[8px] text-slate-500 uppercase">Price</div>
-                    <div className="text-[11px] font-mono font-bold text-white">${trade.pricePerShare.toFixed(2)}</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-[8px] text-slate-500 uppercase">Value</div>
-                    <div className={`text-[11px] font-mono font-bold ${
-                      trade.transactionType === 'Buy' ? 'text-emerald-400' : 'text-red-400'
-                    }`}>
-                      {formatNumber(trade.totalValue)}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="text-center">
+                      <div className="text-[8px] text-slate-500 uppercase">Shares</div>
+                      <div className="text-[11px] font-mono font-bold text-white">{formatShares(trade.shares)}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-[8px] text-slate-500 uppercase">Price</div>
+                      <div className="text-[11px] font-mono font-bold text-white">${trade.pricePerShare.toFixed(2)}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-[8px] text-slate-500 uppercase">Value</div>
+                      <div className={`text-[11px] font-mono font-bold ${styles.valueText}`}>
+                        {formatNumber(trade.totalValue)}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { IconRefresh } from './Icons';
+import Link from 'next/link';
 
 interface HeaderProps {
   onRefresh: () => void;
@@ -67,6 +68,15 @@ const Header: React.FC<HeaderProps> = ({ onRefresh, isLoading, lastUpdated }) =>
               </svg>
               Share
             </button>
+{/* Suggestions Button */}
+<Link
+  href="/suggestions"
+  className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white hover:bg-white/10 transition"
+  title="Suggest a feature"
+>
+  <span className="text-base leading-none">💡</span>
+  <span className="hidden sm:inline">Suggest</span>
+</Link>
 
             {/* Refresh Button */}
             <button
