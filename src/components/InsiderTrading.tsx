@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 
-// Use 'any' for the prop to avoid type conflicts with existing types
 interface InsiderTradingProps {
   topTrades?: any[];
 }
 
-// Internal type for component state
 interface InsiderTradeData {
   filingDate: string;
   transactionDate: string;
@@ -24,6 +22,7 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades = [] }) => {
   const [trades, setTrades] = useState<InsiderTradeData[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [searchedTicker, setSearchedTicker] = useState<string>('');
+  const [noData, setNoData] = useState(false);
 
   const handleSearch = async () => {
     if (!ticker.trim()) return;
@@ -31,10 +30,10 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades = [] }) => {
     setLoading(true);
     setError(null);
     setTrades([]);
+    setNoData(false);
     setSearchedTicker(ticker.toUpperCase());
 
     try {
-      // Fetch from Finnhub API (free tier)
       const finnhubKey = process.env.NEXT_PUBLIC_FINNHUB_KEY;
       
       if (finnhubKey) {
@@ -63,33 +62,14 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades = [] }) => {
         }
       }
 
-      // Fallback: Use mock data for demo
-      setTrades(generateMockTrades(ticker.toUpperCase()));
+      // No data found - show empty state with SEC link (NO FAKE DATA)
+      setNoData(true);
       
     } catch (err) {
-      setError('Failed to fetch insider data');
+      setError('Failed to fetch insider data. Check SEC directly.');
     } finally {
       setLoading(false);
     }
-  };
-
-  // Mock data generator for demo (replace with real SEC API in production)
-  const generateMockTrades = (symbol: string): InsiderTradeData[] => {
-    const names = ['John Smith', 'Sarah Johnson', 'Michael Chen', 'Emily Davis'];
-    const titles = ['CEO', 'CFO', 'Director', 'VP Sales', 'COO'];
-    const types = ['Buy', 'Sell'];
-    
-    return Array.from({ length: 5 }, (_, i) => ({
-      filingDate: new Date(Date.now() - i * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      transactionDate: new Date(Date.now() - (i * 7 + 2) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      ownerName: names[i % names.length],
-      ownerTitle: titles[i % titles.length],
-      transactionType: types[i % 2],
-      shares: Math.floor(Math.random() * 50000) + 1000,
-      pricePerShare: Math.floor(Math.random() * 200) + 20,
-      totalValue: 0,
-      sharesOwned: Math.floor(Math.random() * 500000) + 10000,
-    })).map(t => ({ ...t, totalValue: t.shares * t.pricePerShare }));
   };
 
   const formatNumber = (num: number): string => {
@@ -107,6 +87,10 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades = [] }) => {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') handleSearch();
   };
+
+  const secUrl = searchedTicker 
+    ? `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${searchedTicker}&type=4&dateb=&owner=include&count=40`
+    : 'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&type=4&owner=include&count=40';
 
   return (
     <div className="flex flex-col h-full rounded-xl border border-slate-800 bg-[#0b1221] overflow-hidden">
@@ -154,8 +138,8 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades = [] }) => {
 
       {/* Content Area */}
       <div className="flex-1 p-4 min-h-[280px] overflow-y-auto">
-        {/* Empty State */}
-        {trades.length === 0 && !loading && !error && (
+        {/* Empty State - Initial */}
+        {trades.length === 0 && !loading && !error && !noData && (
           <div className="h-full flex flex-col items-center justify-center text-center">
             <div className="text-slate-600 mb-2">
               <svg className="h-10 w-10 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -166,15 +150,44 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades = [] }) => {
           </div>
         )}
 
+        {/* No Data Found State */}
+        {noData && !loading && (
+          <div className="h-full flex flex-col items-center justify-center text-center">
+            <div className="text-slate-600 mb-3">
+              <svg className="h-10 w-10 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <p className="text-xs text-slate-400 mb-1">No recent filings found for <span className="text-orange-400 font-bold">{searchedTicker}</span></p>
+            <p className="text-[10px] text-slate-500 mb-3">Check SEC EDGAR for complete history</p>
+            <a 
+              href={secUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-xs font-medium transition-colors"
+            >
+              View on SEC →
+            </a>
+          </div>
+        )}
+
         {/* Error State */}
         {error && (
           <div className="h-full flex flex-col items-center justify-center text-center">
-            <div className="text-red-500/50 mb-2">
+            <div className="text-red-500/50 mb-3">
               <svg className="h-10 w-10 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
-            <p className="text-xs text-red-400">{error}</p>
+            <p className="text-xs text-red-400 mb-3">{error}</p>
+            <a 
+              href={secUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium transition-colors"
+            >
+              Check SEC Directly →
+            </a>
           </div>
         )}
 
@@ -186,7 +199,7 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades = [] }) => {
           </div>
         )}
 
-        {/* Trades List */}
+        {/* Trades List - Only shows REAL data */}
         {trades.length > 0 && !loading && (
           <div className="space-y-3">
             {/* Header */}
@@ -198,7 +211,7 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades = [] }) => {
                 <span className="text-[10px] text-slate-500">Recent Form 4 Filings</span>
               </div>
               <a 
-                href={`https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${searchedTicker}&type=4&dateb=&owner=include&count=40`}
+                href={secUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[9px] text-blue-400 hover:text-blue-300"
