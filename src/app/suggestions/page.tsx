@@ -13,13 +13,13 @@ export default function SuggestionsPage() {
         </p>
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-[#0b1221] p-3">
+      <div className="rounded-2xl border border-white/10 overflow-hidden">
         <iframe
-          src="https://tally.so/r/44KxOY?transparentBackground=1"
-          className="h-[900px] w-full rounded-xl"
+          src="https://tally.so/r/44KxOY"
+          className="h-[900px] w-full"
           frameBorder={0}
           title="PutCall.nl Feature Suggestions"
-          style={{ background: 'transparent' }}
+          allowFullScreen
         />
       </div>
 
