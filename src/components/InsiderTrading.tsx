@@ -52,12 +52,13 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades = [] }) => {
               const totalValue = Math.abs(shares * price);
               const code = t.transactionCode;
 
-              // SEC Form 4 Transaction Codes - use actual code, not price
-              // But also handle API quirk: if code is 'S' but price is 0, it's likely a Gift/Transfer
+              // SEC Form 4 Transaction Codes
+              // Handle API quirk: codes may be P/S but with $0 price indicating Award/Gift
               let typeLabel;
               switch (code) {
                 case 'P':
-                  typeLabel = 'Buy';
+                  // Real purchases have a price > 0; $0 "purchases" are awards/grants
+                  typeLabel = price > 0 ? 'Buy' : 'Award';
                   break;
                 case 'S':
                   // Real sales have a price > 0; $0 "sales" are usually gifts/transfers
