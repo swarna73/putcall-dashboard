@@ -52,16 +52,35 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades = [] }) => {
               const totalValue = Math.abs(shares * price);
               const code = t.transactionCode;
 
-              // FIX: Determine label based on Price and Code
-              let typeLabel = code;
-              if (price === 0) {
-                // If price is 0, it's an Award (Grant) or Gift
-                // 'P' = Purchase/Acquisition -> Award
-                // 'S' = Sale/Disposition -> Gift
-                typeLabel = code === 'S' ? 'Gift' : 'Award';
-              } else {
-                // Standard Buy/Sell logic for non-zero prices
-                typeLabel = code === 'P' ? 'Buy' : code === 'S' ? 'Sell' : code;
+              // SEC Form 4 Transaction Codes - use actual code, not price
+              let typeLabel;
+              switch (code) {
+                case 'P':
+                  typeLabel = 'Buy';
+                  break;
+                case 'S':
+                  typeLabel = 'Sell';
+                  break;
+                case 'A':
+                  typeLabel = 'Award';
+                  break;
+                case 'G':
+                  typeLabel = 'Gift';
+                  break;
+                case 'M':
+                  typeLabel = 'Exercise';
+                  break;
+                case 'F':
+                  typeLabel = 'Tax';
+                  break;
+                case 'D':
+                  typeLabel = 'Disposition';
+                  break;
+                case 'J':
+                  typeLabel = 'Gift';
+                  break;
+                default:
+                  typeLabel = code || 'Other';
               }
 
               return {
@@ -115,11 +134,23 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades = [] }) => {
   const getTransactionStyles = (type: string) => {
     switch (type) {
       case 'Buy':
-      case 'Award':
         return {
           container: 'bg-emerald-950/20 border-emerald-500/20 hover:border-emerald-500/40',
           badge: 'bg-emerald-500/20 text-emerald-400',
           valueText: 'text-emerald-400'
+        };
+      case 'Sell':
+        return {
+          container: 'bg-red-950/20 border-red-500/20 hover:border-red-500/40',
+          badge: 'bg-red-500/20 text-red-400',
+          valueText: 'text-red-400'
+        };
+      case 'Award':
+      case 'Exercise':
+        return {
+          container: 'bg-blue-950/20 border-blue-500/20 hover:border-blue-500/40',
+          badge: 'bg-blue-500/20 text-blue-400',
+          valueText: 'text-blue-400'
         };
       case 'Gift':
         return {
@@ -127,12 +158,13 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades = [] }) => {
           badge: 'bg-amber-500/20 text-amber-400',
           valueText: 'text-amber-400'
         };
-      case 'Sell':
+      case 'Tax':
+      case 'Disposition':
       default:
         return {
-          container: 'bg-red-950/20 border-red-500/20 hover:border-red-500/40',
-          badge: 'bg-red-500/20 text-red-400',
-          valueText: 'text-red-400'
+          container: 'bg-slate-800/20 border-slate-500/20 hover:border-slate-500/40',
+          badge: 'bg-slate-500/20 text-slate-400',
+          valueText: 'text-slate-400'
         };
     }
   };
