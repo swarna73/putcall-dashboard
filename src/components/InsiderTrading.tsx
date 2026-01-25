@@ -34,6 +34,72 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades = [] }) => {
     setSearchedTicker(ticker.toUpperCase());
 
     try {
+      // Try API Ninjas first (better data quality for actual buys/sells)
+      const apiNinjasKey = process.env.NEXT_PUBLIC_API_NINJAS_KEY;
+      
+      if (apiNinjasKey) {
+        try {
+          const response = await fetch(
+            `https://api.api-ninjas.com/v1/insidertransactions?ticker=${ticker.toUpperCase()}`,
+            {
+              headers: { 'X-Api-Key': apiNinjasKey }
+            }
+          );
+          
+          if (response.ok) {
+            const transactions = await response.json();
+            
+            if (transactions && transactions.length > 0) {
+              setTrades(transactions.slice(0, 15).map((t: any) => {
+                const price = t.transaction_price || 0;
+                const shares = Math.abs(t.shares || 0);
+                const totalValue = t.transaction_value || Math.abs(shares * price);
+                
+                // API Ninjas provides transaction_type directly: "Purchase", "Sale", "Award", etc.
+                let typeLabel;
+                const txType = (t.transaction_type || '').toLowerCase();
+                const txCode = t.transaction_code;
+                
+                if (txType.includes('purchase') || txCode === 'P') {
+                  typeLabel = price > 0 ? 'Buy' : 'Award';
+                } else if (txType.includes('sale') || txCode === 'S') {
+                  typeLabel = price > 0 ? 'Sell' : 'Gift';
+                } else if (txType.includes('award') || txType.includes('grant') || txCode === 'A') {
+                  typeLabel = 'Award';
+                } else if (txType.includes('gift') || txCode === 'G' || txCode === 'J') {
+                  typeLabel = 'Gift';
+                } else if (txType.includes('exercise') || txCode === 'M') {
+                  typeLabel = 'Exercise';
+                } else if (txType.includes('tax') || txCode === 'F') {
+                  typeLabel = 'Tax';
+                } else if (txCode === 'D') {
+                  typeLabel = 'Disposition';
+                } else {
+                  typeLabel = t.transaction_type || txCode || 'Other';
+                }
+
+                return {
+                  filingDate: t.filing_date,
+                  transactionDate: t.transaction_date || t.filing_date,
+                  ownerName: t.insider_name,
+                  ownerTitle: t.insider_position || 'Insider',
+                  transactionType: typeLabel,
+                  shares: shares,
+                  pricePerShare: price,
+                  totalValue: totalValue,
+                  sharesOwned: t.remaining_shares || 0,
+                };
+              }));
+              setLoading(false);
+              return; // Success with API Ninjas
+            }
+          }
+        } catch (ninjaErr) {
+          console.log('API Ninjas failed, trying Finnhub...', ninjaErr);
+        }
+      }
+
+      // Fallback to Finnhub
       const finnhubKey = process.env.NEXT_PUBLIC_FINNHUB_KEY;
       
       if (finnhubKey) {
@@ -46,7 +112,7 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades = [] }) => {
           const transactions = data.data || [];
           
           if (transactions.length > 0) {
-            setTrades(transactions.slice(0, 8).map((t: any) => {
+            setTrades(transactions.slice(0, 15).map((t: any) => {
               const price = t.price || 0;
               const shares = Math.abs(t.share || 0);
               const totalValue = Math.abs(shares * price);
@@ -57,11 +123,9 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades = [] }) => {
               let typeLabel;
               switch (code) {
                 case 'P':
-                  // Real purchases have a price > 0; $0 "purchases" are awards/grants
                   typeLabel = price > 0 ? 'Buy' : 'Award';
                   break;
                 case 'S':
-                  // Real sales have a price > 0; $0 "sales" are usually gifts/transfers
                   typeLabel = price > 0 ? 'Sell' : 'Gift';
                   break;
                 case 'A':
@@ -98,6 +162,7 @@ const InsiderTrading: React.FC<InsiderTradingProps> = ({ topTrades = [] }) => {
                 sharesOwned: t.shareOwned || 0,
               };
             }));
+            setLoading(false);
             return;
           }
         }
