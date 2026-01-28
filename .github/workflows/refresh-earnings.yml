@@ -1,0 +1,49 @@
+# .github/workflows/refresh-earnings.yml
+# Refreshes earnings data daily to ensure fresh data in cache
+
+name: Refresh Earnings Data
+
+on:
+  schedule:
+    # Run at 6 AM UTC on weekdays (market days)
+    - cron: '0 6 * * 1-5'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  refresh-earnings:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Refresh Earnings Cache
+        run: |
+          echo "🔄 Triggering earnings refresh..."
+          
+          response=$(curl -s -w "\n%{http_code}" \
+            -X GET \
+            "${{ secrets.NEXT_PUBLIC_BASE_URL }}/api/earnings" \
+            -H "Accept: application/json")
+          
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          
+          echo "Response: $body"
+          
+          if [ "$http_code" -eq 200 ]; then
+            # Parse the number of earnings from response
+            earnings_count=$(echo "$body" | jq -r '.earnings | length')
+            source=$(echo "$body" | jq -r '.source')
+            
+            echo "✅ Earnings refresh successful"
+            echo "📊 Found $earnings_count earnings this week"
+            echo "📦 Source: $source"
+          else
+            echo "❌ Earnings refresh failed with status $http_code"
+            exit 1
+          fi
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "⚠️ Earnings refresh failed - check logs"
+          # Optional: Add Slack/Discord notification here
+
