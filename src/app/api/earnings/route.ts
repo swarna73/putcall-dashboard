@@ -129,10 +129,10 @@ export async function GET() {
 
     // Fetch fresh data from Finnhub
     console.log('🔄 Fetching fresh earnings from Finnhub...');
-    const finnhubKey = process.env.FINNHUB_API_KEY;
+    const finnhubKey = process.env.NEXT_PUBLIC_FINNHUB_KEY;
     
     if (!finnhubKey) {
-      throw new Error('FINNHUB_API_KEY not configured');
+      throw new Error('NEXT_PUBLIC_FINNHUB_KEY not configured');
     }
 
     const fromDate = startOfWeek.toISOString().split('T')[0];
