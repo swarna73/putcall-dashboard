@@ -191,6 +191,7 @@ const Dashboard: React.FC = () => {
            </section>
         )}
       </main>
+<EarningsWidget />
     </div>
   );
 };
