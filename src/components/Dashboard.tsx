@@ -13,6 +13,7 @@ import FancyNewsletterPopup from './FancyNewsletterPopup';
 import { fetchMarketDashboard } from '../services/geminiService';
 import { DashboardData, LoadingState } from '../types';
 import { IconShield, IconRefresh } from './Icons';
+import EarningsWidget from '@/components/EarningsWidget';
 
 const Dashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData>({
