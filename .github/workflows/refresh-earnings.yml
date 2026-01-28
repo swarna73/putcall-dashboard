@@ -1,0 +1,34 @@
+name: Refresh Earnings Data
+
+on:
+  schedule:
+    - cron: '0 6 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  refresh-earnings:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Refresh Earnings Cache
+        run: |
+          echo "🔄 Triggering earnings refresh..."
+          
+          response=$(curl -s -w "\n%{http_code}" \
+            -X GET \
+            "https://putcall.nl/api/earnings" \
+            -H "Accept: application/json")
+          
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          
+          echo "Response: $body"
+          
+          if [ "$http_code" -eq 200 ]; then
+            earnings_count=$(echo "$body" | jq -r '.earnings | length')
+            echo "✅ Earnings refresh successful"
+            echo "📊 Found $earnings_count earnings this week"
+          else
+            echo "❌ Earnings refresh failed with status $http_code"
+            exit 1
+          fi
