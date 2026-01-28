@@ -270,7 +270,7 @@ const EarningsWidget: React.FC<EarningsWidgetProps> = ({
           {/* Footer */}
           <div className="px-4 pb-3">
             <a 
-              href="/earnings" 
+              href="https://finance.yahoo.com/calendar/earnings" 
               className="text-xs text-slate-500 hover:text-amber-400 transition-colors flex items-center justify-center gap-1"
             >
               View full earnings calendar
