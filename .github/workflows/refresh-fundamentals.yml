@@ -1,0 +1,24 @@
+name: Refresh Fundamentals Data
+
+on:
+  schedule:
+      - cron: '0 10,14,18,22 * * 1-5'
+        workflow_dispatch:
+
+        jobs:
+          refresh-fundamentals:
+              runs-on: ubuntu-latest
+                  steps:
+                        - name: Refresh Fundamentals Cache
+                                run: |
+                                          echo "Triggering fundamentals cache refresh..."
+                                                    response=$(curl -s -w "\n%{http_code}" -X GET "https://putcall.nl/api/cron/refresh-fundamentals" -H "Accept: application/json" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+                                                              http_code=$(echo "$response" | tail -n1)
+                                                                        body=$(echo "$response" | sed '$d')
+                                                                                  echo "Response: $body"
+                                                                                            if [ "$http_code" -eq 200 ]; then
+                                                                                                        echo "Fundamentals refresh successful"
+                                                                                                                  else
+                                                                                                                              echo "Fundamentals refresh failed with status $http_code"
+                                                                                                                                          exit 1
+                                                                                                                                                    fi
