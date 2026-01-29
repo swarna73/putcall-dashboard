@@ -9,29 +9,17 @@
 // =====================================================
 
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 
 // =====================================================
-// SUPABASE CLIENT
-// =====================================================
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-// =====================================================
-// CACHE - Increased TTL for better performance
+// CACHE - Reduced TTL for fresher data
 // =====================================================
 const cache = new Map<string, { data: any; ts: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes (increased from 1 for better performance)
+const CACHE_TTL = 1 * 60 * 1000; // 1 minute (reduced from 2)
 
 const redditCache: { data: any[] | null; timestamp: number; source: string } = {
   data: null, timestamp: 0, source: ''
 };
 const REDDIT_MAX_CACHE_AGE = 2 * 60 * 60 * 1000; // 2 hours (reduced from 4)
-
-// Fundamentals cache TTL - stock fundamentals don't change frequently
-const FUNDAMENTALS_CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours for fundamentals data
 
 // =====================================================
 // STOCK UNIVERSE FOR SCREENER (50+ stocks)
@@ -503,185 +491,71 @@ function formatLargeNum(num: number | null): string {
   return `$${(num / 1e6).toFixed(0)}M`;
 }
 
-// =====================================================
-// OPTIMIZED VALUE PICKS WITH SUPABASE CACHING
-// =====================================================
-
-async function getCachedFundamentals(): Promise<Map<string, any> | null> {
-  try {
-    const { data, error } = await supabase
-      .from('fundamentals_cache')
-      .select('*')
-      .in('symbol', STOCK_UNIVERSE.map(s => s.symbol));
-
-    if (error || !data || data.length === 0) {
-      console.log('📦 No fundamentals cache found');
-      return null;
-    }
-
-    // Check if cache is fresh (less than 4 hours old)
-    const oldestUpdate = Math.min(...data.map(d => new Date(d.updated_at).getTime()));
-    const cacheAge = Date.now() - oldestUpdate;
-
-    if (cacheAge > FUNDAMENTALS_CACHE_TTL) {
-      console.log(`📦 Fundamentals cache too old (${Math.round(cacheAge / 60000)}min)`);
-      return null;
-    }
-
-    console.log(`✅ Using fundamentals cache (${Math.round(cacheAge / 60000)}min old, ${data.length} stocks)`);
-    return new Map(data.map(d => [d.symbol, d]));
-  } catch (error) {
-    console.warn('⚠️ Failed to fetch fundamentals cache:', error);
-    return null;
-  }
-}
-
-async function saveFundamentalsToCache(stocks: any[]): Promise<void> {
-  try {
-    const dataToCache = stocks.map(s => ({
-      symbol: s.symbol,
-      name: s.name,
-      sector: s.sector,
-      price: s.price,
-      pe_ratio: s.pe,
-      dividend_yield: s.divYield,
-      market_cap: s.marketCap,
-      change_percent: s.change,
-      value_score: s.valueScore,
-      updated_at: new Date().toISOString()
-    }));
-
-    const { error } = await supabase
-      .from('fundamentals_cache')
-      .upsert(dataToCache, {
-        onConflict: 'symbol',
-        ignoreDuplicates: false
-      });
-
-    if (error) {
-      console.warn('⚠️ Failed to cache fundamentals:', error.message);
-    } else {
-      console.log(`✅ Cached ${dataToCache.length} stock fundamentals`);
-    }
-  } catch (error) {
-    console.warn('⚠️ Cache save error:', error);
-  }
-}
-
-async function fetchFreshQuotes(symbols: string[]): Promise<any[]> {
-  const batchSize = 15;
-  const allQuotes: any[] = [];
-
-  for (let i = 0; i < symbols.length; i += batchSize) {
-    const batch = symbols.slice(i, i + batchSize);
-    try {
-      const response = await fetch(
-        `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${batch.join(',')}`,
-        {
-          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0' },
-          signal: AbortSignal.timeout(5000),
-          cache: 'no-store'
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        allQuotes.push(...(data.quoteResponse?.result || []));
-      }
-    } catch (e) {
-      console.warn(`⚠️ Batch failed: ${batch.join(',')}`);
-    }
-    // Reduced delay from 100ms to 50ms for faster fetching
-    if (i + batchSize < symbols.length) {
-      await new Promise(r => setTimeout(r, 50));
-    }
-  }
-
-  return allQuotes;
-}
-
 async function getValuePicks() {
   const allSymbols = STOCK_UNIVERSE.map(s => s.symbol);
-  const startTime = Date.now();
-
+  
   try {
-    // Step 1: Try to use cached fundamentals first
-    const cachedData = await getCachedFundamentals();
-
-    let stocksWithData: any[];
-    let fromCache = false;
-
-    if (cachedData && cachedData.size >= allSymbols.length * 0.8) {
-      // Use cache if we have at least 80% of stocks cached
-      console.log(`📊 Screener: Using cached data for ${cachedData.size} stocks`);
-      fromCache = true;
-
-      stocksWithData = Array.from(cachedData.values()).map(cached => {
-        const universe = STOCK_UNIVERSE.find(s => s.symbol === cached.symbol);
-        return {
-          symbol: cached.symbol,
-          name: cached.name || universe?.name || cached.symbol,
-          sector: cached.sector || universe?.sector || 'Unknown',
-          price: cached.price,
-          pe: cached.pe_ratio,
-          divYield: cached.dividend_yield,
-          marketCap: cached.market_cap,
-          valueScore: cached.value_score || calculateValueScore(cached.pe_ratio, cached.dividend_yield, cached.market_cap),
-          change: cached.change_percent,
-        };
-      });
-    } else {
-      // Fetch fresh data from Yahoo Finance
-      console.log('📊 Screener: Fetching fresh data from Yahoo Finance...');
-      const allQuotes = await fetchFreshQuotes(allSymbols);
-
-      if (allQuotes.length === 0) throw new Error('No quotes');
-      console.log(`📊 Screener: Fetched ${allQuotes.length}/${allSymbols.length} stocks in ${Date.now() - startTime}ms`);
-
-      stocksWithData = allQuotes.map(q => {
-        const universe = STOCK_UNIVERSE.find(s => s.symbol === q.symbol);
-        const pe = q.trailingPE || q.forwardPE || null;
-        const divYield = q.dividendYield ? q.dividendYield * 100 : null;
-        const marketCap = q.marketCap || null;
-        return {
-          symbol: q.symbol,
-          name: q.shortName || universe?.name || q.symbol,
-          sector: universe?.sector || 'Unknown',
-          price: q.regularMarketPrice,
-          pe, divYield, marketCap,
-          valueScore: calculateValueScore(pe, divYield, marketCap),
-          change: q.regularMarketChangePercent,
-        };
-      });
-
-      // Save to Supabase cache (async, don't wait)
-      saveFundamentalsToCache(stocksWithData).catch(() => {});
+    const batchSize = 15;
+    const allQuotes: any[] = [];
+    
+    for (let i = 0; i < allSymbols.length; i += batchSize) {
+      const batch = allSymbols.slice(i, i + batchSize);
+      try {
+        const response = await fetch(
+          `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${batch.join(',')}`,
+          {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0' },
+            signal: AbortSignal.timeout(5000),
+            cache: 'no-store'
+          }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          allQuotes.push(...(data.quoteResponse?.result || []));
+        }
+      } catch (e) { console.warn(`⚠️ Batch failed: ${batch.join(',')}`); }
+      await new Promise(r => setTimeout(r, 100));
     }
-
-    // Step 2: Filter stocks based on screening criteria
-    const filtered = stocksWithData.filter(s =>
-      s.price &&
+    
+    if (allQuotes.length === 0) throw new Error('No quotes');
+    console.log(`📊 Screener: Fetched ${allQuotes.length}/${allSymbols.length} stocks`);
+    
+    const stocksWithData = allQuotes.map(q => {
+      const universe = STOCK_UNIVERSE.find(s => s.symbol === q.symbol);
+      const pe = q.trailingPE || q.forwardPE || null;
+      const divYield = q.dividendYield ? q.dividendYield * 100 : null;
+      const marketCap = q.marketCap || null;
+      return {
+        symbol: q.symbol,
+        name: q.shortName || universe?.name || q.symbol,
+        sector: universe?.sector || 'Unknown',
+        price: q.regularMarketPrice,
+        pe, divYield, marketCap,
+        valueScore: calculateValueScore(pe, divYield, marketCap),
+        change: q.regularMarketChangePercent,
+      };
+    });
+    
+    const filtered = stocksWithData.filter(s => 
+      s.price && 
       (s.pe === null || s.pe <= SCREENING_CRITERIA.maxPE) &&
       s.divYield !== null && s.divYield >= SCREENING_CRITERIA.minDividendYield
     );
-
+    
     console.log(`📊 Screener: ${filtered.length} passed filters`);
-
-    // Step 3: Sort by value score and select top picks with sector diversification
+    
     filtered.sort((a, b) => b.valueScore - a.valueScore);
-
+    
     const sectorCount: Record<string, number> = {};
     const finalPicks: typeof filtered = [];
-
+    
     for (const stock of filtered) {
       sectorCount[stock.sector] = (sectorCount[stock.sector] || 0) + 1;
       if (sectorCount[stock.sector] > 2) continue;
       finalPicks.push(stock);
       if (finalPicks.length >= 8) break;
     }
-
-    const totalTime = Date.now() - startTime;
-    console.log(`⚡ Screener completed in ${totalTime}ms (cache: ${fromCache})`);
-
+    
     return {
       picks: finalPicks.map(s => ({
         symbol: s.symbol,
@@ -699,13 +573,12 @@ async function getValuePicks() {
         valueScore: s.valueScore,
         change: s.change ? `${s.change >= 0 ? '+' : ''}${s.change.toFixed(2)}%` : '--'
       })),
-      source: fromCache ? 'cache' : 'yahoo',
-      isLive: !fromCache,
-      screenedFrom: stocksWithData.length,
-      passedFilter: filtered.length,
-      fetchTimeMs: totalTime
+      source: 'yahoo',
+      isLive: true,
+      screenedFrom: allQuotes.length,
+      passedFilter: filtered.length
     };
-
+    
   } catch (error: any) {
     console.error('❌ Screener failed:', error.message);
     return { picks: [], source: 'unavailable', isLive: false, screenedFrom: 0, passedFilter: 0 };
