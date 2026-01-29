@@ -5,7 +5,68 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+// app/api/cron/refresh-fundamentals/route.ts
+// Simplified: Just calls the dashboard API to warm the cache
+// The dashboard API fetches from Yahoo Finance and saves to Supabase
+
+import { NextResponse } from 'next/server';
+
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
+export async function GET(request: Request) {
+    // Verify authorization
+    const authHeader = request.headers.get('authorization');
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+          console.error('Unauthorized fundamentals refresh request');
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+  
+    const startTime = Date.now();
+    console.log('Starting fundamentals cache refresh via dashboard API...');
+  
+    try {
+          const baseUrl = process.env.VERCEL_URL
+                  ? `https://${process.env.VERCEL_URL}`
+                  : process.env.NEXT_PUBLIC_BASE_URL || 'https://putcall.nl';
+      
+          // Call the dashboard API - this will fetch from Yahoo Finance
+          // and save fundamentals to Supabase cache
+          const response = await fetch(`${baseUrl}/api/dashboard`, {
+                  method: 'GET',
+                  headers: {
+                            'User-Agent': 'Vercel-Cron-Bot',
+                            'Cache-Control': 'no-cache',
+                  },
+          });
+      
+          if (!response.ok) {
+                  throw new Error(`Dashboard API returned ${response.status}`);
+          }
+      
+          const data = await response.json();
+          const totalTime = Date.now() - startTime;
+      
+          console.log(`Fundamentals cache refreshed in ${totalTime}ms`);
+      
+          return NextResponse.json({
+                  success: true,
+                  message: 'Fundamentals cache refreshed via dashboard',
+                  valuePicks: data.valuePicks?.picks?.length || 0,
+                  fromCache: data.fromCache,
+                  timestamp: new Date().toISOString(),
+                  duration: `${totalTime}ms`
+          });
+      
+    } catch (error: any) {
+          console.error('Fundamentals refresh failed:', error);
+          return NextResponse.json({
+                  success: false,
+                  error: error.message,
+                  timestamp: new Date().toISOString(),
+          }, { status: 500 });
+    }
+}export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 const supabase = createClient(
