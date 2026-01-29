@@ -1,0 +1,39 @@
+name: Refresh Fundamentals Data
+
+on:
+  schedule:
+    # Run every 4 hours during market hours (Mon-Fri)
+    # 10:00 UTC (5am EST), 14:00 UTC (9am EST), 18:00 UTC (1pm EST), 22:00 UTC (5pm EST)
+    - cron: '0 10,14,18,22 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  refresh-fundamentals:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Refresh Fundamentals Cache
+        run: |
+          echo "🔄 Triggering fundamentals cache refresh..."
+
+          response=$(curl -s -w "\n%{http_code}" \
+            -X GET \
+            "https://putcall.nl/api/cron/refresh-fundamentals" \
+            -H "Accept: application/json" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "Response: $body"
+
+          if [ "$http_code" -eq 200 ]; then
+            stocks_cached=$(echo "$body" | jq -r '.stocksCached')
+            duration=$(echo "$body" | jq -r '.duration')
+            echo "✅ Fundamentals refresh successful"
+            echo "📊 Cached $stocks_cached stocks in $duration"
+          else
+            echo "❌ Fundamentals refresh failed with status $http_code"
+            exit 1
+          fi
+
