@@ -34,73 +34,25 @@ const REDDIT_MAX_CACHE_AGE = 2 * 60 * 60 * 1000; // 2 hours (reduced from 4)
 const FUNDAMENTALS_CACHE_TTL = 2 * 60 * 1000; // 2 minutes for real-time data
 
 // =====================================================
-// STOCK UNIVERSE FOR SCREENER (50+ stocks)
+// STOCK UNIVERSE FOR SCREENER - REDUCED FOR RELIABILITY
 // =====================================================
 const STOCK_UNIVERSE: Array<{ symbol: string; name: string; sector: string }> = [
-  // Telecommunications
+  // High-quality dividend stocks that reliably load
   { symbol: 'VZ', name: 'Verizon', sector: 'Telecommunications' },
   { symbol: 'T', name: 'AT&T', sector: 'Telecommunications' },
-  { symbol: 'TMUS', name: 'T-Mobile', sector: 'Telecommunications' },
-  
-  // Healthcare
   { symbol: 'JNJ', name: 'Johnson & Johnson', sector: 'Healthcare' },
   { symbol: 'PFE', name: 'Pfizer', sector: 'Healthcare' },
   { symbol: 'MRK', name: 'Merck', sector: 'Healthcare' },
-  { symbol: 'ABBV', name: 'AbbVie', sector: 'Healthcare' },
-  { symbol: 'BMY', name: 'Bristol-Myers Squibb', sector: 'Healthcare' },
-  { symbol: 'AMGN', name: 'Amgen', sector: 'Healthcare' },
-  { symbol: 'GILD', name: 'Gilead Sciences', sector: 'Healthcare' },
-  
-  // Energy
   { symbol: 'CVX', name: 'Chevron', sector: 'Energy' },
   { symbol: 'XOM', name: 'Exxon Mobil', sector: 'Energy' },
-  { symbol: 'COP', name: 'ConocoPhillips', sector: 'Energy' },
-  { symbol: 'EOG', name: 'EOG Resources', sector: 'Energy' },
-  { symbol: 'SLB', name: 'Schlumberger', sector: 'Energy' },
-  
-  // Consumer Staples
   { symbol: 'KO', name: 'Coca-Cola', sector: 'Consumer Staples' },
   { symbol: 'PEP', name: 'PepsiCo', sector: 'Consumer Staples' },
   { symbol: 'PG', name: 'Procter & Gamble', sector: 'Consumer Staples' },
-  { symbol: 'CL', name: 'Colgate-Palmolive', sector: 'Consumer Staples' },
-  { symbol: 'KMB', name: 'Kimberly-Clark', sector: 'Consumer Staples' },
-  { symbol: 'GIS', name: 'General Mills', sector: 'Consumer Staples' },
-  { symbol: 'MO', name: 'Altria', sector: 'Consumer Staples' },
-  { symbol: 'PM', name: 'Philip Morris', sector: 'Consumer Staples' },
-  
-  // Technology
   { symbol: 'IBM', name: 'IBM', sector: 'Technology' },
   { symbol: 'CSCO', name: 'Cisco', sector: 'Technology' },
-  { symbol: 'TXN', name: 'Texas Instruments', sector: 'Technology' },
-  { symbol: 'INTC', name: 'Intel', sector: 'Technology' },
-  { symbol: 'HPQ', name: 'HP Inc', sector: 'Technology' },
-  
-  // Financials
   { symbol: 'JPM', name: 'JPMorgan Chase', sector: 'Financials' },
   { symbol: 'BAC', name: 'Bank of America', sector: 'Financials' },
-  { symbol: 'WFC', name: 'Wells Fargo', sector: 'Financials' },
-  { symbol: 'USB', name: 'U.S. Bancorp', sector: 'Financials' },
-  { symbol: 'PNC', name: 'PNC Financial', sector: 'Financials' },
-  { symbol: 'C', name: 'Citigroup', sector: 'Financials' },
-  
-  // Utilities
   { symbol: 'DUK', name: 'Duke Energy', sector: 'Utilities' },
-  { symbol: 'SO', name: 'Southern Company', sector: 'Utilities' },
-  { symbol: 'D', name: 'Dominion Energy', sector: 'Utilities' },
-  { symbol: 'AEP', name: 'American Electric Power', sector: 'Utilities' },
-  { symbol: 'XEL', name: 'Xcel Energy', sector: 'Utilities' },
-  
-  // Industrials
-  { symbol: 'MMM', name: '3M', sector: 'Industrials' },
-  { symbol: 'CAT', name: 'Caterpillar', sector: 'Industrials' },
-  { symbol: 'HON', name: 'Honeywell', sector: 'Industrials' },
-  { symbol: 'UPS', name: 'UPS', sector: 'Industrials' },
-  { symbol: 'LMT', name: 'Lockheed Martin', sector: 'Industrials' },
-  
-  // Real Estate
-  { symbol: 'O', name: 'Realty Income', sector: 'Real Estate' },
-  { symbol: 'SPG', name: 'Simon Property', sector: 'Real Estate' },
-  { symbol: 'VTR', name: 'Ventas', sector: 'Real Estate' },
 ];
 
 // Screening criteria
@@ -579,23 +531,27 @@ async function fetchFreshQuotes(symbols: string[]): Promise<any[]> {
         `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${batch.join(',')}`,
         {
           headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0' },
-          signal: AbortSignal.timeout(5000),
+          signal: AbortSignal.timeout(10000), // Increased from 5s to 10s
           cache: 'no-store'
         }
       );
       if (response.ok) {
         const data = await response.json();
         allQuotes.push(...(data.quoteResponse?.result || []));
+        console.log(`✅ Fetched ${batch.length} stocks: ${batch.join(',')}`);
+      } else {
+        console.warn(`⚠️ HTTP ${response.status} for batch: ${batch.join(',')}`);
       }
-    } catch (e) {
-      console.warn(`⚠️ Batch failed: ${batch.join(',')}`);
+    } catch (e: any) {
+      console.warn(`⚠️ Batch failed: ${batch.join(',')} - ${e.message}`);
     }
-    // Reduced delay from 100ms to 50ms for faster fetching
+    // No delay needed for single batch
     if (i + batchSize < symbols.length) {
-      await new Promise(r => setTimeout(r, 50));
+      await new Promise(r => setTimeout(r, 100));
     }
   }
 
+  console.log(`📊 Total quotes fetched: ${allQuotes.length}/${symbols.length}`);
   return allQuotes;
 }
 
