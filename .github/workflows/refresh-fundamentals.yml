@@ -2,7 +2,8 @@ name: Refresh Fundamentals Data
 
 on:
   schedule:
-    - cron: '0 10,14,18,22 * * 1-5'
+    # Every 2 minutes during market hours (9:30 AM - 4:00 PM ET = 14:30-21:00 UTC)
+    - cron: '*/2 14-21 * * 1-5'
   workflow_dispatch:
 
 jobs:

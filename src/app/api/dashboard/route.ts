@@ -20,18 +20,18 @@ const supabase = createClient(
 );
 
 // =====================================================
-// CACHE - Increased TTL for better performance
+// CACHE - Short TTL for fresh market data
 // =====================================================
 const cache = new Map<string, { data: any; ts: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes (increased from 1 for better performance)
+const CACHE_TTL = 2 * 60 * 1000; // 2 minutes for fresh data
 
 const redditCache: { data: any[] | null; timestamp: number; source: string } = {
   data: null, timestamp: 0, source: ''
 };
 const REDDIT_MAX_CACHE_AGE = 2 * 60 * 60 * 1000; // 2 hours (reduced from 4)
 
-// Fundamentals cache TTL - stock fundamentals don't change frequently
-const FUNDAMENTALS_CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours for fundamentals data
+// Fundamentals cache TTL - refreshed every 2 minutes for fresh prices
+const FUNDAMENTALS_CACHE_TTL = 2 * 60 * 1000; // 2 minutes for real-time data
 
 // =====================================================
 // STOCK UNIVERSE FOR SCREENER (50+ stocks)
