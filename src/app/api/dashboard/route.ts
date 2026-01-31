@@ -521,37 +521,65 @@ async function saveFundamentalsToCache(stocks: any[]): Promise<void> {
 }
 
 async function fetchFreshQuotes(symbols: string[]): Promise<any[]> {
-  const batchSize = 15;
-  const allQuotes: any[] = [];
+  const finnhubKey = process.env.FINNHUB_API_KEY;
+  if (!finnhubKey) {
+    console.error('❌ FINNHUB_API_KEY is missing');
+    return [];
+  }
 
-  for (let i = 0; i < symbols.length; i += batchSize) {
-    const batch = symbols.slice(i, i + batchSize);
+  const allQuotes: any[] = [];
+  console.log(`📊 Fetching ${symbols.length} stocks from Finnhub...`);
+
+  for (const symbol of symbols) {
     try {
-      const response = await fetch(
-        `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${batch.join(',')}`,
-        {
-          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0' },
-          signal: AbortSignal.timeout(10000), // Increased from 5s to 10s
-          cache: 'no-store'
-        }
+      // Fetch quote data (price, change)
+      const quoteResponse = await fetch(
+        `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${finnhubKey}`,
+        { signal: AbortSignal.timeout(8000), cache: 'no-store' }
       );
-      if (response.ok) {
-        const data = await response.json();
-        allQuotes.push(...(data.quoteResponse?.result || []));
-        console.log(`✅ Fetched ${batch.length} stocks: ${batch.join(',')}`);
+
+      // Fetch profile data (market cap, name)
+      const profileResponse = await fetch(
+        `https://finnhub.io/api/v1/stock/profile2?symbol=${symbol}&token=${finnhubKey}`,
+        { signal: AbortSignal.timeout(8000), cache: 'no-store' }
+      );
+
+      // Fetch metrics (PE ratio, dividend)
+      const metricsResponse = await fetch(
+        `https://finnhub.io/api/v1/stock/metric?symbol=${symbol}&metric=all&token=${finnhubKey}`,
+        { signal: AbortSignal.timeout(8000), cache: 'no-store' }
+      );
+
+      if (quoteResponse.ok && profileResponse.ok && metricsResponse.ok) {
+        const quote = await quoteResponse.json();
+        const profile = await profileResponse.json();
+        const metrics = await metricsResponse.json();
+
+        // Map Finnhub data to Yahoo Finance format for compatibility
+        allQuotes.push({
+          symbol: symbol,
+          shortName: profile.name || symbol,
+          regularMarketPrice: quote.c, // current price
+          regularMarketChangePercent: quote.dp, // percent change
+          marketCap: profile.marketCapitalization ? profile.marketCapitalization * 1e6 : null,
+          trailingPE: metrics.metric?.peNormalizedAnnual || metrics.metric?.peBasicExclExtraTTM,
+          dividendYield: metrics.metric?.dividendYieldIndicatedAnnual ? metrics.metric.dividendYieldIndicatedAnnual / 100 : null
+        });
+
+        console.log(`✅ ${symbol}: $${quote.c?.toFixed(2)}`);
       } else {
-        console.warn(`⚠️ HTTP ${response.status} for batch: ${batch.join(',')}`);
+        console.warn(`⚠️ ${symbol}: HTTP ${quoteResponse.status}/${profileResponse.status}/${metricsResponse.status}`);
       }
+
+      // Rate limiting: 60 calls/min = 1 per second
+      await new Promise(r => setTimeout(r, 1100));
+
     } catch (e: any) {
-      console.warn(`⚠️ Batch failed: ${batch.join(',')} - ${e.message}`);
-    }
-    // No delay needed for single batch
-    if (i + batchSize < symbols.length) {
-      await new Promise(r => setTimeout(r, 100));
+      console.warn(`⚠️ ${symbol} failed: ${e.message}`);
     }
   }
 
-  console.log(`📊 Total quotes fetched: ${allQuotes.length}/${symbols.length}`);
+  console.log(`📊 Finnhub: Fetched ${allQuotes.length}/${symbols.length} stocks`);
   return allQuotes;
 }
 
@@ -586,8 +614,8 @@ async function getValuePicks() {
         };
       });
     } else {
-      // Fetch fresh data from Yahoo Finance
-      console.log('📊 Screener: Fetching fresh data from Yahoo Finance...');
+      // Fetch fresh data from Finnhub
+      console.log('📊 Screener: Fetching fresh data from Finnhub...');
       const allQuotes = await fetchFreshQuotes(allSymbols);
 
       if (allQuotes.length === 0) throw new Error('No quotes');
@@ -655,7 +683,7 @@ async function getValuePicks() {
         valueScore: s.valueScore,
         change: s.change ? `${s.change >= 0 ? '+' : ''}${s.change.toFixed(2)}%` : '--'
       })),
-      source: fromCache ? 'cache' : 'yahoo',
+      source: fromCache ? 'cache' : 'finnhub',
       isLive: !fromCache,
       screenedFrom: stocksWithData.length,
       passedFilter: filtered.length,
@@ -693,7 +721,7 @@ async function getValuePicks() {
       }
     ];
 
-    console.log('⚠️ Using fallback data - check Supabase connection and Yahoo Finance');
+    console.log('⚠️ Using fallback data - check Supabase connection and Finnhub API');
     return { picks: fallbackPicks, source: 'fallback', isLive: false, screenedFrom: 0, passedFilter: 0 };
   }
 }
