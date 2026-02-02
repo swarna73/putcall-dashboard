@@ -109,32 +109,60 @@ export function generateEmailHTML({
   // Generate earnings HTML
   const earningsHTML = earnings.slice(0, 8).map(earning => {
     const dateLabel = formatEarningsDate(earning.date);
-    const resultColor = earning.hasReported
-      ? ((earning.epsActual || 0) >= (earning.epsEstimate || 0) ? '#10b981' : '#ef4444')
-      : '#f59e0b';
+
+    // Determine if earnings beat/miss/met expectations
+    let resultColor = '#f59e0b'; // Default yellow for upcoming
+    let resultText = 'Upcoming';
+
+    if (earning.hasReported && earning.epsActual !== null && earning.epsEstimate !== null) {
+      const diff = earning.epsActual - earning.epsEstimate;
+      if (Math.abs(diff) < 0.01) {
+        resultColor = '#3b82f6'; // Blue for met
+        resultText = 'Met';
+      } else if (diff > 0) {
+        resultColor = '#10b981'; // Green for beat
+        resultText = 'Beat';
+      } else {
+        resultColor = '#ef4444'; // Red for miss
+        resultText = 'Miss';
+      }
+    }
+
+    // Format EPS values - handle null gracefully
+    const formatEPS = (value: number | null | undefined) => {
+      if (value === null || value === undefined) return '--';
+      return `$${value.toFixed(2)}`;
+    };
 
     return `<tr style="border-bottom: 1px solid #1e293b;">
-      <td style="padding: 8px;">
-        <div style="font-weight: 600; color: #ffffff; font-size: 13px;">${earning.symbol}</div>
-        <div style="font-size: 10px; color: #64748b;">${earning.companyName}</div>
+      <td style="padding: 10px 12px;">
+        <div style="font-weight: 600; color: #ffffff; font-size: 14px; margin-bottom: 2px;">${earning.symbol}</div>
+        <div style="font-size: 10px; color: #64748b;">${earning.companyName || earning.symbol}</div>
       </td>
-      <td style="padding: 8px; text-align: center;">
-        <div style="font-size: 11px; color: #94a3b8;">${dateLabel}</div>
+      <td style="padding: 10px 12px; text-align: center;">
+        <div style="font-size: 11px; color: #94a3b8; margin-bottom: 2px;">${dateLabel}</div>
         <div style="font-size: 10px; color: #64748b;">${formatTime(earning.time)}</div>
       </td>
-      <td style="padding: 8px; text-align: right;">
+      <td style="padding: 10px 12px; text-align: right;">
         ${earning.hasReported ? `
-          <div style="background: ${resultColor}22; color: ${resultColor}; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">
-            $${earning.epsActual?.toFixed(2) || 'N/A'}
+          <div style="background: ${resultColor}22; color: ${resultColor}; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; display: inline-block; margin-bottom: 4px;">
+            ${formatEPS(earning.epsActual)}
           </div>
-          ${earning.priceChange !== undefined ? `
-            <div style="font-size: 10px; color: ${earning.priceChange >= 0 ? '#10b981' : '#ef4444'}; margin-top: 2px;">
-              ${earning.priceChange >= 0 ? '+' : ''}${earning.priceChange.toFixed(1)}%
+          <div style="font-size: 10px; color: #64748b;">
+            Est: ${formatEPS(earning.epsEstimate)}
+          </div>
+          ${earning.priceChange !== undefined && earning.priceChange !== null ? `
+            <div style="font-size: 11px; color: ${earning.priceChange >= 0 ? '#10b981' : '#ef4444'}; margin-top: 4px; font-weight: 600;">
+              ${earning.priceChange >= 0 ? '▲' : '▼'} ${Math.abs(earning.priceChange).toFixed(1)}%
             </div>
           ` : ''}
         ` : `
-          <div style="font-size: 11px; color: #94a3b8;">Est: $${earning.epsEstimate?.toFixed(2) || 'N/A'}</div>
-          <div style="font-size: 9px; color: #f59e0b; margin-top: 2px;">Upcoming</div>
+          <div style="font-size: 12px; color: #94a3b8; margin-bottom: 4px;">
+            ${formatEPS(earning.epsEstimate)}
+          </div>
+          <div style="background: ${resultColor}22; color: ${resultColor}; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; display: inline-block;">
+            ${resultText}
+          </div>
         `}
       </td>
     </tr>`;
@@ -323,21 +351,30 @@ export function generateEmailHTML({
             </td>
           </tr>
 
-          <!-- Earnings Calendar (NEW) -->
+          <!-- Earnings Calendar -->
           ${earnings.length > 0 ? `
           <tr>
-            <td style="padding: 0 16px 16px 16px;">
-              <div style="margin-bottom: 10px;">
-                <span style="color: #ffffff; font-weight: 600; font-size: 14px;">📊 Earnings This Week</span>
-                <span style="color: #64748b; font-size: 11px; margin-left: 8px;">${earnings.length} companies reporting</span>
-              </div>
-              <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; overflow: hidden;">
+            <td style="padding: 0 16px 20px 16px;">
+              <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #334155; border-radius: 12px; overflow: hidden;">
+                <!-- Header -->
+                <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 14px 16px;">
+                  <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                      <span style="color: #ffffff; font-weight: 700; font-size: 15px;">📊 Earnings This Week</span>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 12px;">
+                      <span style="color: #ffffff; font-size: 11px; font-weight: 600;">${earnings.length} Companies</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Table -->
                 <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 12px;">
                   <thead>
                     <tr style="background: #1e293b;">
-                      <th style="padding: 8px; text-align: left; font-size: 10px; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Company</th>
-                      <th style="padding: 8px; text-align: center; font-size: 10px; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Date/Time</th>
-                      <th style="padding: 8px; text-align: right; font-size: 10px; color: #94a3b8; font-weight: 600; text-transform: uppercase;">EPS / Move</th>
+                      <th style="padding: 10px 12px; text-align: left; font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Company</th>
+                      <th style="padding: 10px 12px; text-align: center; font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">When</th>
+                      <th style="padding: 10px 12px; text-align: right; font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Results</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -431,3 +468,4 @@ export function generateEmailHTML({
 </html>
 `;
 }
+

@@ -71,6 +71,8 @@ export async function GET(request: Request) {
 
     // Fetch earnings data for preview
     let earnings: any[] = [];
+    const isLocalDev = host.includes('localhost');
+
     try {
       const earningsResponse = await fetch(`${baseUrl}/api/earnings`, {
         headers: { 'Accept': 'application/json' },
@@ -83,6 +85,12 @@ export async function GET(request: Request) {
       }
     } catch (error) {
       console.warn('⚠️ Could not fetch earnings for preview');
+    }
+
+    // Only use sample data in local development, NEVER in production
+    if (earnings.length === 0 && isLocalDev) {
+      console.log('ℹ️ Local dev: using sample earnings data for preview');
+      earnings = getSampleEarningsData();
     }
 
     // Generate email HTML
@@ -168,6 +176,75 @@ export async function GET(request: Request) {
       },
     });
   }
+}
+
+// Sample earnings data for preview
+function getSampleEarningsData() {
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const dayAfter = new Date(today);
+  dayAfter.setDate(dayAfter.getDate() + 2);
+
+  return [
+    {
+      symbol: 'DIS',
+      companyName: 'Walt Disney',
+      date: today.toISOString().split('T')[0],
+      time: 'bmo',
+      epsEstimate: 1.23,
+      epsActual: 1.45,
+      hasReported: true,
+      priceChange: 3.2
+    },
+    {
+      symbol: 'AMD',
+      companyName: 'Advanced Micro Devices',
+      date: tomorrow.toISOString().split('T')[0],
+      time: 'amc',
+      epsEstimate: 0.92,
+      epsActual: null,
+      hasReported: false,
+    },
+    {
+      symbol: 'PYPL',
+      companyName: 'PayPal',
+      date: tomorrow.toISOString().split('T')[0],
+      time: 'bmo',
+      epsEstimate: 1.15,
+      epsActual: null,
+      hasReported: false,
+    },
+    {
+      symbol: 'GOOGL',
+      companyName: 'Alphabet',
+      date: tomorrow.toISOString().split('T')[0],
+      time: 'amc',
+      epsEstimate: 1.65,
+      epsActual: null,
+      hasReported: false,
+    },
+    {
+      symbol: 'MSFT',
+      companyName: 'Microsoft',
+      date: dayAfter.toISOString().split('T')[0],
+      time: 'amc',
+      epsEstimate: 2.78,
+      epsActual: 2.95,
+      hasReported: true,
+      priceChange: 5.8
+    },
+    {
+      symbol: 'META',
+      companyName: 'Meta Platforms',
+      date: dayAfter.toISOString().split('T')[0],
+      time: 'amc',
+      epsEstimate: 4.50,
+      epsActual: 4.25,
+      hasReported: true,
+      priceChange: -2.1
+    },
+  ];
 }
 
 // Sample data for when API is unavailable
@@ -367,3 +444,4 @@ function getSampleDashboardData() {
     lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
   };
 }
+
