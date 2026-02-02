@@ -263,7 +263,7 @@ export function generateEmailHTML({
             <span style="font-size: 13px; color: #94a3b8; margin-left: 8px;">${stocktwits[0].name}</span>
           </div>
           <div style="text-align: right;">
-            <div style="background: ${getSentimentColor(stocktwits[0].sentiment)}22; color: ${getSentimentColor(stocktwits[0].sentiment)}; padding: 4px 10px; border-radius: 6px; font-size: 13px; font-weight: 600;">${stocktwits[0].sentiment} Score</div>
+            <div style="background: ${getSentimentColor(stocktwits[0].sentimentScore || 50)}22; color: ${getSentimentColor(stocktwits[0].sentimentScore || 50)}; padding: 4px 10px; border-radius: 6px; font-size: 13px; font-weight: 600;">${stocktwits[0].sentimentScore || 50} Score</div>
           </div>
         </div>
         <div style="margin-top: 10px; font-size: 12px; color: #94a3b8;">
