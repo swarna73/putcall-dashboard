@@ -177,12 +177,12 @@ async function handleNewsletterSend() {
         });
 
         await updateLastEmailSent(subscriber.email);
-        
+
         results.sent++;
         console.log(`✅ Sent to: ${subscriber.email}`);
-        
-        // Rate limit
-        await new Promise(resolve => setTimeout(resolve, 150));
+
+        // Rate limit: Resend allows 2 requests/second = minimum 500ms delay
+        await new Promise(resolve => setTimeout(resolve, 600));
         
       } catch (error: any) {
         results.failed++;

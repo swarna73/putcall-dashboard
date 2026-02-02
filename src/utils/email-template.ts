@@ -37,8 +37,8 @@ interface EmailTemplateProps {
     priceChange?: number;
   }>;
   unsubscribeUrl?: string;
-  stocktwits?: Array<{ symbol: string; name: string; sentiment: number }>;
-  yahoo?: Array<{ symbol: string; name: string; sentiment: number }>;
+  stocktwits?: Array<{ symbol: string; name: string; sentiment?: string; sentimentScore?: number }>;
+  yahoo?: Array<{ symbol: string; name: string; sentiment?: string; sentimentScore?: number }>;
   redditAvailable?: boolean;
   redditSource?: 'tradestie' | 'reddit' | 'cache' | 'unavailable';
 }
@@ -199,11 +199,11 @@ export function generateEmailHTML({
     : '';
 
   const stocktwitsRows = stocktwits.slice(0, 10).map((stock, i) =>
-    generateStockRow(stock.symbol, stock.name, stock.sentiment, i)
+    generateStockRow(stock.symbol, stock.name, stock.sentimentScore || 50, i)
   ).join('');
 
   const yahooRows = yahoo.slice(0, 10).map((stock, i) =>
-    generateStockRow(stock.symbol, stock.name, stock.sentiment, i)
+    generateStockRow(stock.symbol, stock.name, stock.sentimentScore || 50, i)
   ).join('');
 
   // Split picks into rows of 3
