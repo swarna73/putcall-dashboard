@@ -69,8 +69,10 @@ export async function GET(request: Request) {
       dashboardData = getSampleDashboardData();
     }
 
-    // Fetch earnings data for preview
+    // Fetch earnings and trending data for preview
     let earnings: any[] = [];
+    let stocktwits: any[] = [];
+    let yahoo: any[] = [];
     const isLocalDev = host.includes('localhost');
 
     try {
@@ -87,6 +89,22 @@ export async function GET(request: Request) {
       console.warn('⚠️ Could not fetch earnings for preview');
     }
 
+    // Fetch trending sources (StockTwits + Yahoo)
+    try {
+      const trendingResponse = await fetch(`${baseUrl}/api/trending-sources`, {
+        headers: { 'Accept': 'application/json' },
+        cache: 'no-store',
+      });
+      if (trendingResponse.ok) {
+        const trendingData = await trendingResponse.json();
+        stocktwits = trendingData.stocktwits || [];
+        yahoo = trendingData.yahoo || [];
+        console.log(`✅ Trending: ${stocktwits.length} StockTwits, ${yahoo.length} Yahoo`);
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not fetch trending sources for preview');
+    }
+
     // Only use sample data in local development, NEVER in production
     if (earnings.length === 0 && isLocalDev) {
       console.log('ℹ️ Local dev: using sample earnings data for preview');
@@ -97,6 +115,8 @@ export async function GET(request: Request) {
     const emailHTML = generateEmailHTML({
       data: dashboardData,
       earnings,
+      stocktwits,
+      yahoo,
       unsubscribeUrl: `${baseUrl}/unsubscribe?token=PREVIEW_TOKEN`
     });
     
