@@ -114,7 +114,7 @@ export function generateEmailHTML({
     let resultColor = '#f59e0b'; // Default yellow for upcoming
     let resultText = 'Upcoming';
 
-    if (earning.hasReported && earning.epsActual !== null && earning.epsEstimate !== null) {
+    if (earning.hasReported && earning.epsActual !== null && earning.epsActual !== undefined && earning.epsEstimate !== null && earning.epsEstimate !== undefined) {
       const diff = earning.epsActual - earning.epsEstimate;
       if (Math.abs(diff) < 0.01) {
         resultColor = '#3b82f6'; // Blue for met
