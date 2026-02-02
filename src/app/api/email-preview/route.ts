@@ -68,10 +68,27 @@ export async function GET(request: Request) {
       console.warn('No Reddit trends, using sample data');
       dashboardData = getSampleDashboardData();
     }
-    
+
+    // Fetch earnings data for preview
+    let earnings: any[] = [];
+    try {
+      const earningsResponse = await fetch(`${baseUrl}/api/earnings`, {
+        headers: { 'Accept': 'application/json' },
+        cache: 'no-store',
+      });
+      if (earningsResponse.ok) {
+        const earningsData = await earningsResponse.json();
+        earnings = earningsData.earnings || [];
+        console.log(`✅ Got ${earnings.length} earnings for preview`);
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not fetch earnings for preview');
+    }
+
     // Generate email HTML
     const emailHTML = generateEmailHTML({
       data: dashboardData,
+      earnings,
       unsubscribeUrl: `${baseUrl}/unsubscribe?token=PREVIEW_TOKEN`
     });
     

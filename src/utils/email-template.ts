@@ -1,6 +1,6 @@
 // utils/email-template.ts
 // Compact newsletter layout with parallel columns
-// UPDATED: Handles missing Reddit data gracefully - no fake data!
+// UPDATED: Includes earnings calendar for this week
 
 interface EmailTemplateProps {
   data: {
@@ -26,18 +26,28 @@ interface EmailTemplateProps {
       conviction?: string;
     }>;
   };
+  earnings?: Array<{
+    symbol: string;
+    companyName: string;
+    date: string;
+    time: 'bmo' | 'amc' | 'dmh' | null;
+    epsEstimate?: number;
+    epsActual?: number;
+    hasReported: boolean;
+    priceChange?: number;
+  }>;
   unsubscribeUrl?: string;
   stocktwits?: Array<{ symbol: string; name: string; sentiment: number }>;
   yahoo?: Array<{ symbol: string; name: string; sentiment: number }>;
-  // NEW: Reddit availability flags
   redditAvailable?: boolean;
   redditSource?: 'tradestie' | 'reddit' | 'cache' | 'unavailable';
 }
 
-export function generateEmailHTML({ 
-  data, 
-  unsubscribeUrl, 
-  stocktwits = [], 
+export function generateEmailHTML({
+  data,
+  earnings = [],
+  unsubscribeUrl,
+  stocktwits = [],
   yahoo = [],
   redditAvailable,
   redditSource = 'unavailable'
@@ -46,30 +56,89 @@ export function generateEmailHTML({
   const indices = data.marketIndices || [];
   const trends = data.redditTrends || [];
   const picks = data.picks || [];
-  
-  // Determine if Reddit data is actually available
-  const hasRedditData = redditAvailable !== undefined 
-    ? redditAvailable 
+
+  const hasRedditData = redditAvailable !== undefined
+    ? redditAvailable
     : (trends.length > 0);
-  
+
   const topStock = hasRedditData ? trends[0] : null;
 
-  // Sentiment color
   const getSentimentColor = (score: number) => {
-    if (score >= 60) return '#10b981'; // green
-    if (score <= 40) return '#ef4444'; // red
-    return '#f59e0b'; // yellow
+    if (score >= 60) return '#10b981';
+    if (score <= 40) return '#ef4444';
+    return '#f59e0b';
   };
 
   const sentimentColor = getSentimentColor(sentiment.score);
-  
-  // Format date
+
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
     year: 'numeric'
   });
+
+  // Format earnings date
+  const formatEarningsDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const isTomorrow = date.toDateString() === tomorrow.toDateString();
+
+    if (isToday) return 'Today';
+    if (isTomorrow) return 'Tomorrow';
+
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const formatTime = (time: string | null) => {
+    switch (time) {
+      case 'bmo': return 'Before Open';
+      case 'amc': return 'After Close';
+      case 'dmh': return 'During Hours';
+      default: return 'TBA';
+    }
+  };
+
+  // Generate earnings HTML
+  const earningsHTML = earnings.slice(0, 8).map(earning => {
+    const dateLabel = formatEarningsDate(earning.date);
+    const resultColor = earning.hasReported
+      ? ((earning.epsActual || 0) >= (earning.epsEstimate || 0) ? '#10b981' : '#ef4444')
+      : '#f59e0b';
+
+    return `<tr style="border-bottom: 1px solid #1e293b;">
+      <td style="padding: 8px;">
+        <div style="font-weight: 600; color: #ffffff; font-size: 13px;">${earning.symbol}</div>
+        <div style="font-size: 10px; color: #64748b;">${earning.companyName}</div>
+      </td>
+      <td style="padding: 8px; text-align: center;">
+        <div style="font-size: 11px; color: #94a3b8;">${dateLabel}</div>
+        <div style="font-size: 10px; color: #64748b;">${formatTime(earning.time)}</div>
+      </td>
+      <td style="padding: 8px; text-align: right;">
+        ${earning.hasReported ? `
+          <div style="background: ${resultColor}22; color: ${resultColor}; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">
+            $${earning.epsActual?.toFixed(2) || 'N/A'}
+          </div>
+          ${earning.priceChange !== undefined ? `
+            <div style="font-size: 10px; color: ${earning.priceChange >= 0 ? '#10b981' : '#ef4444'}; margin-top: 2px;">
+              ${earning.priceChange >= 0 ? '+' : ''}${earning.priceChange.toFixed(1)}%
+            </div>
+          ` : ''}
+        ` : `
+          <div style="font-size: 11px; color: #94a3b8;">Est: $${earning.epsEstimate?.toFixed(2) || 'N/A'}</div>
+          <div style="font-size: 9px; color: #f59e0b; margin-top: 2px;">Upcoming</div>
+        `}
+      </td>
+    </tr>`;
+  }).join('');
 
   // Generate indices bar
   const indicesHTML = indices.slice(0, 3).map(idx => {
@@ -95,51 +164,23 @@ export function generateEmailHTML({
     </tr>`;
   };
 
-  // Reddit trending table - only generate if data available
-  const redditRows = hasRedditData 
-    ? trends.slice(0, 10).map((stock, i) => 
+  const redditRows = hasRedditData
+    ? trends.slice(0, 10).map((stock, i) =>
         generateStockRow(stock.symbol, stock.name, stock.sentimentScore, i)
       ).join('')
     : '';
 
-  // StockTwits table
-  const stocktwitsRows = stocktwits.slice(0, 10).map((stock, i) => 
+  const stocktwitsRows = stocktwits.slice(0, 10).map((stock, i) =>
     generateStockRow(stock.symbol, stock.name, stock.sentiment, i)
   ).join('');
 
-  // Yahoo table
-  const yahooRows = yahoo.slice(0, 10).map((stock, i) => 
+  const yahooRows = yahoo.slice(0, 10).map((stock, i) =>
     generateStockRow(stock.symbol, stock.name, stock.sentiment, i)
   ).join('');
-
-  // Value picks - compact cards
-  const picksHTML = picks.slice(0, 6).map(pick => {
-    const convictionColor = pick.conviction === 'Strong Buy' ? '#10b981' : 
-                           pick.conviction === 'Buy' ? '#3b82f6' : '#f59e0b';
-    return `<td style="padding: 6px; vertical-align: top; width: 33.33%;">
-      <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 12px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <span style="font-weight: 700; color: #ffffff; font-size: 16px;">${pick.symbol}</span>
-          <span style="background: ${convictionColor}22; color: ${convictionColor}; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600;">${pick.conviction || 'HOLD'}</span>
-        </div>
-        <div style="color: #6366f1; font-weight: 600; font-size: 14px; margin-bottom: 6px;">${pick.price}</div>
-        <table style="width: 100%; font-size: 10px; color: #94a3b8;">
-          <tr>
-            <td>P/E</td>
-            <td style="text-align: right; color: #ffffff;">${pick.metrics?.peRatio || 'N/A'}</td>
-          </tr>
-          <tr>
-            <td>Div</td>
-            <td style="text-align: right; color: #ffffff;">${pick.metrics?.dividendYield || 'N/A'}</td>
-          </tr>
-        </table>
-      </div>
-    </td>`;
-  }).join('');
 
   // Split picks into rows of 3
   const picksRow1 = picks.slice(0, 3).map(pick => {
-    const convictionColor = pick.conviction === 'Strong Buy' ? '#10b981' : 
+    const convictionColor = pick.conviction === 'Strong Buy' ? '#10b981' :
                            pick.conviction === 'Buy' ? '#3b82f6' : '#f59e0b';
     return `<td style="padding: 6px; vertical-align: top; width: 33.33%;">
       <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 10px;">
@@ -154,7 +195,7 @@ export function generateEmailHTML({
   }).join('');
 
   const picksRow2 = picks.slice(3, 6).map(pick => {
-    const convictionColor = pick.conviction === 'Strong Buy' ? '#10b981' : 
+    const convictionColor = pick.conviction === 'Strong Buy' ? '#10b981' :
                            pick.conviction === 'Buy' ? '#3b82f6' : '#f59e0b';
     return `<td style="padding: 6px; vertical-align: top; width: 33.33%;">
       <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 10px;">
@@ -168,9 +209,6 @@ export function generateEmailHTML({
     </td>`;
   }).join('');
 
-  // =====================================================
-  // TOP STOCK SECTION - Conditional based on data availability
-  // =====================================================
   const topStockSection = topStock ? `
     <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #334155; border-radius: 10px; padding: 16px;">
       <div style="font-size: 11px; color: #f59e0b; text-transform: uppercase; margin-bottom: 6px;">🔥 Reddit #1 Trending</div>
@@ -188,11 +226,10 @@ export function generateEmailHTML({
       </div>
     </div>
   ` : `
-    <!-- Reddit unavailable - show StockTwits top stock instead or message -->
     <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #334155; border-radius: 10px; padding: 16px;">
       ${stocktwits.length > 0 ? `
         <div style="font-size: 11px; color: #3b82f6; text-transform: uppercase; margin-bottom: 6px;">💬 StockTwits #1 Trending</div>
-        <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; justify-between;">
           <div>
             <span style="font-size: 28px; font-weight: 700; color: #ffffff;">${stocktwits[0].symbol}</span>
             <span style="font-size: 13px; color: #94a3b8; margin-left: 8px;">${stocktwits[0].name}</span>
@@ -213,9 +250,6 @@ export function generateEmailHTML({
     </div>
   `;
 
-  // =====================================================
-  // REDDIT COLUMN - Shows unavailable message if no data
-  // =====================================================
   const redditColumnContent = hasRedditData ? `
     <div style="background: #ef4444; padding: 8px 12px;">
       <span style="color: #ffffff; font-weight: 600; font-size: 12px;">📈 Reddit WSB</span>
@@ -248,7 +282,7 @@ export function generateEmailHTML({
     <tr>
       <td align="center" style="padding: 20px 10px;">
         <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 700px; background-color: #0b1221; border-radius: 12px; overflow: hidden;">
-          
+
           <!-- Header -->
           <tr>
             <td style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 20px; text-align: center;">
@@ -279,7 +313,7 @@ export function generateEmailHTML({
                       <div style="font-size: 14px; color: ${sentimentColor}; font-weight: 600;">${sentiment.label}</div>
                     </div>
                   </td>
-                  
+
                   <!-- Top Stock (or alternative) -->
                   <td style="width: 65%; vertical-align: top;">
                     ${topStockSection}
@@ -288,6 +322,32 @@ export function generateEmailHTML({
               </table>
             </td>
           </tr>
+
+          <!-- Earnings Calendar (NEW) -->
+          ${earnings.length > 0 ? `
+          <tr>
+            <td style="padding: 0 16px 16px 16px;">
+              <div style="margin-bottom: 10px;">
+                <span style="color: #ffffff; font-weight: 600; font-size: 14px;">📊 Earnings This Week</span>
+                <span style="color: #64748b; font-size: 11px; margin-left: 8px;">${earnings.length} companies reporting</span>
+              </div>
+              <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; overflow: hidden;">
+                <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 12px;">
+                  <thead>
+                    <tr style="background: #1e293b;">
+                      <th style="padding: 8px; text-align: left; font-size: 10px; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Company</th>
+                      <th style="padding: 8px; text-align: center; font-size: 10px; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Date/Time</th>
+                      <th style="padding: 8px; text-align: right; font-size: 10px; color: #94a3b8; font-weight: 600; text-transform: uppercase;">EPS / Move</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${earningsHTML}
+                  </tbody>
+                </table>
+              </div>
+            </td>
+          </tr>
+          ` : ''}
 
           <!-- Three Column Tables: Reddit | StockTwits | Yahoo -->
           <tr>
@@ -300,7 +360,7 @@ export function generateEmailHTML({
                       ${redditColumnContent}
                     </div>
                   </td>
-                  
+
                   <!-- StockTwits Column -->
                   <td style="width: 33.33%; vertical-align: top; padding: 0 4px;">
                     <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; overflow: hidden;">
@@ -312,7 +372,7 @@ export function generateEmailHTML({
                       </table>
                     </div>
                   </td>
-                  
+
                   <!-- Yahoo Column -->
                   <td style="width: 33.33%; vertical-align: top; padding-left: 8px;">
                     <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; overflow: hidden;">

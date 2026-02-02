@@ -56,9 +56,9 @@ async function handleNewsletterSend() {
 
     // 2. Fetch all data in parallel
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://putcall.nl';
-    console.log('📊 Fetching dashboard and cross-platform data...');
-    
-    const [dashboardResponse, trendingResponse] = await Promise.all([
+    console.log('📊 Fetching dashboard, cross-platform, and earnings data...');
+
+    const [dashboardResponse, trendingResponse, earningsResponse] = await Promise.all([
       fetch(`${baseUrl}/api/dashboard`, {
         headers: { 'Accept': 'application/json' },
         cache: 'no-store',
@@ -67,6 +67,10 @@ async function handleNewsletterSend() {
         headers: { 'Accept': 'application/json' },
         cache: 'no-store',
       }).catch(() => null), // Don't fail if trending-sources fails
+      fetch(`${baseUrl}/api/earnings`, {
+        headers: { 'Accept': 'application/json' },
+        cache: 'no-store',
+      }).catch(() => null), // Don't fail if earnings fails
     ]);
 
     if (!dashboardResponse.ok) {
@@ -78,7 +82,7 @@ async function handleNewsletterSend() {
     // Get trending sources data (StockTwits + Yahoo)
     let stocktwits: any[] = [];
     let yahoo: any[] = [];
-    
+
     if (trendingResponse && trendingResponse.ok) {
       const trendingData = await trendingResponse.json();
       stocktwits = trendingData.stocktwits || [];
@@ -86,6 +90,17 @@ async function handleNewsletterSend() {
       console.log(`✅ Trending data: ${stocktwits.length} StockTwits, ${yahoo.length} Yahoo`);
     } else {
       console.warn('⚠️ Could not fetch trending sources');
+    }
+
+    // Get earnings calendar data
+    let earnings: any[] = [];
+
+    if (earningsResponse && earningsResponse.ok) {
+      const earningsData = await earningsResponse.json();
+      earnings = earningsData.earnings || [];
+      console.log(`✅ Earnings data: ${earnings.length} events this week`);
+    } else {
+      console.warn('⚠️ Could not fetch earnings calendar');
     }
 
     // =====================================================
@@ -141,13 +156,14 @@ async function handleNewsletterSend() {
       try {
         const unsubscribeUrl = `${baseUrl}/unsubscribe?token=${subscriber.token}`;
         
-        // Pass all data including cross-platform to email template
+        // Pass all data including cross-platform and earnings to email template
         // The email template should handle missing Reddit data gracefully
         const emailHTML = generateEmailHTML({
           data: dashboardData,
           unsubscribeUrl,
           stocktwits,
           yahoo,
+          earnings, // Include earnings calendar
           // NEW: Pass Reddit availability flag
           redditAvailable: hasRedditData,
           redditSource: redditMeta.source || 'unavailable',
@@ -192,6 +208,7 @@ async function handleNewsletterSend() {
         reddit: hasRedditData ? redditMeta.source : 'unavailable',
         stocktwits: stocktwits.length > 0,
         yahoo: yahoo.length > 0,
+        earnings: earnings.length > 0,
       }
     });
 
