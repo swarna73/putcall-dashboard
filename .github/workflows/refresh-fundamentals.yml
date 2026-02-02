@@ -6,12 +6,32 @@ on:
     - cron: '*/2 14-21 * * 1-5'
   workflow_dispatch:
 
+# Only one instance runs at a time - cancels old runs if new one starts
+concurrency:
+  group: refresh-fundamentals
+  cancel-in-progress: true
+
 jobs:
   refresh-fundamentals:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Refresh Fundamentals Cache
         run: |
-          curl -s -X GET "https://putcall.nl/api/cron/refresh-fundamentals" \
+          echo "🔄 Refreshing fundamentals cache..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X GET "https://putcall.nl/api/cron/refresh-fundamentals" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            -H "Accept: application/json"
+            -H "Accept: application/json")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+
+          echo "Response: $BODY"
+          echo "HTTP Status: $HTTP_CODE"
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "❌ Failed with status $HTTP_CODE"
+            exit 1
+          fi
+
+          echo "✅ Cache refreshed successfully"
+
