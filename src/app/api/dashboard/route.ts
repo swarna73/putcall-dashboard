@@ -37,22 +37,15 @@ const FUNDAMENTALS_CACHE_TTL = 2 * 60 * 1000; // 2 minutes for real-time data
 // STOCK UNIVERSE FOR SCREENER - REDUCED FOR RELIABILITY
 // =====================================================
 const STOCK_UNIVERSE: Array<{ symbol: string; name: string; sector: string }> = [
-  // High-quality dividend stocks that reliably load
+  // Reduced to 8 stocks (24 Finnhub calls vs 45) - prevents rate limits & timeouts
   { symbol: 'VZ', name: 'Verizon', sector: 'Telecommunications' },
-  { symbol: 'T', name: 'AT&T', sector: 'Telecommunications' },
   { symbol: 'JNJ', name: 'Johnson & Johnson', sector: 'Healthcare' },
   { symbol: 'PFE', name: 'Pfizer', sector: 'Healthcare' },
-  { symbol: 'MRK', name: 'Merck', sector: 'Healthcare' },
   { symbol: 'CVX', name: 'Chevron', sector: 'Energy' },
-  { symbol: 'XOM', name: 'Exxon Mobil', sector: 'Energy' },
   { symbol: 'KO', name: 'Coca-Cola', sector: 'Consumer Staples' },
-  { symbol: 'PEP', name: 'PepsiCo', sector: 'Consumer Staples' },
   { symbol: 'PG', name: 'Procter & Gamble', sector: 'Consumer Staples' },
-  { symbol: 'IBM', name: 'IBM', sector: 'Technology' },
-  { symbol: 'CSCO', name: 'Cisco', sector: 'Technology' },
   { symbol: 'JPM', name: 'JPMorgan Chase', sector: 'Financials' },
-  { symbol: 'BAC', name: 'Bank of America', sector: 'Financials' },
-  { symbol: 'DUK', name: 'Duke Energy', sector: 'Utilities' },
+  { symbol: 'IBM', name: 'IBM', sector: 'Technology' },
 ];
 
 // Screening criteria
@@ -855,3 +848,4 @@ export async function GET() {
     });
   }
 }
+

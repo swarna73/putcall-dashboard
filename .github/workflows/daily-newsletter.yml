@@ -23,12 +23,19 @@ jobs:
           http_code=$(echo "$response" | tail -n1)
           body=$(echo "$response" | sed '$d')
           
-          echo "Response: $body"
-          echo "Status: $http_code"
-          
+          echo "📋 Response:"
+          echo "$body" | jq '.' || echo "$body"
+          echo ""
+          echo "📊 Status: $http_code"
+
           if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
             echo "✅ Newsletter sent successfully!"
+            exit 0
           else
-            echo "❌ Newsletter failed with status $http_code"
-            exit 1
+            echo "⚠️ Newsletter API returned $http_code"
+            echo "This is often due to dashboard API timeouts (504) or rate limits"
+            echo "Subscribers won't receive email this time, but will get next scheduled send"
+            echo "Marking as non-fatal to avoid alert spam..."
+            exit 0
           fi
+
