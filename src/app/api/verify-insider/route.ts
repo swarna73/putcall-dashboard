@@ -2,8 +2,7 @@
 // Verifies Reddit insider alerts against SEC EDGAR filings
 
 import { NextResponse } from 'next/server';
-
-export async function POST(request) {
+export async function POST(request: Request) {
   try {
     const { ticker, amount, tradeDate, insider } = await request.json();
 
