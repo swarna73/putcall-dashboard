@@ -1,19 +1,51 @@
 // Component: Insider Alert Verification Tool
-// Path: app/verify-insider/page.js
+// Path: app/verify-insider/page.tsx
 
 'use client';
 
 import { useState } from 'react';
 
+interface ParsedData {
+  ticker: string;
+  amount: string | null;
+  tradeDate: string | null;
+  filingDate: string | null;
+  shares: string | null;
+  price: string | null;
+  insider: string | null;
+}
+
+interface MatchedFiling {
+  date: string;
+  reportDate: string;
+  url: string;
+}
+
+interface RecentFiling {
+  date: string;
+  reportDate: string;
+  url: string;
+}
+
+interface VerificationResult {
+  verified: boolean | string;
+  ticker: string;
+  cik: string;
+  companyName: string;
+  matchedFiling: MatchedFiling | null;
+  recentFilings: RecentFiling[];
+  message: string;
+}
+
 export default function VerifyInsiderPage() {
-  const [alertText, setAlertText] = useState('');
-  const [parsedData, setParsedData] = useState(null);
-  const [verificationResult, setVerificationResult] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [alertText, setAlertText] = useState<string>('');
+  const [parsedData, setParsedData] = useState<ParsedData | null>(null);
+  const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
 
   // Parse Reddit alert text
-  const parseAlert = (text) => {
+  const parseAlert = (text: string) => {
     setError('');
     
     // Extract ticker symbol - look for ($TICKER) or just TICKER in parentheses
@@ -46,7 +78,7 @@ export default function VerifyInsiderPage() {
       return null;
     }
 
-    const parsed = {
+    const parsed: ParsedData = {
       ticker: tickerMatch[1],
       amount: amountMatch ? amountMatch[1] : null,
       tradeDate: tradeDateMatch ? tradeDateMatch[1] : null,
@@ -97,7 +129,7 @@ export default function VerifyInsiderPage() {
       }
 
       setVerificationResult(data);
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
