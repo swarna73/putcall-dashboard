@@ -1,7 +1,8 @@
-// API Route for App Router: /app/api/verify-insider/route.js
+// API Route for App Router: /app/api/verify-insider/route.ts
 // Verifies Reddit insider alerts against SEC EDGAR filings
 
 import { NextResponse } from 'next/server';
+
 export async function POST(request: Request) {
   try {
     const { ticker, amount, tradeDate, insider } = await request.json();
@@ -60,14 +61,14 @@ export async function POST(request: Request) {
     
     // Filter for Form 4 filings (insider transactions)
     const form4Filings = filingsData.filings?.recent?.accessionNumber
-	?.map((accession: string, index: number) => ({
+      ?.map((accession: string, index: number) => ({
         accessionNumber: accession,
         filingDate: filingsData.filings.recent.filingDate[index],
         reportDate: filingsData.filings.recent.reportDate?.[index],
         form: filingsData.filings.recent.form[index],
         primaryDocument: filingsData.filings.recent.primaryDocument[index],
       }))
-      .filter(filing => filing.form === '4') || [];
+      .filter((filing: any) => filing.form === '4') || [];
 
     // Step 4: Check if there's a matching filing based on trade date
     let matchedFiling = null;
@@ -79,14 +80,14 @@ export async function POST(request: Request) {
       const threeDaysAfter = new Date(tradeDateObj);
       threeDaysAfter.setDate(threeDaysAfter.getDate() + 3);
 
-      matchedFiling = form4Filings.find(filing => {
+      matchedFiling = form4Filings.find((filing: any) => {
         const filingDate = new Date(filing.filingDate);
         return filingDate >= threeDaysBefore && filingDate <= threeDaysAfter;
       });
     }
 
     // Step 5: Prepare response
-    const recentFilings = form4Filings.slice(0, 5).map(filing => ({
+    const recentFilings = form4Filings.slice(0, 5).map((filing: any) => ({
       date: filing.filingDate,
       reportDate: filing.reportDate,
       url: `https://www.sec.gov/cgi-bin/viewer?action=view&cik=${cik}&accession_number=${filing.accessionNumber.replace(/-/g, '')}&xbrl_type=v`,
@@ -108,7 +109,7 @@ export async function POST(request: Request) {
         : `⚠ Partial: Recent Form 4 filings found, but no exact match for trade date ${tradeDate}. Check recent filings manually.`,
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('SEC verification error:', error);
     return NextResponse.json(
       { 
@@ -119,3 +120,4 @@ export async function POST(request: Request) {
     );
   }
 }
+
