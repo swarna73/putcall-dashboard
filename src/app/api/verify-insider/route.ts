@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     
     // Filter for Form 4 filings (insider transactions)
     const form4Filings = filingsData.filings?.recent?.accessionNumber
-      ?.map((accession, index) => ({
+	?.map((accession: string, index: number) => ({
         accessionNumber: accession,
         filingDate: filingsData.filings.recent.filingDate[index],
         reportDate: filingsData.filings.recent.reportDate?.[index],
