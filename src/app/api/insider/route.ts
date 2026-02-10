@@ -1,128 +1,96 @@
-import { NextResponse } from 'next/server';
-import { GoogleGenAI } from "@google/genai";
+// API Route: /api/insider-alerts
+// Fetches stored insider alerts from Supabase for display
 
-function extractJSON(text: string): any {
-  try {
-    const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    return JSON.parse(clean);
-  } catch (e) {
-    const startIndex = text.indexOf('{');
-    if (startIndex === -1) throw new Error("No JSON start found in response");
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
-    let braceCount = 0;
-    let endIndex = -1;
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
-    for (let i = startIndex; i < text.length; i++) {
-      if (text[i] === '{') braceCount++;
-      else if (text[i] === '}') braceCount--;
-
-      if (braceCount === 0) {
-        endIndex = i;
-        break;
-      }
-    }
-
-    if (endIndex !== -1) {
-      const jsonStr = text.substring(startIndex, endIndex + 1);
-      return JSON.parse(jsonStr);
-    }
-    
-    throw new Error("Could not extract valid JSON object from response");
-  }
+export interface InsiderAlert {
+  id: string;
+  ticker: string;
+  transaction_type: 'BUY' | 'SELL';
+  amount: string | null;
+  shares: number | null;
+  price_per_share: number | null;
+  trade_date: string | null;
+  filing_date: string | null;
+  insider_name: string | null;
+  company_name: string | null;
+  reddit_url: string | null;
+  sec_filing_url: string | null;
+  posted_at: string;
+  verification_status: 'verified' | 'partial' | 'unverified';
 }
 
-export async function POST(request: Request) {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
   
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "API Key is missing" },
-      { status: 500 }
-    );
-  }
-
-  const { symbol } = await request.json();
-
-  if (!symbol) {
-    return NextResponse.json(
-      { error: "Symbol is required" },
-      { status: 400 }
-    );
-  }
-
-  const ai = new GoogleGenAI({ apiKey });
-  const model = 'gemini-2.5-flash';
-
-  const prompt = `
-    Act as a Financial Analyst specializing in insider trading analysis.
-    
-    Search for recent insider trading activity for: ${symbol}
-    
-    **Data Sources to Search:**
-    1. Search "SEC Form 4 ${symbol} insider trading" for official SEC filings
-    2. Search "openinsider.com ${symbol}" for aggregated data
-    3. Search "${symbol} insider buying selling recent"
-    
-    **Find the most recent 5 insider transactions (last 90 days) and include:**
-    - Insider name
-    - Title/Position (CEO, COO, CFO, Director, etc.)
-    - Transaction type (Buy or Sale)
-    - Number of shares
-    - Total transaction value
-    - Price per share (if available)
-    - Filing date
-    
-    **Analysis Requirements:**
-    - Identify patterns (clustered buying, multiple executives buying, large purchases)
-    - Determine sentiment (Bullish if buying, Bearish if selling)
-    - Note significance (e.g., "CEO bought $5M worth - largest purchase in 2 years")
-    
-    **Output Format (Strict JSON):**
-    {
-      "symbol": "${symbol}",
-      "companyName": "Full Company Name",
-      "recentTrades": [
-        {
-          "symbol": "${symbol}",
-          "companyName": "Company Name",
-          "insiderName": "John Smith",
-          "title": "Chief Operating Officer",
-          "transactionType": "Buy",
-          "shares": "50,000",
-          "value": "$7.5M",
-          "pricePerShare": "$150.00",
-          "filingDate": "Nov 22, 2025",
-          "significance": "Large Buy"
-        }
-      ],
-      "analysis": "Three executives including the COO purchased a combined $15M in shares over the past 30 days, suggesting strong confidence in upcoming earnings. This represents the highest insider buying activity in 18 months."
-    }
-    
-    **IMPORTANT:** 
-    - Use REAL data from your searches
-    - If no insider activity found in last 90 days, say so in the analysis
-    - Format dates as "MMM DD, YYYY"
-    - Format values with M/K suffix (e.g., "$7.5M", "$250K")
-  `;
+  const limit = searchParams.get('limit') || '20';
+  const offset = searchParams.get('offset') || '0';
+  const type = searchParams.get('type'); // 'BUY' or 'SELL'
+  const verified = searchParams.get('verified') ?? 'true';
+  const ticker = searchParams.get('ticker');
 
   try {
-    const response = await ai.models.generateContent({
-      model: model,
-      contents: prompt,
-      config: {
-        tools: [{ googleSearch: {} }],
-        temperature: 0.1,
-      },
-    });
+    let query = supabase
+      .from('insider_alerts')
+      .select('*', { count: 'exact' })
+      .order('trade_date', { ascending: false, nullsFirst: false })
+      .order('posted_at', { ascending: false });
 
-    const text = response.text || "";
-    const analysis = extractJSON(text);
+    // Filter by verification status
+    if (verified === 'true') {
+      query = query.in('verification_status', ['verified', 'partial']);
+    }
 
-    return NextResponse.json(analysis);
-  } catch (error: any) {
-    console.error("Insider Trading Analysis Error:", error);
+    // Filter by transaction type
+    if (type === 'BUY' || type === 'SELL') {
+      query = query.eq('transaction_type', type);
+    }
+
+    // Filter by ticker
+    if (ticker) {
+      query = query.eq('ticker', ticker.toUpperCase());
+    }
+
+    // Pagination
+    query = query.range(
+      parseInt(offset), 
+      parseInt(offset) + parseInt(limit) - 1
+    );
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      throw error;
+    }
+
+    // Set cache headers (cache for 5 minutes)
     return NextResponse.json(
-      { error: error.message || "Failed to analyze insider trading" },
+      {
+        alerts: data as InsiderAlert[],
+        total: count,
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+      },
+      {
+        headers: {
+          'Cache-Control': 's-maxage=300, stale-while-revalidate',
+        },
+      }
+    );
+
+  } catch (error) {
+    console.error('Error fetching alerts:', error);
+    return NextResponse.json(
+      {
+        error: 'Failed to fetch alerts',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
       { status: 500 }
     );
   }

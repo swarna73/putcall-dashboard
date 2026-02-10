@@ -1,0 +1,43 @@
+name: Sync Insider Alerts
+
+on:
+  # Run every 4 hours
+  schedule:
+    - cron: '0 */4 * * *'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  sync-alerts:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Trigger Sync API
+        run: |
+          response=$(curl -s -w "\n%{http_code}" \
+            -X POST \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            "https://putcall.nl/api/sync-insider-alerts")
+          
+          # Extract body and status code
+          body=$(echo "$response" | head -n -1)
+          status_code=$(echo "$response" | tail -n 1)
+          
+          echo "Status Code: $status_code"
+          echo "Response: $body"
+          
+          # Check for success
+          if [ "$status_code" != "200" ]; then
+            echo "Sync failed with status $status_code"
+            exit 1
+          fi
+          
+          # Parse results
+          echo "$body" | jq -r '.results'
+
+      - name: Report Results
+        if: always()
+        run: |
+          echo "Insider alerts sync completed at $(date)"
+
