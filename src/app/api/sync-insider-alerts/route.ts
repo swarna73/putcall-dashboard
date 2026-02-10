@@ -54,8 +54,8 @@ async function verifyWithSec(alert: ParsedInsiderAlert): Promise<SecVerification
     const tickerMap = await tickerMapResponse.json();
     
     // Find CIK for ticker
-    let cik: string | null = null;
-    let companyName: string | null = null;
+    let cik: string | undefined = undefined;
+    let companyName: string | undefined = undefined;
     
     for (const key in tickerMap) {
       if (tickerMap[key].ticker === alert.ticker) {
@@ -76,15 +76,14 @@ async function verifyWithSec(alert: ParsedInsiderAlert): Promise<SecVerification
     );
 
     if (!filingsResponse.ok) {
-	return { verified: false, message: 'Failed to fetch filings', cik: cik ?? undefined, companyName: companyName ?? undefined };
+      return { verified: false, message: 'Failed to fetch filings', cik, companyName };
     }
-
 
     const filingsData = await filingsResponse.json();
     const recentFilings = filingsData.filings?.recent;
 
     if (!recentFilings?.form) {
-	return { verified: false, message: 'Failed to fetch filings', cik: cik ?? undefined, companyName: companyName ?? undefined };
+      return { verified: false, message: 'No recent filings', cik, companyName };
     }
 
     // Find Form 4 filings
