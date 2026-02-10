@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
 
   try {
     // Step 1: Fetch from Reddit
-    const redditUrl = 'https://www.reddit.com/r/InsiderData/new.json?limit=50';
+   const redditUrl = 'https://old.reddit.com/r/InsiderData/new.json?limit=50';
     const redditResponse = await fetch(redditUrl, {
       headers: {
 	'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
