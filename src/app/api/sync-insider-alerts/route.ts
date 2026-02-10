@@ -84,7 +84,7 @@ async function verifyWithSec(alert: ParsedInsiderAlert): Promise<SecVerification
     const recentFilings = filingsData.filings?.recent;
 
     if (!recentFilings?.form) {
-      return { verified: false, message: 'No recent filings', cik, companyName };
+	return { verified: false, message: 'Failed to fetch filings', cik: cik ?? undefined, companyName: companyName ?? undefined };
     }
 
     // Find Form 4 filings
