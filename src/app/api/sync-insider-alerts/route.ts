@@ -76,8 +76,9 @@ async function verifyWithSec(alert: ParsedInsiderAlert): Promise<SecVerification
     );
 
     if (!filingsResponse.ok) {
-      return { verified: false, message: 'Failed to fetch filings', cik, companyName };
+	return { verified: false, message: 'Failed to fetch filings', cik: cik ?? undefined, companyName: companyName ?? undefined };
     }
+
 
     const filingsData = await filingsResponse.json();
     const recentFilings = filingsData.filings?.recent;
