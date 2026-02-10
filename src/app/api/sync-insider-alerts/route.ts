@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
     const redditUrl = 'https://www.reddit.com/r/InsiderData/new.json?limit=50';
     const redditResponse = await fetch(redditUrl, {
       headers: {
-        'User-Agent': 'PutCall.nl:insider-monitor:v1.0 (by /u/putcall_nl)',
+	'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
       },
     });
 
