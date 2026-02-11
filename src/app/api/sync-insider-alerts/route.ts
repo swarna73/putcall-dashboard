@@ -1,149 +1,217 @@
 // API Route: /api/sync-insider-alerts
-// Automated pipeline: Reddit → SEC Verification → Supabase storage
-// Called by cron job (GitHub Actions or Vercel Cron)
+// Direct SEC EDGAR monitoring - fetches Form 4 filings and filters large transactions
+// No Reddit dependency
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase client
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_KEY!
 );
 
-interface ParsedInsiderAlert {
-  redditId: string;
+const SEC_USER_AGENT = 'PutCall.nl contact@putcall.nl';
+const MIN_TRANSACTION_VALUE = 100000; // $100K minimum
+
+interface Form4Transaction {
+  accessionNumber: string;
+  filingDate: string;
+  reportDate: string;
   ticker: string;
-  type: 'BUY' | 'SELL';
-  amount: string | null;
-  shares: number | null;
-  pricePerShare: number | null;
-  tradeDate: string | null;
-  filingDate: string | null;
-  insiderName: string | null;
-  companyName: string | null;
-  redditUrl: string;
-  redditScore: number;
-  postedAt: string;
-  rawText: string;
+  companyName: string;
+  cik: string;
+  insiderName: string;
+  insiderTitle: string;
+  transactionType: 'BUY' | 'SELL';
+  shares: number;
+  pricePerShare: number;
+  totalValue: number;
+  secFilingUrl: string;
 }
 
-interface SecVerification {
-  verified: boolean | 'partial';
-  message: string;
-  companyName?: string;
-  cik?: string;
-  secFilingUrl?: string;
-}
+// Fetch recent Form 4 filings from SEC
+async function fetchRecentForm4s(): Promise<any[]> {
+  const response = await fetch(
+    'https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=4&company=&dateb=&owner=only&count=100&output=atom',
+    { headers: { 'User-Agent': SEC_USER_AGENT } }
+  );
 
-// Verify a single alert against SEC EDGAR
-async function verifyWithSec(alert: ParsedInsiderAlert): Promise<SecVerification> {
-  const userAgent = 'PutCall.nl insider-verification tool contact@putcall.nl';
+  if (!response.ok) {
+    throw new Error(`SEC feed returned ${response.status}`);
+  }
 
-  try {
-    // Get ticker to CIK mapping
-    const tickerMapResponse = await fetch(
-      'https://www.sec.gov/files/company_tickers.json',
-      { headers: { 'User-Agent': userAgent } }
-    );
+  const text = await response.text();
+  
+  // Parse Atom feed entries
+  const entries: any[] = [];
+  const entryRegex = /<entry>([\s\S]*?)<\/entry>/g;
+  let match;
 
-    if (!tickerMapResponse.ok) {
-      return { verified: false, message: 'Failed to fetch SEC data' };
+  while ((match = entryRegex.exec(text)) !== null) {
+    const entry = match[1];
+    
+    const titleMatch = entry.match(/<title[^>]*>([\s\S]*?)<\/title>/);
+    const linkMatch = entry.match(/<link[^>]*href="([^"]+)"/);
+    const updatedMatch = entry.match(/<updated>([^<]+)<\/updated>/);
+    const summaryMatch = entry.match(/<summary[^>]*>([\s\S]*?)<\/summary>/);
+
+    if (titleMatch && linkMatch) {
+      entries.push({
+        title: titleMatch[1].trim(),
+        link: linkMatch[1],
+        updated: updatedMatch ? updatedMatch[1] : null,
+        summary: summaryMatch ? summaryMatch[1].trim() : '',
+      });
     }
+  }
 
-    const tickerMap = await tickerMapResponse.json();
+  return entries;
+}
+
+// Parse Form 4 filing details
+async function parseForm4Filing(entry: any): Promise<Form4Transaction | null> {
+  try {
+    // Extract accession number from link
+    const accessionMatch = entry.link.match(/accession-number=(\d{10}-\d{2}-\d{6})/);
+    if (!accessionMatch) return null;
     
-    // Find CIK for ticker
-    let cik: string | undefined = undefined;
-    let companyName: string | undefined = undefined;
+    const accessionNumber = accessionMatch[1];
+    const accessionFormatted = accessionNumber.replace(/-/g, '');
     
-    for (const key in tickerMap) {
-      if (tickerMap[key].ticker === alert.ticker) {
-        cik = String(tickerMap[key].cik_str).padStart(10, '0');
-        companyName = tickerMap[key].title;
-        break;
+    // Extract CIK from title (format: "4 - Company Name (0001234567) (Reporting)")
+    const titleParts = entry.title.match(/4\s*-\s*(.+?)\s*\((\d+)\)/);
+    if (!titleParts) return null;
+    
+    const companyName = titleParts[1].trim();
+    const cik = titleParts[2].padStart(10, '0');
+
+    // Fetch the Form 4 XML
+    const xmlUrl = `https://www.sec.gov/Archives/edgar/data/${cik.replace(/^0+/, '')}/${accessionFormatted}`;
+    
+    // Get the filing index to find the XML file
+    const indexResponse = await fetch(`${xmlUrl}/index.json`, {
+      headers: { 'User-Agent': SEC_USER_AGENT }
+    });
+    
+    if (!indexResponse.ok) return null;
+    
+    const indexData = await indexResponse.json();
+    const xmlFile = indexData.directory?.item?.find((f: any) => 
+      f.name.endsWith('.xml') && !f.name.includes('primary')
+    );
+    
+    if (!xmlFile) return null;
+
+    // Fetch and parse the XML
+    const xmlResponse = await fetch(`${xmlUrl}/${xmlFile.name}`, {
+      headers: { 'User-Agent': SEC_USER_AGENT }
+    });
+    
+    if (!xmlResponse.ok) return null;
+    
+    const xmlText = await xmlResponse.text();
+    
+    // Parse key fields from XML
+    const tickerMatch = xmlText.match(/<issuerTradingSymbol>([^<]+)<\/issuerTradingSymbol>/);
+    const insiderNameMatch = xmlText.match(/<rptOwnerName>([^<]+)<\/rptOwnerName>/);
+    const insiderTitleMatch = xmlText.match(/<officerTitle>([^<]+)<\/officerTitle>/) ||
+                              xmlText.match(/<rptOwnerRelationship>[\s\S]*?<isDirector>true<\/isDirector>/) ||
+                              xmlText.match(/<rptOwnerRelationship>[\s\S]*?<isTenPercentOwner>true<\/isTenPercentOwner>/);
+    
+    // Parse transactions (can be multiple)
+    const transactionRegex = /<nonDerivativeTransaction>([\s\S]*?)<\/nonDerivativeTransaction>/g;
+    let txMatch;
+    let totalShares = 0;
+    let avgPrice = 0;
+    let transactionType: 'BUY' | 'SELL' | null = null;
+    let priceCount = 0;
+    let reportDate = '';
+
+    while ((txMatch = transactionRegex.exec(xmlText)) !== null) {
+      const tx = txMatch[1];
+      
+      // Transaction date
+      const dateMatch = tx.match(/<transactionDate>[\s\S]*?<value>([^<]+)<\/value>/);
+      if (dateMatch && !reportDate) {
+        reportDate = dateMatch[1];
+      }
+      
+      // Acquisition (A) or Disposition (D)
+      const codeMatch = tx.match(/<transactionAcquiredDisposedCode>[\s\S]*?<value>([AD])<\/value>/);
+      if (codeMatch) {
+        const code = codeMatch[1];
+        if (!transactionType) {
+          transactionType = code === 'A' ? 'BUY' : 'SELL';
+        }
+      }
+      
+      // Shares
+      const sharesMatch = tx.match(/<transactionShares>[\s\S]*?<value>([^<]+)<\/value>/);
+      if (sharesMatch) {
+        totalShares += parseFloat(sharesMatch[1]);
+      }
+      
+      // Price per share
+      const priceMatch = tx.match(/<transactionPricePerShare>[\s\S]*?<value>([^<]+)<\/value>/);
+      if (priceMatch) {
+        avgPrice += parseFloat(priceMatch[1]);
+        priceCount++;
       }
     }
 
-    if (!cik) {
-      return { verified: false, message: `Ticker ${alert.ticker} not found in SEC` };
+    if (!tickerMatch || !transactionType || totalShares === 0) return null;
+    
+    // Calculate average price
+    if (priceCount > 0) {
+      avgPrice = avgPrice / priceCount;
     }
+    
+    const totalValue = totalShares * avgPrice;
+    
+    // Filter for significant transactions
+    if (totalValue < MIN_TRANSACTION_VALUE) return null;
 
-    // Get company filings
-    const filingsResponse = await fetch(
-      `https://data.sec.gov/submissions/CIK${cik}.json`,
-      { headers: { 'User-Agent': userAgent } }
-    );
+    // Get filing date from entry
+    const filingDate = entry.updated ? entry.updated.split('T')[0] : new Date().toISOString().split('T')[0];
 
-    if (!filingsResponse.ok) {
-      return { verified: false, message: 'Failed to fetch filings', cik, companyName };
-    }
-
-    const filingsData = await filingsResponse.json();
-    const recentFilings = filingsData.filings?.recent;
-
-    if (!recentFilings?.form) {
-      return { verified: false, message: 'No recent filings', cik, companyName };
-    }
-
-    // Find Form 4 filings
-    for (let i = 0; i < recentFilings.form.length && i < 20; i++) {
-      if (recentFilings.form[i] === '4') {
-        const filingDate = recentFilings.filingDate[i];
-        const reportDate = recentFilings.reportDate?.[i];
-        
-        // Check if dates match (if we have a trade date)
-        if (alert.tradeDate) {
-          if (reportDate === alert.tradeDate || filingDate === alert.filingDate) {
-            const accession = recentFilings.accessionNumber[i].replace(/-/g, '');
-            const cleanCik = cik.replace(/^0+/, '');
-            const secFilingUrl = `https://www.sec.gov/Archives/edgar/data/${cleanCik}/${accession}/${recentFilings.primaryDocument[i]}`;
-            
-            return {
-              verified: true,
-              message: `Verified: Form 4 filed ${filingDate}`,
-              companyName,
-              cik,
-              secFilingUrl,
-            };
-          }
-        } else {
-          // No trade date to match, but Form 4 exists recently
-          const accession = recentFilings.accessionNumber[i].replace(/-/g, '');
-          const cleanCik = cik.replace(/^0+/, '');
-          const secFilingUrl = `https://www.sec.gov/Archives/edgar/data/${cleanCik}/${accession}/${recentFilings.primaryDocument[i]}`;
-          
-          return {
-            verified: 'partial',
-            message: `Form 4 found (${filingDate}), no exact date match`,
-            companyName,
-            cik,
-            secFilingUrl,
-          };
-        }
+    let insiderTitle = 'Insider';
+    if (insiderTitleMatch) {
+      if (typeof insiderTitleMatch[1] === 'string') {
+        insiderTitle = insiderTitleMatch[1];
+      } else if (insiderTitleMatch[0].includes('isDirector')) {
+        insiderTitle = 'Director';
+      } else if (insiderTitleMatch[0].includes('isTenPercentOwner')) {
+        insiderTitle = '10% Owner';
       }
     }
 
     return {
-      verified: 'partial',
-      message: 'Company found but no recent Form 4 match',
+      accessionNumber,
+      filingDate,
+      reportDate: reportDate || filingDate,
+      ticker: tickerMatch[1].toUpperCase(),
       companyName,
       cik,
+      insiderName: insiderNameMatch ? insiderNameMatch[1] : 'Unknown',
+      insiderTitle,
+      transactionType,
+      shares: Math.round(totalShares),
+      pricePerShare: Math.round(avgPrice * 100) / 100,
+      totalValue: Math.round(totalValue),
+      secFilingUrl: `https://www.sec.gov/Archives/edgar/data/${cik.replace(/^0+/, '')}/${accessionFormatted}`,
     };
 
   } catch (error) {
-    console.error(`SEC verification error for ${alert.ticker}:`, error);
-    return { verified: false, message: 'SEC verification failed' };
+    console.error('Error parsing Form 4:', error);
+    return null;
   }
 }
 
-// Rate limiting helper - SEC allows 10 req/sec
 function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 export async function POST(request: NextRequest) {
-  // Verify cron secret for security
   const cronSecret = request.headers.get('x-cron-secret') || 
                      new URL(request.url).searchParams.get('secret');
   
@@ -154,148 +222,81 @@ export async function POST(request: NextRequest) {
   const results = {
     fetched: 0,
     parsed: 0,
-    verified: 0,
-    partial: 0,
+    qualified: 0,
     stored: 0,
     skipped: 0,
     errors: [] as string[],
   };
 
   try {
-    // Step 1: Fetch from Reddit
-   const redditUrl = 'https://old.reddit.com/r/InsiderData/new.json?limit=50';
-    const redditResponse = await fetch(redditUrl, {
-      headers: {
-	'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-      },
-    });
+    // Step 1: Fetch recent Form 4s from SEC
+    const entries = await fetchRecentForm4s();
+    results.fetched = entries.length;
 
-    if (!redditResponse.ok) {
-      throw new Error(`Reddit API returned ${redditResponse.status}`);
-    }
-
-    const redditData = await redditResponse.json();
-    const posts = redditData.data.children.map((child: any) => child.data);
-    results.fetched = posts.length;
-
-    // Step 2: Parse posts for insider alerts
-    const alerts: ParsedInsiderAlert[] = [];
+    // Step 2: Parse each filing (with rate limiting)
+    const transactions: Form4Transaction[] = [];
     
-    for (const post of posts) {
-      const text = `${post.title} ${post.selftext}`;
+    for (const entry of entries.slice(0, 50)) { // Process up to 50
+      await delay(120); // SEC rate limit: 10 req/sec
       
-      // Check for insider alert indicators
-      if (!text.toLowerCase().includes('insider') && 
-          !text.toLowerCase().includes('form 4')) {
-        continue;
+      const tx = await parseForm4Filing(entry);
+      if (tx) {
+        transactions.push(tx);
+        results.parsed++;
       }
-
-      // Extract ticker
-      const tickerMatch = text.match(/\$([A-Z]{1,5})\b/i);
-      if (!tickerMatch) continue;
-
-      const ticker = tickerMatch[1].toUpperCase();
-      
-      // Determine buy or sell
-      const isBuy = text.toLowerCase().includes('buy') || 
-                    text.toLowerCase().includes('purchased');
-      const isSell = text.toLowerCase().includes('sell') || 
-                     text.toLowerCase().includes('sold');
-      
-      if (!isBuy && !isSell) continue;
-
-      // Extract other fields
-      const amountMatch = text.match(/\$(\d+\.?\d*)\s*([MBK])/i);
-      const sharesMatch = text.match(/(\d{1,3}(?:,\d{3})*)\s*shares/i);
-      const priceMatch = text.match(/\$(\d+\.?\d*)\s*per share/i);
-      const tradeDateMatch = text.match(/Trade Date[:\s]*(\d{4}-\d{2}-\d{2})/i);
-      const filingDateMatch = text.match(/Filing Date[:\s]*(\d{4}-\d{2}-\d{2})/i);
-
-      alerts.push({
-        redditId: post.id,
-        ticker,
-        type: isBuy ? 'BUY' : 'SELL',
-        amount: amountMatch ? amountMatch[0] : null,
-        shares: sharesMatch ? parseInt(sharesMatch[1].replace(/,/g, '')) : null,
-        pricePerShare: priceMatch ? parseFloat(priceMatch[1]) : null,
-        tradeDate: tradeDateMatch ? tradeDateMatch[1] : null,
-        filingDate: filingDateMatch ? filingDateMatch[1] : null,
-        insiderName: null,
-        companyName: null,
-        redditUrl: `https://reddit.com${post.permalink}`,
-        redditScore: post.score,
-        postedAt: new Date(post.created_utc * 1000).toISOString(),
-        rawText: text.slice(0, 500),
-      });
     }
+    
+    results.qualified = transactions.length;
 
-    results.parsed = alerts.length;
-
-    // Step 3: Check which alerts we already have
-    const redditIds = alerts.map(a => a.redditId);
-    const { data: existingAlerts } = await supabase
+    // Step 3: Check for existing entries
+    const accessionNumbers = transactions.map(t => t.accessionNumber);
+    const { data: existing } = await supabase
       .from('insider_alerts')
-      .select('reddit_id')
-      .in('reddit_id', redditIds);
+      .select('reddit_id') // Using reddit_id field to store accession number
+      .in('reddit_id', accessionNumbers);
 
-    const existingIds = new Set(existingAlerts?.map(a => a.reddit_id) || []);
-    const newAlerts = alerts.filter(a => !existingIds.has(a.redditId));
-    results.skipped = alerts.length - newAlerts.length;
+    const existingIds = new Set(existing?.map(e => e.reddit_id) || []);
+    const newTransactions = transactions.filter(t => !existingIds.has(t.accessionNumber));
+    results.skipped = transactions.length - newTransactions.length;
 
-    // Step 4: Verify new alerts with SEC and store
-    for (const alert of newAlerts) {
-      try {
-        // Rate limit for SEC API
-        await delay(150);
-        
-        const verification = await verifyWithSec(alert);
-        
-        if (verification.verified === true) {
-          results.verified++;
-        } else if (verification.verified === 'partial') {
-          results.partial++;
-        }
+    // Step 4: Store new transactions
+    for (const tx of newTransactions) {
+      const { error } = await supabase
+        .from('insider_alerts')
+        .insert({
+          reddit_id: tx.accessionNumber, // Reusing field for unique ID
+          ticker: tx.ticker,
+          transaction_type: tx.transactionType,
+          amount: `$${(tx.totalValue / 1000000).toFixed(2)}M`,
+          shares: tx.shares,
+          price_per_share: tx.pricePerShare,
+          trade_date: tx.reportDate,
+          filing_date: tx.filingDate,
+          insider_name: tx.insiderName,
+          company_name: tx.companyName,
+          cik: tx.cik,
+          reddit_url: null, // No Reddit source
+          reddit_score: 0,
+          posted_at: new Date().toISOString(),
+          raw_text: `${tx.insiderName} (${tx.insiderTitle}) ${tx.transactionType === 'BUY' ? 'bought' : 'sold'} ${tx.shares.toLocaleString()} shares at $${tx.pricePerShare}`,
+          verification_status: 'verified', // Direct from SEC = always verified
+          verification_message: 'Direct SEC EDGAR Form 4 filing',
+          sec_filing_url: tx.secFilingUrl,
+          synced_at: new Date().toISOString(),
+        });
 
-        // Store in Supabase
-        const { error: insertError } = await supabase
-          .from('insider_alerts')
-          .insert({
-            reddit_id: alert.redditId,
-            ticker: alert.ticker,
-            transaction_type: alert.type,
-            amount: alert.amount,
-            shares: alert.shares,
-            price_per_share: alert.pricePerShare,
-            trade_date: alert.tradeDate,
-            filing_date: alert.filingDate,
-            insider_name: alert.insiderName,
-            company_name: verification.companyName || alert.companyName,
-            cik: verification.cik,
-            reddit_url: alert.redditUrl,
-            reddit_score: alert.redditScore,
-            posted_at: alert.postedAt,
-            raw_text: alert.rawText,
-            verification_status: verification.verified === true ? 'verified' 
-              : verification.verified === 'partial' ? 'partial' : 'unverified',
-            verification_message: verification.message,
-            sec_filing_url: verification.secFilingUrl,
-            synced_at: new Date().toISOString(),
-          });
-
-        if (insertError) {
-          results.errors.push(`Insert error for ${alert.ticker}: ${insertError.message}`);
-        } else {
-          results.stored++;
-        }
-
-      } catch (error) {
-        results.errors.push(`Error processing ${alert.ticker}: ${error}`);
+      if (error) {
+        results.errors.push(`Insert error for ${tx.ticker}: ${error.message}`);
+      } else {
+        results.stored++;
       }
     }
 
     return NextResponse.json({
       success: true,
       results,
+      source: 'SEC EDGAR Direct',
+      minTransactionValue: MIN_TRANSACTION_VALUE,
       syncedAt: new Date().toISOString(),
     });
 
@@ -312,7 +313,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Also allow GET for manual testing (still requires secret)
 export async function GET(request: NextRequest) {
   return POST(request);
 }
